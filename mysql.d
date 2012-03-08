@@ -4182,7 +4182,7 @@ public:
                   col.name = t;
                   break;
                case 4:
-                  col.index = cast(uint) r[j].get!(ulong)-1;
+                  col.index = cast(uint)(r[j].get!(ulong)-1);
                   break;
                case 5:
                   if (isNull)
@@ -4198,10 +4198,10 @@ public:
                   col.type = t;
                   break;
                case 8:
-                  col.charsMax = isNull? -1L: cast(long) r[j].get!(ulong);
+                  col.charsMax = cast(long)(isNull? -1L: r[j].get!(ulong));
                   break;
                case 9:
-                  col.octetsMax = isNull? -1L: cast(long) r[j].get!(ulong);
+                  col.octetsMax = cast(long)(isNull? -1L: r[j].get!(ulong));
                   break;
                case 10:
                   col.numericPrecision = cast(short) (isNull? -1: r[j].get!(ulong));
