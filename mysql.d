@@ -2259,10 +2259,13 @@ private:
       _ra = ra;
       _rc = ra.length;
       _colNames = colNames;
-      _rb.length = _ra.length;
-      foreach (int i; 0.._ra.length)
-         _rb[i] = i;
-      _cr = _rb[0];
+	  if(_rc)
+	  {
+		  _rb.length = _ra.length;
+		  foreach (int i; 0.._ra.length)
+			  _rb[i] = i;
+		  _cr = _rb[0];
+	  }
    }
 
 public:
@@ -2307,8 +2310,7 @@ public:
     */
    void popFront()
    {
-      if (!_rb.length)
-         throw new Exception("Attempted 'popFront' on empty ResultSet range.");
+      enforceEx!MYX(_rb.length, "Attempted 'popFront' on empty ResultSet range.");
       bool updateCr = (_cr == _rb[0]);
       _rb = _rb[1 .. $];
       if (updateCr && _rb.length)
@@ -2366,6 +2368,7 @@ public:
     */
     Column[string] asAA()
     {
+       enforceEx!MYX(_rb.length, "Attempted use of empty ResultSet as an associative array.");
        Row r = _ra[_cr];
        Column[string] aa;
        foreach (uint i, string s; _colNames)
