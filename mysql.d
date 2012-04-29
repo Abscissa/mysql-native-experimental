@@ -4368,6 +4368,3 @@ unittest
    assert(pa[0].db == "mysqld" && pa[0].name == "insert2" && pa[0].type == "PROCEDURE");
 }
 
-void main()
-{
-}
