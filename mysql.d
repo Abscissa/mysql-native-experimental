@@ -1317,7 +1317,7 @@ protected:
    void init_connection()
    {
       _socket = new TcpSocket();
-      Address a = new InternetAddress("localhost", InternetAddress.PORT_ANY);
+      Address a = new InternetAddress(InternetAddress.PORT_ANY);
       _socket.bind(a);
       a = new InternetAddress(_host, _port);
       _socket.setOption(SocketOptionLevel.SOCKET,
