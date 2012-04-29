@@ -1,0 +1,13 @@
+{
+    "name": "mysql-native",
+	"copyright": "Copyright (c) 2011 Steve Teale",
+    "authors": [
+		"Steve Teale",
+		"JollieRoger",
+		"simendsjo",
+		"Sönke Ludwig"
+	],
+    "version": "0.0.1",
+    "dependencies": {
+    }
+}
