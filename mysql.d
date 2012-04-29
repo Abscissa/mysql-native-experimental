@@ -71,7 +71,7 @@ import std.datetime;
  */
 class MySQLException: Exception
 {
-   this(string msg, string file, uint line) { super(msg, file, line); }
+   this(string msg, string file, size_t line) { super(msg, file, line); }
 }
 alias MySQLException MYX;
 
@@ -601,7 +601,7 @@ ubyte[] parseLCS(ref ubyte* ubp, out bool nullFlag)
    return t[0..len].dup;
 }
 
-ubyte[] packLength(uint l, out uint offset)
+ubyte[] packLength(size_t l, out size_t offset)
 {
    ubyte[] t;
    if (!l)
@@ -656,7 +656,7 @@ ubyte[] packLength(uint l, out uint offset)
 
 ubyte[] packLCS(void[] a)
 {
-   uint offset;
+   size_t offset;
    ubyte[] t = packLength(a.length, offset);
    if (t[0])
       t[offset..$] = (cast(ubyte[]) a)[0..$];
@@ -775,7 +775,7 @@ struct OKPacket
             sqlState[] = cast(char[]) ubp[0..5];
             ubp += 5;
          }
-         uint rem = pe-ubp;
+         size_t rem = pe-ubp;
          if (rem)
          {
             message.length = rem;
@@ -795,7 +795,7 @@ struct OKPacket
          serverStatus = getShort(ubp);
          enforceEx!MYX(ubp+2 <= pe, "Malformed OK/Error packet");
          warnings = getShort(ubp);
-         uint rem = pe-ubp;
+         size_t rem = pe-ubp;
          if (rem)
          {
             message.length = rem;
@@ -1180,7 +1180,7 @@ protected:
       ubyte[] buf;
       buf.length = (pl > _rbs)? _rbs: pl;
       uint got = 0;
-      uint n = _socket.receive(buf);
+      size_t n = _socket.receive(buf);
       for (;;)
       {
          _packet[got..got+n] = buf[0..n];
@@ -1201,7 +1201,7 @@ protected:
    void sendCmd(ubyte cmd, string s)
    {
       _cpn  = 0;
-      uint pl =s.length+1;
+      size_t pl =s.length+1;
       _packet.length = pl+4;
       _packet[0] = cast(ubyte) (pl & 0xff);
       _packet[1] = cast(ubyte) ((pl >> 8) & 0xff);
@@ -1244,7 +1244,7 @@ protected:
       foreach (int i; 0..23)
          *p++ = 0;
       // Add the user name as a null terminated string
-      foreach (uint i; 0.._user.length)
+      foreach (i; 0.._user.length)
          *p++ = _user[i];
       *p++ = 0;
       // Add our calculated authentication token as a length prefixed string. It is basically a
@@ -1255,12 +1255,12 @@ protected:
       // if the default database is being set, add this finally as a null terminated string.
       if (_db.length)
       {
-         foreach (uint i; 0.._db.length)
+         foreach (i; 0.._db.length)
             *p++ = _db[i];
          *p++ = 0;
       }
       // Now we can determine the size of the packet and trim the array to that length.
-      uint pl = p - _packet.ptr;
+      size_t pl = p - _packet.ptr;
       _packet.length = pl;
       // Back to the beginning of the packet
       p = _packet.ptr;
@@ -1276,7 +1276,8 @@ protected:
       p[1] = cast(ubyte) ((pl >> 8) & 0xff);
       p[0] = cast(ubyte) (pl & 0xff);
       // Hopefully at this point it is ready to send.
-      return pl;
+      assert(pl <= uint.max);
+      return cast(uint)pl;
    }
 
    void getServerInfo(ref ubyte* p)
@@ -1291,7 +1292,7 @@ protected:
    {
       ubyte* p = _packet.ptr+4;
       _protocol = *p++;
-      uint len, offset;
+      size_t len, offset;
       ubyte* q = p;
       offset = q-_packet.ptr;
       while (*p) p++;
@@ -1767,7 +1768,7 @@ public:
       _uva.length = fc;
       _nulls.length = fc;
       uint p = 0;
-      uint pl = packet.length;
+      size_t pl = packet.length;
       uint tl;
       bool nullFlag, incomplete, gotPrefix;
       ulong lc;
@@ -2268,7 +2269,7 @@ private:
 	  if(_rc)
 	  {
 		  _rb.length = _ra.length;
-		  foreach (int i; 0.._ra.length)
+		  foreach (size_t i; 0.._ra.length)
 			  _rb[i] = i;
 		  _cr = _rb[0];
 	  }
@@ -2362,7 +2363,7 @@ public:
    void revert()
    {
        _rb.length = _ra.length;
-      foreach (uint i; 0.._ra.length)
+      foreach (size_t i; 0.._ra.length)
          _rb[i] = i;
   }
 
@@ -2517,7 +2518,7 @@ private:
       enforceEx!MYX(!(_headersPending || _rowsPending), "There are result set elements pending - purgeResult() required.");
       _con.resetPacket();
       ubyte[] packet;
-      uint pl = _sql.length+1;
+      size_t pl = _sql.length+1;
       packet.length = pl+4;
       ubyte* ubp = packet.ptr;
       packet[0] = cast(ubyte) (pl & 0xff);
@@ -2534,7 +2535,7 @@ private:
 
    static ubyte[] makeBitmap(ParameterSpecialization[] psa)
    {
-      uint bml = (psa.length+7)/8;
+      size_t bml = (psa.length+7)/8;
       ubyte[] bma;
       bma.length = bml;
       foreach (uint i, PSN psn; psa)
@@ -2571,26 +2572,26 @@ private:
 
    ubyte[] analyseParams(out ubyte[] vals, out bool longData)
    {
-      uint pc = _inParams.length;
+      size_t pc = _inParams.length;
       ubyte[] types;
       types.length = pc*2;
-      uint alloc = pc*20;
+      size_t alloc = pc*20;
       vals.length = alloc;
       uint vcl = 0, len;
       int ct = 0;
 
-      void reAlloc(uint n)
+      void reAlloc(size_t n)
       {
          if (vcl+n < alloc)
             return;
-         uint inc = (alloc*3)/2;
+         size_t inc = (alloc*3)/2;
          if (inc <  n)
             inc = n;
          alloc += inc;
          vals.length = alloc;
       }
 
-      foreach (uint i; 0..pc)
+      foreach (size_t i; 0..pc)
       {
          if (_psa[i].chunkSize)
             longData= true;
@@ -2734,7 +2735,7 @@ private:
                types[ct++] = 0;
                Date date = isRef? *(v.get!(Date*)): v.get!(Date);
                ubyte[] da = pack(date);
-               uint l = da.length;
+               size_t l = da.length;
                if (isnull) break;
                reAlloc(l);
                vals[vcl..vcl+l] = da[];
@@ -2745,7 +2746,7 @@ private:
                types[ct++] = 0;
                TimeOfDay time = isRef? *(v.get!(TimeOfDay*)): v.get!(TimeOfDay);
                ubyte[] ta = pack(time);
-               uint l = ta.length;
+               size_t l = ta.length;
                if (isnull) break;
                reAlloc(l);
                vals[vcl..vcl+l] = ta[];
@@ -2756,7 +2757,7 @@ private:
                types[ct++] = 0;
                DateTime dt = isRef? *(v.get!(DateTime*)): v.get!(DateTime);
                ubyte[] da = pack(dt);
-               uint l = da.length;
+               size_t l = da.length;
                if (isnull) break;
                reAlloc(l);
                vals[vcl..vcl+l] = da[];
@@ -2768,7 +2769,7 @@ private:
                Timestamp tms = isRef? *(v.get!(Timestamp*)): v.get!(Timestamp);
                DateTime dt = toDateTime(tms.rep);
                ubyte[] da = pack(dt);
-               uint l = da.length;
+               size_t l = da.length;
                if (isnull) break;
                reAlloc(l);
                vals[vcl..vcl+l] = da[];
@@ -3330,7 +3331,7 @@ c.param(1) = "The answer";
       _con.resetPacket();
 
       ubyte[] prefix = makePSPrefix(0);
-      uint len = prefix.length;
+      size_t len = prefix.length;
       bool longData;
 
       if (_psh._paramCount)
@@ -3347,7 +3348,8 @@ c.param(1) = "The answer";
       if (longData)
          sendLongData();
 
-      uint pl = packet.length - 4;
+      assert(packet.length <= uint.max);
+      uint pl = cast(uint)packet.length - 4;
       packet[0] = cast(ubyte) (pl & 0xff);
       packet[1] = cast(ubyte) ((pl >> 8) & 0xff);
       packet[2] = cast(ubyte) ((pl >> 16) & 0xff);
@@ -4044,9 +4046,9 @@ private:
       _mdc = Command(_con, query);
       _rs = _mdc.execSQLResult();
       MySQLProcedure[] pa;
-      uint n = _rs.length;
+      size_t n = _rs.length;
       pa.length = n;
-      foreach (uint i; 0..n)
+      foreach (size_t i; 0..n)
       {
          MySQLProcedure foo;
          Row r = _rs[i];
@@ -4122,8 +4124,8 @@ public:
       string[] rv;
       _mdc = Command(_con, "show databases");
       _rs = _mdc.execSQLResult();
-      uint n = _rs.length;
-      foreach (uint i; 0..n)
+      size_t n = _rs.length;
+      foreach (size_t i; 0..n)
       {
          string s;
          Row r = _rs[i];
@@ -4143,8 +4145,8 @@ public:
       string[] rv;
       _mdc = Command(_con, "show tables");
       _rs = _mdc.execSQLResult();
-      uint n = _rs.length;
-      foreach (uint i; 0..n)
+      size_t n = _rs.length;
+      foreach (size_t i; 0..n)
       {
          string s;
          Row r = _rs[i];
@@ -4166,10 +4168,10 @@ public:
       string query = "select * from information_schema.COLUMNS where table_name='" ~ table ~ "'";
       _mdc = Command(_con, query);
       _rs = _mdc.execSQLResult();
-      uint n = _rs.length;
+      size_t n = _rs.length;
       MySQLColumn[] ca;
       ca.length = n;
-      foreach (uint i; 0..n)
+      foreach (size_t i; 0..n)
       {
          MySQLColumn col;
          Row r = _rs[i];
