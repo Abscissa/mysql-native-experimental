@@ -1162,6 +1162,7 @@ protected:
    ubyte _cpn;
    string _serverVersion;
    string _host, _user, _pwd, _db;
+   ushort _port;
    ubyte[] _token;
 
    @property pktNumber() { return _cpn; }
@@ -1318,7 +1319,7 @@ protected:
       _socket = new TcpSocket();
       Address a = new InternetAddress("localhost", InternetAddress.PORT_ANY);
       _socket.bind(a);
-      a = new InternetAddress(_host, 3306);
+      a = new InternetAddress(_host, _port);
       _socket.setOption(SocketOptionLevel.SOCKET,
                                 SocketOption.RCVBUF, (1 << 24)-1);
       int rbs;
@@ -1395,6 +1396,9 @@ protected:
             case "db":
                rv[3] = val;
                break;
+			case "port":
+			   rv[4] = val;
+			   break;
             default:
                throw new Exception("Bad connection string: " ~ cs);
                break;
@@ -1434,12 +1438,13 @@ public:
  *    db = Desired initial database.
  *    capFlags = The set of flag bits from the server's capabilities that the client requires
  */
-   this(string host, string user, string pwd, string db, uint capFlags = defaultClientFlags)
+   this(string host, string user, string pwd, string db, ushort port = 3306, uint capFlags = defaultClientFlags)
    {
       _host = host;
       _user = user;
       _pwd = pwd;
       _db = db;
+	  _port = port;
       init_connection();
       parseGreeting();
       _open = 1;
@@ -1466,6 +1471,7 @@ public:
       _user = a[1];
       _pwd = a[2];
       _db = a[3];
+	  _port = to!(ushort)(a[4]);
       init_connection();
       parseGreeting();
       _open = 1;
