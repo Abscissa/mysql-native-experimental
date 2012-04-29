@@ -7,7 +7,7 @@ void main(string [] args)
 {
 	immutable uint myFlags = SvrCapFlags.SECURE_PWD | SvrCapFlags.ALL_COLUMN_FLAGS | SvrCapFlags.PROTOCOL41 | SvrCapFlags.SECURE_CONNECTION | SvrCapFlags.WITH_DB; // | SvrCapFlags.MULTI_STATEMENTS | SvrCapFlags.MULTI_RESULTS;
 
-	auto c = new Connection("host", "user", "password", "database", port, serverFlags);
+	auto c = new Connection("host", "user", "password", "database");
 	scope(exit) c.close();
 //   writefln("You have connected to server version %s", c.serverVersion);
 //   writefln("With currents stats : %s", c.serverStats());

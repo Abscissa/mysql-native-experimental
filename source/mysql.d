@@ -58,7 +58,8 @@ module mysql;
 
 import sha1;
 
-import std.socket;
+import vibe.core.tcp;
+
 import std.exception;
 import std.stdio;
 import std.string;
@@ -1145,12 +1146,11 @@ public:
 class Connection
 {
 protected:
-   Socket _socket;
+   TcpConnection _socket;
    int _open;
    ubyte[] _packet;
    ubyte[4] _hdr;
    uint _sCaps, _sThread, _cCaps;
-   uint _rbs, _sbs;
    ushort _serverStatus;
    ubyte _sCharSet, _protocol;
    ubyte[] _authBuf;
@@ -1171,33 +1171,21 @@ protected:
 
    ubyte[] getPacket(out uint pl)
    {
-      _socket.receive(_hdr);
+      _socket.read(_hdr);
       pl = (_hdr[2] << 16) + (_hdr[1] << 8) + _hdr[0];
       ubyte pn = _hdr[3];
       enforceEx!MYX(pn == _cpn, "Server packet out of order");
       _cpn++;
       _packet.length = pl;
-      ubyte[] buf;
-      buf.length = (pl > _rbs)? _rbs: pl;
-      uint got = 0;
-      size_t n = _socket.receive(buf);
-      for (;;)
-      {
-         _packet[got..got+n] = buf[0..n];
-         got += n;
-         if (got >= pl)
-            break;
-         if (pl-got < _rbs)
-         buf.length = pl-got;
-         n =_socket.receive(buf);
-      }
+      _socket.read(_packet);
       return _packet.dup;
    }
 
    void send(ubyte[] packet)
    {
-      _socket.send(packet);
+      _socket.write(packet);
    }
+
    void sendCmd(ubyte cmd, string s)
    {
       _cpn  = 0;
@@ -1210,7 +1198,7 @@ protected:
       _packet[4] = cmd;
       _packet[5 .. s.length+5] = (cast(ubyte[]) s)[0..$];
       _cpn++;
-      enforceEx!MYX(_socket.send(_packet) != -1, "Socket send failed");
+      _socket.write(_packet);
    }
 
    OKPacket getCmdResponse(bool asString = false)
@@ -1317,18 +1305,13 @@ protected:
 
    void init_connection()
    {
-      _socket = new TcpSocket();
-      Address a = new InternetAddress(InternetAddress.PORT_ANY);
-      _socket.bind(a);
-      a = new InternetAddress(_host, _port);
-      _socket.setOption(SocketOptionLevel.SOCKET,
-                                SocketOption.RCVBUF, (1 << 24)-1);
+      _socket = connectTcp(_host, _port);
+      //_socket.setOption(SocketOptionLevel.SOCKET, SocketOption.RCVBUF, (1 << 24)-1);
       int rbs;
-      _socket.getOption(SocketOptionLevel.SOCKET, SocketOption.RCVBUF, rbs);
-      _rbs = rbs;
-      _socket.connect(a);
+      //_socket.getOption(SocketOptionLevel.SOCKET, SocketOption.RCVBUF, rbs);
+      //_rbs = rbs;
       _packet.length = 255;
-      _socket.receive(_packet);
+      _socket.read(_packet);
       _cpn++;
    }
 
@@ -1397,12 +1380,11 @@ protected:
             case "db":
                rv[3] = val;
                break;
-			case "port":
-			   rv[4] = val;
-			   break;
+   			case "port":
+   			   rv[4] = val;
+			      break;
             default:
                throw new Exception("Bad connection string: " ~ cs);
-               break;
          }
       }
       return rv;
@@ -1412,7 +1394,7 @@ protected:
    {
       _token = makeToken();
       buildAuthPacket();
-      _socket.send(_packet);
+      _socket.write(_packet);
       uint pl;
       getPacket(pl);
       ubyte* ubp = _packet.ptr;
@@ -1501,12 +1483,11 @@ public:
       {
          _packet.length = 5;
          _packet[] = [1, 0, 0, 0, 1 ];
-         _socket.send(_packet);
+         _socket.write(_packet);
          _open--;
       }
       if (_open)
       {
-         _socket.shutdown(SocketShutdown.BOTH);
          _socket.close();
       }
       _open = 0;
@@ -2829,7 +2810,6 @@ private:
                break;
             default:
                throw new MYX("Unsupported parameter type", __FILE__, __LINE__);
-               break;
          }
       }
       vals.length = vcl;
