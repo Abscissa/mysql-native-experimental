@@ -61,6 +61,7 @@ import sha1;
 import vibe.core.tcp;
 
 import std.exception;
+import std.range;
 import std.stdio;
 import std.string;
 import std.conv;
@@ -1300,7 +1301,7 @@ protected:
 
       // read the scramble and the terminating null byte
       _socket.read(dst[0 .. scramble_length+1]);
-      enforce(tmp[scramble_length] == 0, "Handshake packet must be zero terminated.");
+      enforce(dst[scramble_length] == 0, "Handshake packet must be zero terminated.");
 
       dst.popFrontN(scramble_length+1);
       _packet.length = _packet.length - dst.length;
