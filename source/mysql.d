@@ -1279,8 +1279,9 @@ protected:
 
    void parseGreeting()
    {
+      // TODO: make the following code work instead of the leastSize workaround below:
       // read the handshake message from the socket
-      _packet.length = 255;
+      /*_packet.length = 255;
       ubyte[] dst = _packet;
       _socket.read(dst[0 .. 1]);
       dst.popFront();
@@ -1304,7 +1305,11 @@ protected:
       enforce(dst[scramble_length] == 0, "Handshake packet must be zero terminated.");
 
       dst.popFrontN(scramble_length+1);
-      _packet.length = _packet.length - dst.length;
+      _packet.length = _packet.length - dst.length;*/
+
+      // for now we leave the original behavior to use the network to determine the packet size
+      _packet.length = cast(size_t)_socket.leastSize;
+      _socket.read(_packet);
 
       _cpn++;
 
