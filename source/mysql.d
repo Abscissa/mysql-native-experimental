@@ -1278,6 +1278,36 @@ protected:
 
    void parseGreeting()
    {
+      // read the handshake message from the socket
+      _packet.length = 255;
+      ubyte[] dst = _packet;
+      _socket.read(dst[0 .. 1]);
+      dst.popFront();
+
+      // read server version string
+      while(true){
+         _socket.read(dst[0 .. 1]);
+         bool end = dst.front == 0;
+         dst.popFront();
+         if( end ) break;
+      }
+
+      // read the fields in the mid of the packet
+      size_t fields_size = 4+8+1+2+1+2+2+1+10;
+      _socket.read(dst[0 .. fields_size]);
+      ubyte scramble_length = dst[$-11];
+      dst.popFrontN(fields_size);
+
+      // read the scramble and the terminating null byte
+      _socket.read(dst[0 .. scramble_length+1]);
+      enforce(tmp[scramble_length] == 0, "Handshake packet must be zero terminated.");
+
+      dst.popFrontN(scramble_length+1);
+      _packet.length = _packet.length - dst.length;
+
+      _cpn++;
+
+      // parse the read buffer
       ubyte* p = _packet.ptr+4;
       _protocol = *p++;
       size_t len, offset;
@@ -1310,9 +1340,6 @@ protected:
       int rbs;
       //_socket.getOption(SocketOptionLevel.SOCKET, SocketOption.RCVBUF, rbs);
       //_rbs = rbs;
-      _packet.length = 255;
-      _socket.read(_packet);
-      _cpn++;
    }
 
    ubyte[] makeToken()
