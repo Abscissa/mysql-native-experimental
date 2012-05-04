@@ -1,9 +1,11 @@
 {
     "name": "mysql-native",
+	"description": "A native MySQL driver implementation based on Steve Teale's original",
+	"homepage": "https://github.com/rejectedsoftware/mysql-native",
 	"copyright": "Copyright (c) 2011 Steve Teale",
     "authors": [
 		"Steve Teale",
-		"JollieRoger",
+		"James W. Oliphant",
 		"simendsjo",
 		"Sönke Ludwig"
 	],
