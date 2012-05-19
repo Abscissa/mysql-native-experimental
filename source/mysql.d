@@ -357,13 +357,13 @@ DateTime toDateTime(ulong x)
    int second = cast(int) x%100;
    x /= 100;
    int minute = cast(int) x%100;
-   x /=100;
+   x /= 100;
    int hour = cast(int) x%100;
-   x /=100;
+   x /= 100;
    int day = cast(int) x%100;
-   x /=100;
+   x /= 100;
    int month = cast(int) x%100;
-   x /=100;
+   x /= 100;
    int year = cast(int) x%10000;
    // 2038-01-19 03:14:07
    enforceEx!MYX(year >= 1970 &&  year < 2039, "Date/time out of range for 2 bit timestamp");
@@ -432,24 +432,24 @@ struct Timestamp
  */
 enum SvrCapFlags: uint
 {
-    SECURE_PWD = 1,                    /// Long passwords
-    FOUND_NOT_AFFECTED =        2,     /// Report rows found rather than rows affected
-    ALL_COLUMN_FLAGS =  4,        /// Send all column flags
-    WITH_DB     = 8,                         /// Can take database as part of login
-    NO_SCHEMA = 16,                    /// Can disallow database name as part of column name database.table.column
-    CAN_COMPRESS        = 32,              /// Can compress packets
-    ODBC = 64,                               /// Can handle ODBC
-    LOCAL_FILES = 128,                 /// Can use LOAD DATA LOCAL
-    IGNORE_SPACE = 256,              /// Can ignore spaces before '('
-    PROTOCOL41 = 512,                  /// Can use 4.1+ protocol
-    INTERACTIVE = 1024,                /// Interactive client?
-    SSL  = 2048,                              /// Can switch to SSL after handshake
-    IGNORE_SIGPIPE  = 4096,         /// Ignore sigpipes?
-    TRANSACTIONS = 8192,             /// Transaction support
-    RESERVED = 16384,
-    SECURE_CONNECTION = 32768, /// 4.1+ authentication
-    MULTI_STATEMENTS = 65536,    /// Multiple statement support
-    MULTI_RESULTS = 131072         /// Multiple result set support
+    SECURE_PWD          =      1, /// Long passwords
+    FOUND_NOT_AFFECTED  =      2, /// Report rows found rather than rows affected
+    ALL_COLUMN_FLAGS    =      4, /// Send all column flags
+    WITH_DB             =      8, /// Can take database as part of login
+    NO_SCHEMA           =     16, /// Can disallow database name as part of column name database.table.column
+    CAN_COMPRESS        =     32, /// Can compress packets
+    ODBC                =     64, /// Can handle ODBC
+    LOCAL_FILES         =    128, /// Can use LOAD DATA LOCAL
+    IGNORE_SPACE        =    256, /// Can ignore spaces before '('
+    PROTOCOL41          =    512, /// Can use 4.1+ protocol
+    INTERACTIVE         =   1024, /// Interactive client?
+    SSL                 =   2048, /// Can switch to SSL after handshake
+    IGNORE_SIGPIPE      =   4096, /// Ignore sigpipes?
+    TRANSACTIONS        =   8192, /// Transaction support
+    RESERVED            =  16384,
+    SECURE_CONNECTION   =  32768, /// 4.1+ authentication
+    MULTI_STATEMENTS    =  65536, /// Multiple statement support
+    MULTI_RESULTS       = 131072  /// Multiple result set support
 }
 // 000000001111011111111111
 immutable uint defaultClientFlags =
