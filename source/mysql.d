@@ -511,6 +511,43 @@ enum RefreshFlags
    MASTER   = 128
 }
 
+/**
+ * Type of Command Packet (COM_XXX)
+ * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Command_Packet_.28Overview.29
+ * */
+enum CommandType : ubyte
+{
+    SLEEP               = 0x00,
+    QUIT                = 0x01,
+    INIT_DB             = 0x02,
+    QUERY               = 0x03,
+    FIELD_LIST          = 0x04,
+    CREATE_DB           = 0x05,
+    DROP_DB             = 0x06,
+    REFRESH             = 0x07,
+    SHUTDOWN            = 0x08,
+    STATISTICS          = 0x09,
+    PROCESS_INFO        = 0x0a,
+    CONNECT             = 0x0b,
+    PROCESS_KILL        = 0x0c,
+    DEBUG               = 0x0d,
+    PING                = 0x0e,
+    TIME                = 0x0f,
+    DELAYED_INSERT      = 0x10,
+    CHANGE_USER         = 0x11,
+    BINLOG_DUBP         = 0x12,
+    TABLE_DUMP          = 0x13,
+    CONNECT_OUT         = 0x14,
+    REGISTER_SLAVE      = 0x15,
+    STMT_PREPARE        = 0x16,
+    STMT_EXECUTE        = 0x17,
+    STMT_SEND_LONG_DATA = 0x18,
+    STMT_CLOSE          = 0x19,
+    STMT_RESET          = 0x1a,
+    STMT_OPTION         = 0x1b,
+    STMT_FETCH          = 0x1c,
+}
+
 ushort getShort(ref ubyte* ubp)
 {
    ushort us;
@@ -1187,7 +1224,7 @@ protected:
       _socket.write(packet);
    }
 
-   void sendCmd(ubyte cmd, string s)
+   void sendCmd(CommandType cmd, string s)
    {
       _cpn  = 0;
       size_t pl =s.length+1;
@@ -1536,7 +1573,7 @@ public:
  */
    void selectDB(string dbName)
    {
-      sendCmd(2, dbName);
+      sendCmd(CommandType.INIT_DB, dbName);
       getCmdResponse();
       _db = dbName;
    }
@@ -1549,7 +1586,7 @@ public:
  */
    OKPacket pingServer()
    {
-      sendCmd(0x0e, "");
+      sendCmd(CommandType.PING, "");
       return getCmdResponse();
    }
 
@@ -1564,7 +1601,7 @@ public:
       ubyte[] t;
       t.length = 1;
       t[0] = cast(ubyte) flags;
-      sendCmd(0x07, cast(string) t);
+      sendCmd(CommandType.REFRESH, cast(string) t);
       return getCmdResponse();
    }
 
@@ -1574,7 +1611,7 @@ public:
  */
    string serverStats()
    {
-      sendCmd(0x09, "");
+      sendCmd(CommandType.STATISTICS, "");
       uint pl;
       getPacket(pl);
       return cast(string) _packet;
@@ -1593,7 +1630,7 @@ public:
       t.length = 2;
       t[0] = on? 0: 1;
       t[1] = 0;
-      sendCmd(0x1b, cast(string) t);
+      sendCmd(CommandType.STMT_OPTION, cast(string) t);
 
       // For some reason this command gets an EOF packet as response
       uint pl;
@@ -2524,7 +2561,7 @@ private:
    ParameterSpecialization[] _psa;
    string _prevFunc;
 
-   bool sendCmd(ubyte cmd)
+   bool sendCmd(CommandType cmd)
    {
       enforceEx!MYX(!(_headersPending || _rowsPending),
               "There are result set elements pending - purgeResult() required.");
@@ -2964,10 +3001,12 @@ public:
     */
    void prepare()
    {
-      enforceEx!MYX(!(_headersPending || _rowsPending), "There are result set elements pending - purgeResult() required.");
+      enforceEx!MYX(!(_headersPending || _rowsPending),
+              "There are result set elements pending - purgeResult() required.");
+
       if (_hStmt)
          releaseStatement();
-      _con.sendCmd(0x16, _sql);
+      _con.sendCmd(CommandType.STMT_PREPARE, _sql);
       _fieldCount = 0;
       uint pl;
       ubyte[] packet = _con.getPacket(pl);
@@ -3189,7 +3228,7 @@ c.param(1) = "The answer";
     */
    bool execSQL(out ulong ra)
    {
-      _con.sendCmd(0x03, _sql);
+      _con.sendCmd(CommandType.QUERY, _sql);
       _fieldCount = 0;
       uint pl;
       ubyte[] packet = _con.getPacket(pl);
