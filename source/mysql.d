@@ -579,23 +579,23 @@ uint getInt24(ref ubyte* ubp)
 ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
 {
     nullFlag = false;
-    if (*ubp < 251) // Value of first byte
-    {
-        return cast(ulong) *ubp++;
-    }
     ulong t;
     switch (*ubp)
     {
+        case 0: .. case 250: // Value of first byte
+            t = cast(ulong)*ubp++;
+            break;
         case 251: // Null - only for Row Data Packet
             nullFlag = true;
             ubp++;
-            return 0;
+            t = 0;
+            break;
         case 252: // 16-bit word
             t |= ubp[2];
             t <<= 8;
             t |= ubp[1];
             ubp += 3;
-            return t;
+            break;
         case 253: // 24-bit word
             t |= ubp[3];
             t <<= 8;
@@ -603,7 +603,7 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
             t <<= 8;
             t |= ubp[1];
             ubp += 4;
-            return t;
+            break;
         case 254: // 64-bit word
             t |= ubp[8];
             t <<= 8;
@@ -621,11 +621,13 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
             t <<= 8;
             t |= ubp[1];
             ubp += 9;
-            return t;
+            break;
         case 255:
+            throw new MYX("The input value corresponds to an error packet.", __FILE__, __LINE__);
         default:
-          throw new MYX("The input value corresponds to an error packet.", __FILE__, __LINE__);
+            assert(0);
     }
+    return t;
 }
 
 /** Parse Length Coded String
