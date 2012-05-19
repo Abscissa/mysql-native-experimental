@@ -466,34 +466,34 @@ immutable uint defaultClientFlags =
  */
 enum SQLType
 {
-   DEFAULT =          -1,
-   DECIMAL =         0x00,
-   TINY =               0x01,
-   SHORT =            0x02,
-   INT =                0x03,
-   FLOAT =            0x04,
-   DOUBLE =          0x05,
-   NULL =              0x06,
-   TIMESTAMP =     0x07,
-   LONGLONG =      0x08,
-   INT24 =             0x09,
-   DATE =              0x0a,
-   TIME =              0x0b,
-   DATETIME =       0x0c,
-   YEAR =              0x0d,
-   NEWDATE =       0x0e,
-   VARCHAR =        0x0f,        // new in MySQL 5.0
-   BIT =                0x10,       // new in MySQL 5.0
-   NEWDECIMAL =  0xf6,        // new in MYSQL 5.0
-   ENUM =            0xf7,
-   SET =               0xf8,
-   TINYBLOB =       0xf9,
-   MEDIUMBLOB =  0xfa,
-   LONGBLOB =      0xfb,
-   BLOB =             0xfc,
-   VARSTRING =    0xfd,
-   STRING =         0xfe,
-   GEOMETRY =     0xff
+   DEFAULT      =   -1,
+   DECIMAL      = 0x00,
+   TINY         = 0x01,
+   SHORT        = 0x02,
+   INT          = 0x03,
+   FLOAT        = 0x04,
+   DOUBLE       = 0x05,
+   NULL         = 0x06,
+   TIMESTAMP    = 0x07,
+   LONGLONG     = 0x08,
+   INT24        = 0x09,
+   DATE         = 0x0a,
+   TIME         = 0x0b,
+   DATETIME     = 0x0c,
+   YEAR         = 0x0d,
+   NEWDATE      = 0x0e,
+   VARCHAR      = 0x0f, // new in MySQL 5.0
+   BIT          = 0x10, // new in MySQL 5.0
+   NEWDECIMAL   = 0xf6, // new in MYSQL 5.0
+   ENUM         = 0xf7,
+   SET          = 0xf8,
+   TINYBLOB     = 0xf9,
+   MEDIUMBLOB   = 0xfa,
+   LONGBLOB     = 0xfb,
+   BLOB         = 0xfc,
+   VARSTRING    = 0xfd,
+   STRING       = 0xfe,
+   GEOMETRY     = 0xff
 }
 
 /**
@@ -501,14 +501,14 @@ enum SQLType
  */
 enum RefreshFlags
 {
-   GRANT =      1,
-   LOG =          2,
-   TABLES =     4,
-   HOSTS =      8,
-   STATUS =   16,
-   THREADS = 32,
-   SLAVE =     64,
-   MASTER = 128
+   GRANT    =   1,
+   LOG      =   2,
+   TABLES   =   4,
+   HOSTS    =   8,
+   STATUS   =  16,
+   THREADS  =  32,
+   SLAVE    =  64,
+   MASTER   = 128
 }
 
 ushort getShort(ref ubyte* ubp)
@@ -520,7 +520,6 @@ ushort getShort(ref ubyte* ubp)
    ubp += 2;
    return us;
 }
-
 
 uint getInt(ref ubyte* ubp)
 {
@@ -738,7 +737,6 @@ unittest
    assert(x.length == 0x20000ff && x[0] == '<' && x[0x20000fe] == '>');
 }
 
-
 /**
  * A struct representing an OK or Error packet
  *
@@ -747,14 +745,14 @@ unittest
  */
 struct OKPacket
 {
-   bool error;
-   bool nullFlag;
-   ulong affected;
-   ulong insertID;
-   ushort serverStatus;
-   ushort warnings;
-   char[5] sqlState;
-   char[] message;
+   bool     error;
+   bool     nullFlag;
+   ulong    affected;
+   ulong    insertID;
+   ushort   serverStatus;
+   ushort   warnings;
+   char[5]  sqlState;
+   char[]   message;
 
    this(ubyte* ubp, uint length)
    {
@@ -816,19 +814,19 @@ struct OKPacket
 struct FieldDescription
 {
 private:
-   string _db;
-   string _table;
-   string _originalTable;
-   string _name;
-   string _originalName;
-   ushort _charSet;
-   uint _length;
-   uint _actualLength;
-   ushort _type;
-   ushort _flags;
-   ubyte _scale;
-   ulong _deflt;
-   uint chunkSize;
+   string   _db;
+   string   _table;
+   string   _originalTable;
+   string   _name;
+   string   _originalName;
+   ushort   _charSet;
+   uint     _length;
+   uint     _actualLength;
+   ushort   _type;
+   ushort   _flags;
+   ubyte    _scale;
+   ulong    _deflt;
+   uint     chunkSize;
    void delegate(ubyte[], bool) chunkDelegate;
 
 public:
@@ -843,18 +841,18 @@ public:
       ubyte* ep = sp+packet.length;
       ubyte* ubp = sp+4;     // Skip catalog - it's always 'def'
       bool isnull;
-      _db = cast(string) parseLCS(ubp, isnull);
-      _table = cast(string) parseLCS(ubp, isnull);
+      _db            = cast(string) parseLCS(ubp, isnull);
+      _table         = cast(string) parseLCS(ubp, isnull);
       _originalTable = cast(string) parseLCS(ubp, isnull);
-      _name = cast(string) parseLCS(ubp, isnull);
-      _originalName = cast(string) parseLCS(ubp, isnull);
+      _name          = cast(string) parseLCS(ubp, isnull);
+      _originalName  = cast(string) parseLCS(ubp, isnull);
       enforceEx!MYX(ep-ubp >= 13, "Malformed field specification packet");
       ubp++;   // one byte of filler here
-      _charSet = getShort(ubp);
-      _length = getInt(ubp);
-      _type = *ubp++;
-      _flags = getShort(ubp);
-      _scale = *ubp++;
+      _charSet  = getShort(ubp);
+      _length   = getInt(ubp);
+      _type     = *ubp++;
+      _flags    = getShort(ubp);
+      _scale    = *ubp++;
       ubp += 2;      // 2 bytes filler here
       if (ubp < ep)
       {
@@ -862,6 +860,7 @@ public:
          _deflt = parseLCB(ubp, isnull);
       }
    }
+
    /// Database name for column as string
    @property string db() { return _db; }
    /// Table name for column as string - this could be an alias as in 'from tablename as foo'
