@@ -699,6 +699,7 @@ ubyte[] packLength(size_t l, out size_t offset)
         offset = 9;
         return t;
     }
+    assert(0);
 }
 
 ubyte[] packLCS(void[] a)
