@@ -1505,19 +1505,19 @@ protected:
 
 public:
 
-/**
- * Construct opened connection.
- *
- * After the connection is created, and the initial invitation is received from the server
- * client preferences can be set, and authentication can then be attempted.
- *
- * Parameters:
- *    host = An IP address in numeric dotted form, or as a host  name.
- *    user = The user name to authenticate.
- *    password = Users password.
- *    db = Desired initial database.
- *    capFlags = The set of flag bits from the server's capabilities that the client requires
- */
+    /**
+     * Construct opened connection.
+     *
+     * After the connection is created, and the initial invitation is received from the server
+     * client preferences can be set, and authentication can then be attempted.
+     *
+     * Parameters:
+     *    host = An IP address in numeric dotted form, or as a host  name.
+     *    user = The user name to authenticate.
+     *    password = Users password.
+     *    db = Desired initial database.
+     *    capFlags = The set of flag bits from the server's capabilities that the client requires
+     */
     this(string host, string user, string pwd, string db, ushort port = 3306, uint capFlags = defaultClientFlags)
     {
         _host = host;
@@ -1532,18 +1532,18 @@ public:
         open();
     }
 
-/**
- * Construct opened connection.
- *
- * After the connection is created, and the initial invitation is received from the server
- * client preferences are set, and authentication can then be attempted.
- *
- * TBD The connection string needs work to allow for semicolons in its parts!
- *
- * Parameters:
- *    cs = A connetion string of the form "host=localhost;user=user;pwd=password;db=mysqld"
- *    capFlags = The set of flag bits from the server's capabilities that the client requires
- */
+    /**
+     * Construct opened connection.
+     *
+     * After the connection is created, and the initial invitation is received from the server
+     * client preferences are set, and authentication can then be attempted.
+     *
+     * TBD The connection string needs work to allow for semicolons in its parts!
+     *
+     * Parameters:
+     *    cs = A connetion string of the form "host=localhost;user=user;pwd=password;db=mysqld"
+     *    capFlags = The set of flag bits from the server's capabilities that the client requires
+     */
     this(string cs, uint capFlags = defaultClientFlags)
     {
         string[] a = parseConnectionString(cs);
@@ -1559,22 +1559,22 @@ public:
         open();
     }
 
-/**
- * Explicitly close the connection.
- *
- * This is a two-stage process. First tell the server we are quitting this connection, and
- * then close the socket.
- *
- * Idiomatic use as follows is suggested:
-------------------
-{
-    auto con = Connection("localhost:user:password:mysqld");
-    scope(exit) con.close();
-    // Use the connection
-    ...
-}
-------------------
- */
+    /**
+     * Explicitly close the connection.
+     *
+     * This is a two-stage process. First tell the server we are quitting this connection, and
+     * then close the socket.
+     *
+     * Idiomatic use as follows is suggested:
+       ------------------
+       {
+           auto con = Connection("localhost:user:password:mysqld");
+           scope(exit) con.close();
+           // Use the connection
+           ...
+       }
+       ------------------
+     */
     void close()
     {
         if (_open > 1)
@@ -1592,12 +1592,12 @@ public:
         _cpn = 0;
     }
 
-/**
- * Select a current database.
- *
- * Params: dbName = Name of the requested database
- * Throws: MySQLEcception
- */
+    /**
+     * Select a current database.
+     *
+     * Params: dbName = Name of the requested database
+     * Throws: MySQLException
+     */
     void selectDB(string dbName)
     {
         sendCmd(CommandType.INIT_DB, dbName);
@@ -1605,24 +1605,24 @@ public:
         _db = dbName;
     }
 
-/**
- * Check the server status
- *
- * Returns: An OKPacket from which server status can be determined
- * Throws: MySQLEcception
- */
+    /**
+     * Check the server status
+     *
+     * Returns: An OKPacket from which server status can be determined
+     * Throws: MySQLException
+     */
     OKPacket pingServer()
     {
         sendCmd(CommandType.PING, "");
         return getCmdResponse();
     }
 
-/**
- * Refresh some feature[s] of he server.
- *
- * Returns: An OKPacket from which server status can be determined
- * Throws: MySQLEcception
- */
+    /**
+     * Refresh some feature[s] of he server.
+     *
+     * Returns: An OKPacket from which server status can be determined
+     * Throws: MySQLException
+     */
     OKPacket refreshServer(int flags)
     {
         ubyte[] t;
@@ -1632,10 +1632,10 @@ public:
         return getCmdResponse();
     }
 
-/**
- * Get a textual report on the servr status.
- *
- */
+    /**
+     * Get a textual report on the server status.
+     *
+     */
     string serverStats()
     {
         sendCmd(CommandType.STATISTICS, "");
@@ -1644,13 +1644,13 @@ public:
         return cast(string) _packet;
     }
 
-/**
- * Enable multiple statement commands
- *
- * This can be used later if this feature was not requested in the client capability flags.
- *
- * Params: on = Boolean value to turn th capability on or off.
- */
+    /**
+     * Enable multiple statement commands
+     *
+     * This can be used later if this feature was not requested in the client capability flags.
+     *
+     * Params: on = Boolean value to turn th capability on or off.
+     */
     void enableMultiStatements(bool on)
     {
         ubyte[] t;
@@ -1790,10 +1790,16 @@ private:
         ulong ac = 0;
         uint len = N? N: T.sizeof;
         if (p+len >= packet.length-1)
+        {
             incomplete = true;
+        }
         else
         {
-            for (uint i = p+len-1; i >= p; i--) { ac <<= 8; ac |= packet[i];  }
+            for (uint i = p+len-1; i >= p; i--)
+            {
+                ac <<= 8;
+                ac |= packet[i];
+            }
             p += len;
         }
         return cast(T) ac;
@@ -1826,21 +1832,21 @@ private:
 
 public:
 
-/**
- * A constructor to extract the column data from a row data packet.
- *
- * If the data for the row exceeds the server's maximum packet size, then several packets will be
- * sent for the row that taken together constitute a logical row data packet. The logic of the data
- * recovery for a Row attempts to minimize the quantity of data that is bufferred. Users can assist
- * in this by specifying chunked data transfer in cases where results sets can include long
- * column values.
- *
- * The row struct is used for both 'traditional' and 'prepared' result sets. It consists of parallel arrays
- * of Variant and bool, with the bool array indicating which of the result set columns are NULL.
- *
- * I have been agitating for some kind of null indicator that can be set for a Variant without destroying
- * its inherent type information. If this were the case, then the bool array could disappear.
- */
+    /**
+     * A constructor to extract the column data from a row data packet.
+     *
+     * If the data for the row exceeds the server's maximum packet size, then several packets will be
+     * sent for the row that taken together constitute a logical row data packet. The logic of the data
+     * recovery for a Row attempts to minimize the quantity of data that is bufferred. Users can assist
+     * in this by specifying chunked data transfer in cases where results sets can include long
+     * column values.
+     *
+     * The row struct is used for both 'traditional' and 'prepared' result sets. It consists of parallel arrays
+     * of Variant and bool, with the bool array indicating which of the result set columns are NULL.
+     *
+     * I have been agitating for some kind of null indicator that can be set for a Variant without destroying
+     * its inherent type information. If this were the case, then the bool array could disappear.
+     */
     this(Connection con, ubyte[] packet, ResultSetHeaders rh, bool binary)
     {
         uint fc = rh._fieldCount;
@@ -1877,7 +1883,11 @@ public:
                         incomplete = true;
                         return 0;
                     }
-                    for (uint i = p+2; i > p; i--) { lc <<= 8; lc |= packet[i];  }
+                    for (uint i = p+2; i > p; i--)
+                    {
+                        lc <<= 8;
+                        lc |= packet[i];
+                    }
                     p += 3;
                     break;
                 case 253:
@@ -1886,7 +1896,11 @@ public:
                         incomplete = true;
                         return 0;
                     }
-                    for (uint i = p+3; i > p; i--) { lc <<= 8; lc |= packet[i];  }
+                    for (uint i = p+3; i > p; i--)
+                    {
+                        lc <<= 8;
+                        lc |= packet[i];
+                    }
                     p += 4;
                     break;
                 case 254:
@@ -1895,7 +1909,11 @@ public:
                         incomplete = true;
                         return 0;
                     }
-                    for (uint i = p+8; i > p; i--) { lc <<= 8; lc |= packet[i];  }
+                    for (uint i = p+8; i > p; i--)
+                    {
+                        lc <<= 8;
+                        lc |= packet[i];
+                    }
                     p += 9;
                     break;
                 case 255:
@@ -1937,7 +1955,7 @@ public:
                 // that's all we'll use.
                 if (_nulls[i])
                     continue;      // The bitmap said this column is NULL, so there will be no data for it and we skip to the next.
-                switch (fd.type)
+                final switch (fd.type)
                 {
                     case SQLType.TINY:
                         ubyte ub = fromBytes!ubyte(p, packet, incomplete);
@@ -2088,9 +2106,6 @@ public:
                             _uva[i] = packet[p..p+sl];
                         p += sl;
                         break;
-                    default:
-                        throw new MYX("Unsupported type in row - " ~ to!string(fd.type), __FILE__, __LINE__);
-                    break;
                 }
             }
             else
@@ -2110,7 +2125,7 @@ public:
                     _nulls[i] = true;
                     continue;
                 }
-                switch (fd.type)
+                final switch (fd.type)
                 {
                     case  SQLType.TINY:
                         if (uns)
@@ -2184,9 +2199,6 @@ public:
                             _uva[i] = cast(ubyte[]) val;
                         else
                             _uva[i] = val;
-                        break;
-                    default:
-                        throw new MYX("Unsupported type in row - " ~ to!string(fd.type), __FILE__, __LINE__);
                         break;
                 }
             }
