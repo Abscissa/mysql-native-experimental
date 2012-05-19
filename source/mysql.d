@@ -464,7 +464,7 @@ immutable uint defaultClientFlags =
  * DEFAULT means infer parameter type or column type from D variable type.
  *
  */
-enum SQLType
+enum SQLType : short
 {
     DEFAULT      =   -1,
     DECIMAL      = 0x00,
@@ -572,27 +572,31 @@ uint getInt24(ref ubyte* ubp)
     return rv;
 }
 
+/** Parse Length Coded Binary
+ *
+ * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
+ */
 ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
 {
     nullFlag = false;
-    if (*ubp < 251)
+    if (*ubp < 251) // Value of first byte
     {
         return cast(ulong) *ubp++;
     }
     ulong t;
     switch (*ubp)
     {
-        case 251:
+        case 251: // Null - only for Row Data Packet
             nullFlag = true;
             ubp++;
             return 0;
-        case 252:
+        case 252: // 16-bit word
             t |= ubp[2];
             t <<= 8;
             t |= ubp[1];
             ubp += 3;
             return t;
-        case 253:
+        case 253: // 24-bit word
             t |= ubp[3];
             t <<= 8;
             t |= ubp[2];
@@ -600,7 +604,7 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
             t |= ubp[1];
             ubp += 4;
             return t;
-        case 254:
+        case 254: // 64-bit word
             t |= ubp[8];
             t <<= 8;
             t |= ubp[7];
@@ -624,14 +628,17 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
     }
 }
 
+/** Parse Length Coded String
+ *
+ * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
+ * */
 ubyte[] parseLCS(ref ubyte* ubp, out bool nullFlag)
 {
-    ubyte[] mt;
     ulong ul = parseLCB(ubp, nullFlag);
     if (nullFlag)
         return null;
     if (ul == 0)
-        return mt;
+        return [];
     enforceEx!MYX(ul <= uint.max, "Protocol Length Coded String is too long");
     uint len = cast(uint) ul;
     ubyte* t = ubp;
@@ -842,11 +849,31 @@ struct OKPacket
     }
 }
 
+/** Field Flags
+ * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Field_Packet
+ */
+enum FieldFlags : ushort
+{
+    NOT_NULL        = 0x0001,
+    PRI_KEY         = 0x0002,
+    UNIQUE_KEY      = 0x0004,
+    MULTIPLE_KEY    = 0x0008,
+    BLOB            = 0x0010,
+    UNSIGNED        = 0x0020,
+    ZEROFILL        = 0x0040,
+    BINARY          = 0x0080,
+    ENUM            = 0x0100,
+    AUTO_INCREMENT  = 0x0200,
+    TIMESTAMP       = 0x0400,
+    SET             = 0x0800
+}
 /**
  * A struct representing a field (column) description packet
  *
  * These packets, one for each column are sent before the data of a result set,
  * followed by an EOF packet.
+ *
+ * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Field_Packet
  */
 struct FieldDescription
 {
@@ -859,19 +886,19 @@ private:
     ushort   _charSet;
     uint     _length;
     uint     _actualLength;
-    ushort   _type;
-    ushort   _flags;
+    SQLType  _type;
+    FieldFlags _flags;
     ubyte    _scale;
     ulong    _deflt;
     uint     chunkSize;
     void delegate(ubyte[], bool) chunkDelegate;
 
 public:
-/**
- * Construct a FieldDescription from the raw data packet
- *
- * Parameters: packet = The packet contents excluding the 4 byte packet header
- */
+    /**
+     * Construct a FieldDescription from the raw data packet
+     *
+     * Parameters: packet = The packet contents excluding the 4 byte packet header
+     */
     this(ubyte[] packet)
     {
         ubyte* sp = packet.ptr;
@@ -887,8 +914,8 @@ public:
         ubp++;   // one byte of filler here
         _charSet  = getShort(ubp);
         _length   = getInt(ubp);
-        _type     = *ubp++;
-        _flags    = getShort(ubp);
+        _type     = cast(SQLType)*ubp++;
+        _flags    = cast(FieldFlags)getShort(ubp);
         _scale    = *ubp++;
         ubp += 2;      // 2 bytes filler here
         if (ubp < ep)
@@ -915,19 +942,19 @@ public:
     /// The type of the column hopefully (but not always) corresponding to enum SQLType. Only the low byte currently used
     @property ushort type() { return _type; }
     /// Column flags - unsigned, binary, null and so on
-    @property ushort flags() { return _flags; }
+    @property FieldFlags flags() { return _flags; }
     /// Precision for floating point values
     @property ubyte scale() { return _scale; }
     /// NotNull from flags
-    @property bool notNull() { return (_flags & 1) != 0; }
+    @property bool notNull() { return (_flags & FieldFlags.NOT_NULL) != 0; }
     /// Unsigned from flags
-    @property bool unsigned() { return (_flags & 0x20) != 0; }
+    @property bool unsigned() { return (_flags & FieldFlags.UNSIGNED) != 0; }
     /// Binary from flags
-    @property bool binary() { return (_flags & 0x80) != 0; }
+    @property bool binary() { return (_flags & FieldFlags.BINARY) != 0; }
     /// Is-enum from flags
-    @property bool isenum() { return (_flags & 0x100) != 0; }
+    @property bool isenum() { return (_flags & FieldFlags.ENUM) != 0; }
     /// Is-set (a SET column that is) from flags
-    @property bool isset() { return (_flags & 0x800) != 0; }
+    @property bool isset() { return (_flags & FieldFlags.SET) != 0; }
 
     void show()
     {
@@ -948,7 +975,7 @@ struct ParamDescription
 {
 private:
     ushort _type;
-    ushort _flags;
+    FieldFlags _flags;
     ubyte _scale;
     uint _length;
 
@@ -957,16 +984,16 @@ public:
     {
         ubyte* ubp = packet.ptr;
         _type = getShort(ubp);
-        _flags = getShort(ubp);
+        _flags = cast(FieldFlags)getShort(ubp);
         _scale = *ubp++;
         _length = getInt(ubp);
     }
     @property uint length() { return _length; }
     @property ushort type() { return _type; }
-    @property ushort flags() { return _flags; }
+    @property FieldFlags flags() { return _flags; }
     @property ubyte scale() { return _scale; }
-    @property bool notNull() { return (_flags & 1) != 0; }
-    @property bool unsigned() { return (_flags & 0x20) != 0; }
+    @property bool notNull() { return (_flags & FieldFlags.NOT_NULL) != 0; }
+    @property bool unsigned() { return (_flags & FieldFlags.UNSIGNED) != 0; }
 }
 
 /**
@@ -1020,13 +1047,13 @@ private:
 
 public:
 
-/**
- * Construct a ResultSetHeaders struct from a sequence of FieldDescription packets and an EOF packet.
- *
- * Parameters:
- *    con = A Connection via which the packets are read
- *    fieldCount = the number of fields/columns generated by the query
- */
+    /**
+     * Construct a ResultSetHeaders struct from a sequence of FieldDescription packets and an EOF packet.
+     *
+     * Parameters:
+     *    con = A Connection via which the packets are read
+     *    fieldCount = the number of fields/columns generated by the query
+     */
     this(Connection con, uint fieldCount)
     {
         ubyte[] packet;
@@ -1051,16 +1078,16 @@ public:
         _warnings = eof._warnings;
     }
 
-/**
- * Add specialization information to one or more field descriptions.
- *
- * Currently the only specialization supported is the capability to deal with long data
- * e.g. BLOB or TEXT data in chunks by stipulating a chunkSize and a delegate to sink
- * the data.
- *
- * Parameters:
- *    csa = An array of ColumnSpecialization structs
- */
+    /**
+     * Add specialization information to one or more field descriptions.
+     *
+     * Currently the only specialization supported is the capability to deal with long data
+     * e.g. BLOB or TEXT data in chunks by stipulating a chunkSize and a delegate to sink
+     * the data.
+     *
+     * Parameters:
+     *    csa = An array of ColumnSpecialization structs
+     */
     void addSpecializations(ColumnSpecialization[] csa)
     {
         foreach(CSN csn; csa)
@@ -1433,8 +1460,7 @@ protected:
         foreach (s; a)
         {
             string[] a2 = split(s, "=");
-            if (a2.length != 2)
-                throw new Exception("Bad connection string: " ~ cs);
+            enforceEx!MYX(a2.length == 2, "Bad connection string: " ~ cs);
             string name = strip(a2[0]);
             string val = strip(a2[1]);
             switch (name)
@@ -1455,7 +1481,7 @@ protected:
                     rv[4] = val;
                     break;
                 default:
-                throw new Exception("Bad connection string: " ~ cs);
+                    throw new MYX("Bad connection string: " ~ cs, __FILE__, __LINE__);
             }
         }
         return rv;
@@ -2906,7 +2932,7 @@ private:
             chunk[3] = 0;  // Each long data chunk is a separate command
 
             // Data chunk
-            chunk[4] = 0x18;                                                     // command
+            chunk[4] = CommandType.STMT_SEND_LONG_DATA;
             chunk[5] = cast(ubyte) (_hStmt & 0xff);                 // statement handle - 4 bytes
             chunk[6] = cast(ubyte) ((_hStmt >> 8) & 0xff);
             chunk[7] = cast(ubyte) ((_hStmt >> 16) & 0xff);
