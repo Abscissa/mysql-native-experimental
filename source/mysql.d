@@ -433,11 +433,11 @@ struct Timestamp
 enum SvrCapFlags: uint
 {
     SECURE_PWD = 1,                    /// Long passwords
-    FOUND_NOT_AFFECTED =	2,     /// Report rows found rather than rows affected
-    ALL_COLUMN_FLAGS =	4,        /// Send all column flags
-    WITH_DB	= 8,                         /// Can take database as part of login
+    FOUND_NOT_AFFECTED =        2,     /// Report rows found rather than rows affected
+    ALL_COLUMN_FLAGS =  4,        /// Send all column flags
+    WITH_DB     = 8,                         /// Can take database as part of login
     NO_SCHEMA = 16,                    /// Can disallow database name as part of column name database.table.column
-    CAN_COMPRESS	= 32,              /// Can compress packets
+    CAN_COMPRESS        = 32,              /// Can compress packets
     ODBC = 64,                               /// Can handle ODBC
     LOCAL_FILES = 128,                 /// Can use LOAD DATA LOCAL
     IGNORE_SPACE = 256,              /// Can ignore spaces before '('
@@ -1413,9 +1413,9 @@ protected:
             case "db":
                rv[3] = val;
                break;
-   			case "port":
-   			   rv[4] = val;
-			      break;
+                        case "port":
+                           rv[4] = val;
+                              break;
             default:
                throw new Exception("Bad connection string: " ~ cs);
          }
@@ -1460,7 +1460,7 @@ public:
       _user = user;
       _pwd = pwd;
       _db = db;
-	  _port = port;
+          _port = port;
       init_connection();
       parseGreeting();
       _open = 1;
@@ -1487,7 +1487,7 @@ public:
       _user = a[1];
       _pwd = a[2];
       _db = a[3];
-	  _port = to!(ushort)(a[4]);
+          _port = to!(ushort)(a[4]);
       init_connection();
       parseGreeting();
       _open = 1;
@@ -2280,13 +2280,13 @@ private:
       _ra = ra;
       _rc = ra.length;
       _colNames = colNames;
-	  if(_rc)
-	  {
-		  _rb.length = _ra.length;
-		  foreach (size_t i; 0.._ra.length)
-			  _rb[i] = i;
-		  _cr = _rb[0];
-	  }
+          if(_rc)
+          {
+                  _rb.length = _ra.length;
+                  foreach (size_t i; 0.._ra.length)
+                          _rb[i] = i;
+                  _cr = _rb[0];
+          }
    }
 
 public:
