@@ -1497,7 +1497,7 @@ public:
       _user = user;
       _pwd = pwd;
       _db = db;
-          _port = port;
+      _port = port;
       init_connection();
       parseGreeting();
       _open = 1;
