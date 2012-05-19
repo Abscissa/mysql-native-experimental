@@ -2281,13 +2281,13 @@ private:
       _ra = ra;
       _rc = ra.length;
       _colNames = colNames;
-          if(_rc)
-          {
-                  _rb.length = _ra.length;
-                  foreach (size_t i; 0.._ra.length)
-                          _rb[i] = i;
-                  _cr = _rb[0];
-          }
+      if(_rc)
+      {
+          _rb.length = _ra.length;
+          foreach (size_t i; 0.._ra.length)
+             _rb[i] = i;
+          _cr = _rb[0];
+      }
    }
 
 public:
@@ -2422,8 +2422,6 @@ private:
    ulong _rc;
    bool _empty;
 
-
-
    this (Command* cmd, string[] colNames)
    {
       _cmd = cmd;
@@ -2441,8 +2439,6 @@ private:
    }
 
 public:
-
-
    /**
     * Make the ResultSequence behave as an input range - empty
     *
@@ -2456,7 +2452,7 @@ public:
    @property Row front()
    {
       enforceEx!MYX(!_empty, "Attempted 'front' on exhausted result sequence.");
-       return _cr;
+      return _cr;
    }
    /**
     * Make the ResultSequence behave as am input range - popFront()
@@ -2530,7 +2526,9 @@ private:
 
    bool sendCmd(ubyte cmd)
    {
-      enforceEx!MYX(!(_headersPending || _rowsPending), "There are result set elements pending - purgeResult() required.");
+      enforceEx!MYX(!(_headersPending || _rowsPending),
+              "There are result set elements pending - purgeResult() required.");
+
       _con.resetPacket();
       ubyte[] packet;
       size_t pl = _sql.length+1;
