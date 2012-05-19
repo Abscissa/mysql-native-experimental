@@ -2618,37 +2618,40 @@ private:
             ts.length = ts.length-1;
             isRef= true;
          }
+
+         enum UNSIGNED  = 0x80;
+         enum SIGNED    = 0;
          switch (ts)
          {
             case "bool":
                if (ext == SQLType.DEFAULT)
-                  types[ct++] = 0x10;  // BIT
+                  types[ct++] = SQLType.BIT;
                else
                   types[ct++] = cast(ubyte) ext;
-               types[ct++] = 0;
+               types[ct++] = SIGNED;
                if (isnull) break;
                reAlloc(2);
                bool bv = isRef? *(v.get!(bool*)): v.get!(bool);
                vals[vcl++] = 1;
                vals[vcl++] = bv? 0x31: 0x30;
                break;
-            case "byte":   // TINY
-               types[ct++] = 0x01;
-               types[ct++] = 0;
+            case "byte":
+               types[ct++] = SQLType.TINY;
+               types[ct++] = SIGNED;
                if (isnull) break;
                reAlloc(1);
                vals[vcl++] = isRef? *(v.get!(byte*)): v.get!(byte);
                break;
             case "ubyte":  // TINY UNSIGNED
-               types[ct++] = 0x01;
-               types[ct++] = 0x80;
+               types[ct++] = SQLType.TINY;
+               types[ct++] = UNSIGNED;
                if (isnull) break;
                reAlloc(1);
                vals[vcl++] = isRef? *(v.get!(ubyte*)): v.get!(ubyte);
                break;
             case "short":
-               types[ct++] = 0x02;
-               types[ct++] = 0;
+               types[ct++] = SQLType.SHORT;
+               types[ct++] = SIGNED;
                if (isnull) break;
                reAlloc(2);
                short si = isRef? *(v.get!(short*)): v.get!(short);
@@ -2656,16 +2659,16 @@ private:
                vals[vcl++] = cast(ubyte) ((si >> 8) & 0xff);
                break;
             case "ushort":
-               types[ct++] = 0x02;
-               types[ct++] = 0x80;
+               types[ct++] = SQLType.SHORT;
+               types[ct++] = UNSIGNED;
                reAlloc(2);
                ushort us = isRef? *(v.get!(ushort*)): v.get!(ushort);
                vals[vcl++] = cast(ubyte) (us & 0xff);
                vals[vcl++] = cast(ubyte) ((us >> 8) & 0xff);
                break;
             case "int":
-               types[ct++] = 0x03;
-               types[ct++] = 0;
+               types[ct++] = SQLType.INT;
+               types[ct++] = SIGNED;
                if (isnull) break;
                reAlloc(4);
                int ii = isRef? *(v.get!(int*)): v.get!(int);
@@ -2675,8 +2678,8 @@ private:
                vals[vcl++] = cast(ubyte) ((ii >> 24) & 0xff);
                break;
             case "uint":
-               types[ct++] = 0x03;
-               types[ct++] = 0x80;
+               types[ct++] = SQLType.INT;
+               types[ct++] = UNSIGNED;
                if (isnull) break;
                reAlloc(4);
                uint ui = isRef? *(v.get!(uint*)): v.get!(uint);
@@ -2686,8 +2689,8 @@ private:
                vals[vcl++] = cast(ubyte) ((ui >> 24) & 0xff);
                break;
             case "long":
-               types[ct++] = 0x08;
-               types[ct++] = 0;
+               types[ct++] = SQLType.LONGLONG;
+               types[ct++] = SIGNED;
                if (isnull) break;
                reAlloc(8);
                long li = isRef? *(v.get!(long*)): v.get!(long);
@@ -2701,8 +2704,8 @@ private:
                vals[vcl++] = cast(ubyte) ((li >> 56) & 0xff);
                break;
             case "ulong":
-               types[ct++] = 0x08;
-               types[ct++] = 0x80;
+               types[ct++] = SQLType.LONGLONG;
+               types[ct++] = UNSIGNED;
                if (isnull) break;
                reAlloc(8);
                ulong ul = isRef? *(v.get!(ulong*)): v.get!(ulong);
@@ -2716,8 +2719,8 @@ private:
                vals[vcl++] = cast(ubyte) ((ul >> 56) & 0xff);
                break;
             case "float":
-               types[ct++] = 0x04;
-               types[ct++] = 0;
+               types[ct++] = SQLType.FLOAT;
+               types[ct++] = SIGNED;
                if (isnull) break;
                reAlloc(4);
                float f = isRef? *(v.get!(float*)): v.get!(float);
@@ -2728,8 +2731,8 @@ private:
                vals[vcl++] = *ubp;
                break;
             case "double":
-               types[ct++] = 0x05;
-               types[ct++] = 0;
+               types[ct++] = SQLType.DOUBLE;
+               types[ct++] = SIGNED;
                if (isnull) break;
                reAlloc(8);
                double d = isRef? *(v.get!(double*)): v.get!(double);
@@ -2744,8 +2747,8 @@ private:
                vals[vcl++] = *ubp;
                break;
             case "std.datetime.Date":
-               types[ct++] = 0x0a;
-               types[ct++] = 0;
+               types[ct++] = SQLType.DATE;
+               types[ct++] = SIGNED;
                Date date = isRef? *(v.get!(Date*)): v.get!(Date);
                ubyte[] da = pack(date);
                size_t l = da.length;
@@ -2755,8 +2758,8 @@ private:
                vcl += l;
                break;
             case "std.datetime.Time":
-               types[ct++] = 0x0b;
-               types[ct++] = 0;
+               types[ct++] = SQLType.TIME;
+               types[ct++] = SIGNED;
                TimeOfDay time = isRef? *(v.get!(TimeOfDay*)): v.get!(TimeOfDay);
                ubyte[] ta = pack(time);
                size_t l = ta.length;
@@ -2766,8 +2769,8 @@ private:
                vcl += l;
                break;
             case "std.datetime.DateTime":
-               types[ct++] = 0x0c;
-               types[ct++] = 0;
+               types[ct++] = SQLType.DATETIME;
+               types[ct++] = SIGNED;
                DateTime dt = isRef? *(v.get!(DateTime*)): v.get!(DateTime);
                ubyte[] da = pack(dt);
                size_t l = da.length;
@@ -2777,8 +2780,8 @@ private:
                vcl += l;
                break;
             case "connect.Timestamp":
-               types[ct++] = 0x07;
-               types[ct++] = 0;
+               types[ct++] = SQLType.TIMESTAMP;
+               types[ct++] = SIGNED;
                Timestamp tms = isRef? *(v.get!(Timestamp*)): v.get!(Timestamp);
                DateTime dt = toDateTime(tms.rep);
                ubyte[] da = pack(dt);
@@ -2790,10 +2793,10 @@ private:
                break;
             case "immutable(char)[]":
                if (ext == SQLType.DEFAULT)
-                  types[ct++] = 0x0f;
+                  types[ct++] = SQLType.VARCHAR;
                else
                   types[ct++] = cast(ubyte) ext;
-               types[ct++] = 0;
+               types[ct++] = SIGNED;
                if (isnull) break;
                string s = isRef? *(v.get!(string*)): v.get!(string);
                ubyte[] packed = packLCS(cast(void[]) s);
@@ -2803,10 +2806,10 @@ private:
                break;
             case "char[]":
                if (ext == SQLType.DEFAULT)
-                  types[ct++] = 0x0f;
+                  types[ct++] = SQLType.VARCHAR;
                else
                   types[ct++] = cast(ubyte) ext;
-               types[ct++] = 0;
+               types[ct++] = SIGNED;
                if (isnull) break;
                char[] ca = isRef? *(v.get!(char[]*)): v.get!(char[]);
                ubyte[] packed = packLCS(cast(void[]) ca);
@@ -2816,10 +2819,10 @@ private:
                break;
             case "byte[]":
                if (ext == SQLType.DEFAULT)
-                  types[ct++] = 0x59;     // TINYBLOB by default
+                  types[ct++] = SQLType.TINYBLOB;
                else
                   types[ct++] = cast(ubyte) ext;
-               types[ct++] = 0;
+               types[ct++] = SIGNED;
                if (isnull) break;
                byte[] ba = isRef? *(v.get!(byte[]*)): v.get!(byte[]);
                ubyte[] packed = packLCS(cast(void[]) ba);
@@ -2829,10 +2832,10 @@ private:
                break;
             case "ubyte[]":
                if (ext == SQLType.DEFAULT)
-                  types[ct++] = 0xf9;     // TINYBLOB by default
+                  types[ct++] = SQLType.TINYBLOB;
                else
                   types[ct++] = cast(ubyte) ext;
-               types[ct++] = 0;
+               types[ct++] = SIGNED;
                if (isnull) break;
                ubyte[] uba = isRef? *(v.get!(ubyte[]*)): v.get!(ubyte[]);
                ubyte[] packed = packLCS(cast(void[]) uba);
