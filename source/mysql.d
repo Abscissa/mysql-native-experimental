@@ -914,6 +914,7 @@ private:
    ushort _flags;
    ubyte _scale;
    uint _length;
+
 public:
    this(ubyte[] packet)
    {
@@ -1479,20 +1480,21 @@ public:
  *    cs = A connetion string of the form "host=localhost;user=user;pwd=password;db=mysqld"
  *    capFlags = The set of flag bits from the server's capabilities that the client requires
  */
-   this(string cs,  uint capFlags = defaultClientFlags)
+   this(string cs, uint capFlags = defaultClientFlags)
    {
       string[] a = parseConnectionString(cs);
       _host = a[0];
       _user = a[1];
-      _pwd = a[2];
-      _db = a[3];
-          _port = to!(ushort)(a[4]);
+      _pwd  = a[2];
+      _db   = a[3];
+      _port = to!(ushort)(a[4]);
       init_connection();
       parseGreeting();
       _open = 1;
       setClientFlags(capFlags);
       open();
    }
+
 /**
  * Explicitly close the connection.
  *
