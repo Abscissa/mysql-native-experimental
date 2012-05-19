@@ -2048,74 +2048,74 @@ public:
             }
             switch (fd.type)
             {
-               case  0x01:  // TINYINT
+               case  SQLType.TINY:
                   if (uns)
                      _uva[i] = to!ubyte(val);
                   else
                      _uva[i] = to!byte(val);
                   break;
-               case 0x02:  // SHORT
+               case SQLType.SHORT:
                   if (uns)
                      _uva[i] = to!ushort(val);
                   else
                      _uva[i] = to!short(val);
                   break;
-               case 0x03:  // INT
-               case 0x09:
+               case SQLType.INT:
+               case SQLType.INT24:
                   if (uns)
                      _uva[i] = to!uint(val);
                   else
                      _uva[i] = to!int(val);
                   break;
-               case 0x04:  // FLOAT
+               case SQLType.FLOAT:
                   _uva[i] = to!float(val);
                   break;
-               case 0x05:  // DOUBLE
+               case SQLType.DOUBLE:
                   _uva[i] = to!double(val);
                   break;
-               case 0x06:  // NULL
+               case SQLType.NULL:
                   _nulls[i] = true;
                   break;
-               case 0x07:  // TIMESTAMP
+               case SQLType.TIMESTAMP:
                   _uva[i] = toDateTime(val);
                   break;
-               case 0x08:  // LONGLONG
+               case SQLType.LONGLONG:
                   if (uns)
                      _uva[i] = to!ulong(val);
                   else
                      _uva[i] = to!long(val);
                   break;
-               case 0x10:  // BIT - equated here to bool
+               case SQLType.BIT:  // equated here to bool
                   val = val[0]? "true": "false";
                   _uva[i] = to!bool(val);
                   break;
-               case 0x0a:  // DATE
+               case SQLType.DATE:
                   _uva[i] = toDate(val);
                   break;
-               case 0x0b:  // TIME
+               case SQLType.TIME:
                   _uva[i] = toTimeOfDay(val);
                   break;
-               case 0x0c:  // DATETIME
+               case SQLType.DATETIME:
                   _uva[i] = toDateTime(val);
                   break;
-               case 0x0d:  // YEAR - treat as unsigned short to match the prepared case
+               case SQLType.YEAR:  // treat as unsigned short to match the prepared case
                   _uva[i] = to!ushort(val);
                   break;
-               case 0x0f:   // VARCHAR - new in 5.0, but does not appear for a VARCHAR column
-               case 0xf7:   // ENUM          both this and SET actually get sent by the protocol as BLOB - 0xfe
-               case 0xf8:   // SET
-               // For some reason column type TINYTEXT TEXT MEDIUMTEXT LONGTEXT all appear as BLOB - 0xfc
+               case SQLType.VARCHAR:    // new in 5.0, but does not appear for a VARCHAR column
+               case SQLType.ENUM:       // both this and SET actually get sent by the protocol as BLOB - 0xfe
+               case SQLType.SET:
+               // For some reason column type TINYTEXT TEXT MEDIUMTEXT LONGTEXT all appear as SQLType.BLOB
                // They don't even have values in the list of protocol types
-               case 0xfd:   // VAR_STRING
-               case 0xfe:   // STRING
+               case SQLType.VARSTRING:
+               case SQLType.STRING:
                   _uva[i] = val;
                   break;
-               case 0xf9:   // TINY_BLOB
-               case 0xfa:   // MEDIUM_BLOB
-               case 0xfb:   // LONG_BLOB
+               case SQLType.TINYBLOB:
+               case SQLType.MEDIUMBLOB:
+               case SQLType.LONGBLOB:
                   _uva[i] = cast(ubyte[]) val;
                   break;
-               case 0xfc:   // Covers a multitude of sins  - TINYTEXT TEXT MEDIUMTEXT LONGTEXT all appear as BLOB - 0xfc
+               case SQLType.BLOB: // Covers a multitude of sins  - TINYTEXT TEXT MEDIUMTEXT LONGTEXT all appear as BLOB - 0xfc
                   if (fd.binary)
                      _uva[i] = cast(ubyte[]) val;
                   else
