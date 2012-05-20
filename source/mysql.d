@@ -1248,7 +1248,6 @@ protected:
     string  _serverVersion;
 
     ubyte[] _authBuf;
-    ubyte[] _token;
 
     string _host, _user, _pwd, _db;
     ushort _port;
@@ -1322,7 +1321,7 @@ protected:
         return okp;
     }
 
-    uint buildAuthPacket()
+    uint buildAuthPacket(ubyte[] token)
     {
         _packet[] = 0;
         ubyte* p = _packet.ptr+4;
@@ -1349,7 +1348,7 @@ protected:
         // SHA1 hash, so we know how long is is.
         *p++ = 20;
         foreach (uint i; 0..20)
-            *p++ = _token[i];
+            *p++ = token[i];
         // if the default database is being set, add this finally as a null terminated string.
         if (_db.length)
         {
@@ -1539,8 +1538,8 @@ protected:
     }
     body
     {
-        _token = makeToken();
-        buildAuthPacket();
+        auto token = makeToken();
+        buildAuthPacket(token);
         send(_packet);
         uint pl;
         getPacket(pl);
