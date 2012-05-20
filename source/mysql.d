@@ -107,15 +107,13 @@ TimeDiff toTimeDiff(ubyte[] a)
     TimeDiff td;
     uint l = a[0];
     enforceEx!MYX(l == 0 || l == 5 || l == 8 || l == 12, "Bad Time length in binary row.");
-    if (l == 5)
+    if (l >= 5)
     {
         td.negative = (a[1]  != 0);
         td.days     = (a[5] << 24) + (a[4] << 16) + (a[3] << 8) + a[2];
     }
-    else if (l > 5)
+    if (l >= 8)
     {
-        td.negative = (a[1] != 0);
-        td.days     = (a[5] << 24) + (a[4] << 16) + (a[3] << 8) + a[2];
         td.hours    = a[6];
         td.minutes  = a[7];
         td.seconds  = a[8];
@@ -4086,7 +4084,6 @@ unittest
 
 /**
  * A struct to hold column metadata
- *
  */
 struct ColumnInfo
 {
@@ -4105,7 +4102,7 @@ struct ColumnInfo
     /// Can the column value be set to NULL
     bool nullable;
     /// What type is the column - tinyint, char, varchar, blob, date etc
-    string type;            // varchar tinyint etc
+    string type;
     /// Capacity in characters, -1L if not applicable
     long charsMax;
     /// Capacity in bytes - same as chars if not a unicode table definition, -1L if not applicable.
