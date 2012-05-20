@@ -1142,10 +1142,8 @@ private:
 
     bool getEOFPacket()
     {
-        ubyte[] packet;
-        packet = _con.getPacket();
-        ubyte* ubp = packet.ptr;
-        if (*ubp != 0xfe) //signature for EOF packet
+        auto packet = _con.getPacket();
+        if (packet[0] != 0xfe) //signature for EOF packet
             return false;
         EOFPacket eof = EOFPacket(packet);
         _con._serverStatus = eof._serverStatus;
