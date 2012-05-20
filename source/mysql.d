@@ -1165,9 +1165,7 @@ public:
         // by the fact that the C API does not have any information about parameter types either.
         // WireShark gives up on these records also.
         foreach (uint i; 0.._paramCount)
-        {
             _con.getPacket();  // just eat them - they are not useful
-        }
 
         if (_paramCount)
             enforceEx!MYX(getEOFPacket(), "Expected EOF packet in result header sequence");
@@ -1830,9 +1828,9 @@ alias ColumnSpecialization CSN;
 struct Row
 {
 private:
-    Variant[] _uva;
-    bool[] _nulls;
-    bool _valid;
+    Variant[]   _uva;
+    bool[]      _nulls;
+    bool        _valid;
 
     T fromBytes(T, int N = 0)(ref uint p, ubyte[] packet, out bool incomplete) if (is(T: ulong))
     {
@@ -2424,6 +2422,7 @@ public:
      *
      */
     @property bool empty() { return (_rb.length == 0); }
+
     /**
      * Make the ResultSet behave as a random access range - save
      *
@@ -2432,6 +2431,7 @@ public:
     {
         return this;
     }
+
     /**
      * Make the ResultSet behave as a random access range - front
      *
@@ -2443,6 +2443,7 @@ public:
         _cr = _rb[0];
         return _ra[_cr];
     }
+
     /**
      * Make the ResultSet behave as a random access range - back
      *
@@ -2454,6 +2455,7 @@ public:
         _cr = _rb[$-1];
         return _ra[_cr];
     }
+
     /**
      * Make the ResultSet behave as a random access range - popFront()
      *
@@ -2466,6 +2468,7 @@ public:
         if (updateCr && _rb.length)
             _cr = _rb[0];
     }
+
     /**
      * Make the ResultSet behave as a random access range - popBack
      *
@@ -2479,6 +2482,7 @@ public:
         if (updateCr && _rb.length)
             _cr = _rb[$-1];
     }
+
     /**
      * Make the ResultSet behave as a random access range - opIndex
      *
@@ -2491,6 +2495,7 @@ public:
         _cr = _rb[i];
         return _ra[_cr];
     }
+
     /**
      * Make the ResultSet behave as a random access range - length
      *
@@ -2508,7 +2513,7 @@ public:
         _rb.length = _ra.length;
         foreach (size_t i; 0.._ra.length)
             _rb[i] = i;
-  }
+    }
 
     /**
      * Get a row as an associative array by column name
