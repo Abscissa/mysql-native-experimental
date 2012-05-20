@@ -4088,7 +4088,7 @@ unittest
  * A struct to hold column metadata
  *
  */
-struct MySQLColumn
+struct ColumnInfo
 {
     /// The database that the table having this column belongs to.
     string schema;
@@ -4286,19 +4286,19 @@ public:
      * Params:
      *    table = The table name
      * Returns:
-     *    An array of MySQLColumn structs
+     *    An array of ColumnInfo structs
      */
-    MySQLColumn[] columns(string table)
+    ColumnInfo[] columns(string table)
     {
         string query = "select * from information_schema.COLUMNS where table_name='" ~ table ~ "'";
         _mdc = Command(_con, query);
         _rs = _mdc.execSQLResult();
         size_t n = _rs.length;
-        MySQLColumn[] ca;
+        ColumnInfo[] ca;
         ca.length = n;
         foreach (size_t i; 0..n)
         {
-            MySQLColumn col;
+            ColumnInfo col;
             Row r = _rs[i];
             for (int j = 1; j < 19; j++)
             {
@@ -4416,7 +4416,7 @@ unittest
     }
     assert(count == 2);
 
-    MySQLColumn[] ca = md.columns("basetest");
+    ColumnInfo[] ca = md.columns("basetest");
     assert(ca[0].schema == "mysqld" && ca[0].table == "basetest" && ca[0].name == "boolcol" && ca[0].index == 0 &&
            ca[0].defaultNull && ca[0].nullable && ca[0].type == "bit" && ca[0].charsMax == -1 && ca[0].octetsMax == -1 &&
            ca[0].numericPrecision == 1 && ca[0].numericScale == -1 && ca[0].charSet == "<NULL>" && ca[0].collation == "<NULL>"  &&
