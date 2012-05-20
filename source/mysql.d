@@ -1546,7 +1546,7 @@ protected:
         _open = OpenState.authenticated;
     }
 
-    void connect()
+    void connect(uint clientCapabilities)
     in
     {
         assert(_open == OpenState.notConnected);
@@ -1557,7 +1557,7 @@ protected:
         parseGreeting();
         _open = OpenState.connected;
 
-        setClientFlags(capFlags);
+        setClientFlags(clientCapabilities);
         authenticate();
     }
 
@@ -1586,7 +1586,7 @@ public:
         _db = db;
         _port = port;
 
-        connect();
+        connect(capFlags);
     }
 
     /**
