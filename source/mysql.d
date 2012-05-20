@@ -647,6 +647,14 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
     return t;
 }
 
+/// ditto
+ulong parseLCB(ref ubyte* ubp)
+{
+    bool isNull;
+    return parseLCB(ubp, isNull);
+}
+
+
 /** Parse Length Coded String
  *
  * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
@@ -803,11 +811,10 @@ unittest
 
 /**
  * A struct representing an OK or Error packet
- *
+ * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Types_Of_Result_Packets
  * OK packets begin with a zero byte - Error packets with 0xff
- *
  */
-struct OKPacket
+struct OKErrorPacket
 {
     bool     error;
     bool     nullFlag;
@@ -818,57 +825,57 @@ struct OKPacket
     char[5]  sqlState;
     char[]   message;
 
-    this(ubyte* ubp, uint length)
+    this(ubyte[] packet)
     {
-        ubyte* ps = ubp;     // note packet start
-        ubyte* pe = ps+length;
-        if (*ubp)
-        {
-            error = true;
-            // it's not OK
-            enforceEx!MYX(*ubp == 255, "Malformed OK/Error packet");
-            ubp++;
+        this(packet.ptr, cast(uint)packet.length);
+    }
 
-            enforceEx!MYX(ubp+2 < pe, "Malformed OK/Error packet");
-            serverStatus = getShort(ubp);      // error code into server state
-            if (*ubp == cast(ubyte) '#')
+    private this(ubyte* ubp, uint length)
+    {
+        enforceEx!MYX(*ubp == 0xff || *ubp == 0x00, "Malformed OK/Error packet - Incorrect type of packet");
+        ubyte* ps = ubp; // packet start
+        ubyte* pe = ps+length; // packet end
+
+        if (*ubp == 0xff) // error packet
+        {
+            ubp++; // skip marker/field code
+            error = true;
+
+            enforceEx!MYX(ubp+2 < pe, "Malformed Error packet - Missing error code");
+            serverStatus = getShort(ubp); // error code into server state
+            if (*ubp == cast(ubyte) '#') //4.1+ error packet
             {
-                //4.1+ error packet
-                ubp++;
-                enforceEx!MYX(ubp+5 < pe, "Malformed OK/Error packet");
+                ubp++; // skip 4.1 marker
+                enforceEx!MYX(ubp+5 < pe, "Malformed Error packet - Missing SQL state");
                 sqlState[] = cast(char[]) ubp[0..5];
                 ubp += 5;
             }
-            size_t rem = pe-ubp;
-            if (rem)
-            {
-                message.length = rem;
-                message[] = cast(char[]) ubp[0..rem];
-            }
         }
-        else
+        else if(*ubp == 0x00) // ok packet
         {
-            // It's OK - get supplied data
-            enforceEx!MYX(ubp+1 < pe, "Malformed OK/Error packet");
-            bool gash;
-            ubp++;
-            affected = parseLCB(ubp, gash);
+            ubp++; // skip marker/field code
 
-            enforceEx!MYX(ubp+1 < pe, "Malformed OK/Error packet");
-            insertID = parseLCB(ubp, gash);
+            enforceEx!MYX(ubp+1 < pe, "Malformed OK packet - Missing affected rows");
+            affected = parseLCB(ubp);
 
-            enforceEx!MYX(ubp+2 < pe, "Malformed OK/Error packet");
+            enforceEx!MYX(ubp+1 < pe, "Malformed OK packet - Missing insert id");
+            insertID = parseLCB(ubp);
+
+            enforceEx!MYX(ubp+2 < pe, "Malformed OK packet - Missing server status");
             serverStatus = getShort(ubp);
 
-            enforceEx!MYX(ubp+2 <= pe, "Malformed OK/Error packet");
+            enforceEx!MYX(ubp+2 <= pe, "Malformed OK packet - Missing warnings");
             warnings = getShort(ubp);
+        }
+        else
+            assert(0); // Should never get here. Should have been taken care of by an exception earlier
 
-            size_t rem = pe-ubp;
-            if (rem)
-            {
-                message.length = rem;
-                message[] = cast(char[]) ubp[0..rem];
-            }
+        // both OK and Error packets end with a message for the rest of the packet
+        size_t msglen = pe-ubp;
+        if (msglen)
+        {
+            message.length = msglen;
+            message[] = cast(char[]) ubp[0..msglen];
         }
     }
 }
@@ -1305,10 +1312,10 @@ protected:
         send(packet);
     }
 
-    OKPacket getCmdResponse(bool asString = false)
+    OKErrorPacket getCmdResponse(bool asString = false)
     {
         auto packet = getPacket();
-        OKPacket okp = OKPacket(packet.ptr, cast(uint)packet.length);
+        auto okp = OKErrorPacket(packet);
         enforceEx!MYX(!okp.error, "MySQL error: " ~ cast(string) okp.message);
         _serverStatus = okp.serverStatus;
         return okp;
@@ -1540,7 +1547,7 @@ protected:
         send(authPacket);
 
         auto packet = getPacket();
-        OKPacket okp = OKPacket(packet.ptr, cast(uint)packet.length);
+        auto okp = OKErrorPacket(packet);
         enforceEx!MYX(!okp.error, "Authentication failure: " ~ cast(string) okp.message);
         _open = OpenState.authenticated;
     }
@@ -1666,10 +1673,10 @@ public:
     /**
      * Check the server status
      *
-     * Returns: An OKPacket from which server status can be determined
+     * Returns: An OKErrorPacket from which server status can be determined
      * Throws: MySQLException
      */
-    OKPacket pingServer()
+    OKErrorPacket pingServer()
     {
         sendCmd(CommandType.PING, "");
         return getCmdResponse();
@@ -1678,10 +1685,10 @@ public:
     /**
      * Refresh some feature(s) of the server.
      *
-     * Returns: An OKPacket from which server status can be determined
+     * Returns: An OKErrorPacket from which server status can be determined
      * Throws: MySQLException
      */
-    OKPacket refreshServer(int flags)
+    OKErrorPacket refreshServer(int flags)
     {
         ubyte[] t;
         t.length = 1;
@@ -1754,7 +1761,7 @@ unittest
         {
             assert(x.msg.indexOf("Access denied") > 0);
         }
-        OKPacket okp = c.pingServer();
+        auto okp = c.pingServer();
         assert(okp.serverStatus == 2);
         try {
             okp = c.refreshServer(RefreshFlags.GRANT);
@@ -3091,7 +3098,7 @@ public:
         }
         else
         {
-            OKPacket okp = OKPacket(ubp, cast(uint)packet.length);
+            auto okp = OKErrorPacket(packet);
             throw new MYX("MySQL Error: " ~ cast(string) okp.message, __FILE__, __LINE__);
         }
     }
@@ -3293,12 +3300,11 @@ c.param(1) = "The answer";
         _con.sendCmd(CommandType.QUERY, _sql);
         _fieldCount = 0;
         ubyte[] packet = _con.getPacket();
-        ubyte* ubp = packet.ptr;
         bool rv;
-        if (*ubp == 0 || *ubp == 255)
+        if (packet[0] == 0 || packet[0] == 255)
         {
             _con.resetPacket();
-            OKPacket okp = OKPacket(ubp, cast(uint)packet.length);
+            auto okp = OKErrorPacket(packet);
             enforceEx!MYX(!okp.error, "MySQL Error: " ~ cast(string) okp.message);
             ra = okp.affected;
             _con._serverStatus = okp.serverStatus;
@@ -3310,8 +3316,9 @@ c.param(1) = "The answer";
             // There was presumably a result set
             _headersPending = _rowsPending = true;
             _pendingBinary = false;
-            bool gash;
-            _fieldCount = cast(ushort) parseLCB(ubp, gash);
+            bool isNull;
+            auto ptr = packet.ptr;
+            _fieldCount = cast(ushort) parseLCB(ptr);
             rv = true;
             ra = 0;
         }
@@ -3470,12 +3477,11 @@ c.param(1) = "The answer";
         _con.bumpPacket();
         _con.send(packet);
         packet = _con.getPacket();
-        ubyte* ubp = packet.ptr;
         bool rv;
-        if (*ubp == 0 || *ubp == 255)
+        if (packet[0] == 0 || packet[0] == 255)
         {
             _con.resetPacket();
-            OKPacket okp = OKPacket(ubp, cast(uint)packet.length);
+            auto okp = OKErrorPacket(packet);
             enforceEx!MYX(!okp.error, "MySQL Error: " ~ cast(string) okp.message);
             ra = okp.affected;
             _con._serverStatus = okp.serverStatus;
@@ -3486,8 +3492,8 @@ c.param(1) = "The answer";
         {
             // There was presumably a result set
             _headersPending = _rowsPending = _pendingBinary = true;
-            bool gash;
-            _fieldCount = cast(ushort) parseLCB(ubp, gash);
+            auto ptr = packet.ptr;
+            _fieldCount = cast(ushort) parseLCB(ptr);
             rv = true;
         }
         return rv;
