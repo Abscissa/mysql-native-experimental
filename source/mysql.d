@@ -281,10 +281,10 @@ ubyte[] pack(Date dt)
     {
         rv.length = 4;
         rv[0] = 4;
-        rv[1] = cast(ubyte) (dt.year & 0xff);
+        rv[1] = cast(ubyte) ( dt.year       & 0xff);
         rv[2] = cast(ubyte) ((dt.year >> 8) & 0xff);
-        rv[3] = cast(ubyte) dt.month;
-        rv[4] = cast(ubyte) dt.day;
+        rv[3] = cast(ubyte)   dt.month;
+        rv[4] = cast(ubyte)   dt.day;
     }
     return rv;
 }
@@ -307,8 +307,8 @@ DateTime toDateTime(ubyte[] a)
 
     enforceEx!MYX(a[0] >= 4, "Supplied ubyte[] is not long enough");
     int year    = (a[2] << 8) + a[1];
-    int month   = a[3];
-    int day     = a[4];
+    int month   =  a[3];
+    int day     =  a[4];
     DateTime dt;
     if (a[0] == 4)
     {
@@ -363,13 +363,13 @@ DateTime toDateTime(ulong x)
     x /= 100;
     int minute = cast(int) x%100;
     x /= 100;
-    int hour = cast(int) x%100;
+    int hour   = cast(int) x%100;
     x /= 100;
-    int day = cast(int) x%100;
+    int day    = cast(int) x%100;
     x /= 100;
-    int month = cast(int) x%100;
+    int month  = cast(int) x%100;
     x /= 100;
-    int year = cast(int) x%10000;
+    int year   = cast(int) x%10000;
     // 2038-01-19 03:14:07
     enforceEx!MYX(year >= 1970 &&  year < 2039, "Date/time out of range for 2 bit timestamp");
     enforceEx!MYX(year == 2038 && (month > 1 || day > 19 || hour > 3 || minute > 14 || second > 7),
@@ -393,24 +393,20 @@ ubyte[] pack(DateTime dt)
     if (dt.hour || dt.minute|| dt.second) len = 8;
     ubyte[] rv;
     rv.length = len;
-    if (len == 1)
+    rv[0] =  cast(ubyte)(rv.length - 1); // num bytes
+    if(len >= 5)
     {
-        rv[0] = 0;
-        return rv;
+        rv[1] = cast(ubyte) ( dt.year       & 0xff);
+        rv[2] = cast(ubyte) ((dt.year >> 8) & 0xff);
+        rv[3] = cast(ubyte)   dt.month;
+        rv[4] = cast(ubyte)   dt.day;
     }
-    rv[1] = cast(ubyte) (dt.year & 0xff);
-    rv[2] = cast(ubyte) ((dt.year >> 8) & 0xff);
-    rv[3] = cast(ubyte) dt.month;
-    rv[4] = cast(ubyte) dt.day;
-    if (len == 5)
+    if(len == 8)
     {
-        rv[0] = 4;
-        return rv;
+        rv[5] = cast(ubyte) dt.hour;
+        rv[6] = cast(ubyte) dt.minute;
+        rv[7] = cast(ubyte) dt.second;
     }
-    rv[5] = cast(ubyte) dt.hour;
-    rv[6] = cast(ubyte) dt.minute;
-    rv[7] = cast(ubyte) dt.second;
-    rv[0] = 7;
     return rv;
 }
 
@@ -579,6 +575,26 @@ uint getInt24(ref ubyte* ubp)
     return rv;
 }
 
+
+/**
+ * Returns the number of bytes in the Length Coded Binary
+ * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
+ * Returns: 0 if the parameter is the only byte, -1 if it's a null value, or number of bytes in other cases
+ * */
+byte getNumLCBBytes(ubyte lcb)
+{
+    switch(lcb)
+    {
+        case 0: .. case 250: return 0; // the parameter is the only byte
+        case 251: return -1; // null
+        case 252: return 2;  // 16-bit word
+        case 253: return 3;  // 24-bit word
+        case 254: return 8;  // 64-bit word;
+        case 255: default: assert(0);
+    }
+    assert(0);
+}
+
 /** Parse Length Coded Binary
  *
  * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
@@ -587,31 +603,14 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
 {
     nullFlag = false;
     ulong t;
-    switch (*ubp)
+    byte numLCBBytes = getNumLCBBytes(*ubp);
+    switch (numLCBBytes)
     {
-        case 0: .. case 250: // Value of first byte
-            t = cast(ulong)*ubp++;
-            break;
-        case 251: // Null - only for Row Data Packet
+        case -1: // Null - only for Row Data Packet
             nullFlag = true;
-            ubp++;
             t = 0;
             break;
-        case 252: // 16-bit word
-            t |= ubp[2];
-            t <<= 8;
-            t |= ubp[1];
-            ubp += 3;
-            break;
-        case 253: // 24-bit word
-            t |= ubp[3];
-            t <<= 8;
-            t |= ubp[2];
-            t <<= 8;
-            t |= ubp[1];
-            ubp += 4;
-            break;
-        case 254: // 64-bit word
+        case 8: // 64-bit word
             t |= ubp[8];
             t <<= 8;
             t |= ubp[7];
@@ -622,18 +621,29 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
             t <<= 8;
             t |= ubp[4];
             t <<= 8;
+            ubp += 5;
+            goto case;
+        case 3: // 24-bit word
             t |= ubp[3];
             t <<= 8;
             t |= ubp[2];
             t <<= 8;
             t |= ubp[1];
-            ubp += 9;
+            ubp += 3;
+            goto case;
+        case 2: // 16-bit word
+            t |= ubp[2];
+            t <<= 8;
+            t |= ubp[1];
+            ubp += 2;
             break;
-        case 255:
-            throw new MYX("The input value corresponds to an error packet.", __FILE__, __LINE__);
+        case 0: // Value of first byte
+            t = cast(ulong)*ubp;
+            break;
         default:
             assert(0);
     }
+    ubp++;
     return t;
 }
 
@@ -1916,55 +1926,29 @@ public:
                 incomplete  = true;
                 return 0;
             }
-            switch (packet[p])
+            byte numLCBBytes = getNumLCBBytes(packet[p]);
+            switch (numLCBBytes)
             {
-                case 251:
+                case -1:
                     nullFlag = true;
                     p++;
                     break;
-                case 252:
-                    if (pl-p < 3)
-                    {
-                        incomplete = true;
-                        return 0;
-                    }
-                    for (uint i = p+2; i > p; i--)
-                    {
-                        lc <<= 8;
-                        lc |= packet[i];
-                    }
-                    p += 3;
-                    break;
-                case 253:
-                    if (pl-p < 4)
-                    {
-                        incomplete = true;
-                        return 0;
-                    }
-                    for (uint i = p+3; i > p; i--)
-                    {
-                        lc <<= 8;
-                        lc |= packet[i];
-                    }
-                    p += 4;
-                    break;
-                case 254:
-                    if (pl-p < 9)
-                    {
-                        incomplete = true;
-                        return 0;
-                    }
-                    for (uint i = p+8; i > p; i--)
-                    {
-                        lc <<= 8;
-                        lc |= packet[i];
-                    }
-                    p += 9;
-                    break;
-                case 255:
-                    throw new MYX("Unexpected error packet prefix.", __FILE__, __LINE__);
-                default:
+                case 0:
                     lc = packet[p++];
+                    break;
+                default:
+                    assert(numLCBBytes == 2 || numLCBBytes == 3 || numLCBBytes == 8);
+                    if(pl-p < (numLCBBytes+1))
+                    {
+                        incomplete = true;
+                        return 0;
+                    }
+                    for(uint i = p+numLCBBytes; i > p; i--)
+                    {
+                        lc <<= 8;
+                        lc |= packet[i];
+                    }
+                    p += numLCBBytes+1;
                     break;
             }
             gotPrefix = true;
