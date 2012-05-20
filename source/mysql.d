@@ -111,15 +111,15 @@ TimeDiff toTimeDiff(ubyte[] a)
     if (l == 5)
     {
         td.negative = (a[1]  != 0);
-        td.days = (a[5] << 24) + (a[4] << 16) + (a[3] << 8) + a[2];
+        td.days     = (a[5] << 24) + (a[4] << 16) + (a[3] << 8) + a[2];
     }
     else if (l > 5)
     {
-        td.negative = (a[1]  != 0);
-        td.days = (a[5] << 24) + (a[4] << 16) + (a[3] << 8) + a[2];
-        td.hours = a[6];
-        td.minutes = a[7];
-        td.seconds = a[8];
+        td.negative = (a[1] != 0);
+        td.days     = (a[5] << 24) + (a[4] << 16) + (a[3] << 8) + a[2];
+        td.hours    = a[6];
+        td.minutes  = a[7];
+        td.seconds  = a[8];
     }
     // Note that the fractional seconds part is not stored by MtSQL
     return td;
@@ -169,9 +169,9 @@ TimeOfDay toTimeOfDay(ubyte[] a)
     enforceEx!MYX(l == 0 || l == 5 || l == 8 || l == 12, "Bad Time length in binary row.");
 
     enforceEx!MYX(l >= 8, "Time column value is not in a time-of-day format");
-    tod.hour = a[6];
-    tod.minute = a[7];
-    tod.second = a[8];
+    tod.hour    = a[6];
+    tod.minute  = a[7];
+    tod.second  = a[8];
     return tod;
 }
 
@@ -211,13 +211,15 @@ ubyte[] pack(TimeOfDay tod)
     {
         rv.length = 1;
         rv[0] = 0;
-        return rv;
     }
-    rv.length = 9;
-    rv[0] = 8;
-    rv[6] = tod.hour;
-    rv[7] = tod.minute;
-    rv[8] = tod.second;
+    else
+    {
+        rv.length = 9;
+        rv[0] = 8;
+        rv[6] = tod.hour;
+        rv[7] = tod.minute;
+        rv[8] = tod.second;
+    }
     return rv;
 }
 
@@ -235,10 +237,11 @@ Date toDate(ubyte[] a)
     enforceEx!MYX(a.length, "Supplied byte array is zero length");
     if (a[0] == 0)
         return Date(0,0,0);
+
     enforceEx!MYX(a[0] >= 4, "Binary date representation is too short");
-    int year = (a[2]  << 8) + a[1];
-    int month = cast(int) a[3];
-    int day = cast(int) a[4];
+    int year    = (a[2]  << 8) + a[1];
+    int month   = cast(int) a[3];
+    int day     = cast(int) a[4];
     return Date(year, month, day);
 }
 
@@ -276,14 +279,16 @@ ubyte[] pack(Date dt)
     {
         rv.length = 1;
         rv[0] = 0;
-        return rv;
     }
-    rv.length = 4;
-    rv[1] = cast(ubyte) (dt.year & 0xff);
-    rv[2] = cast(ubyte) ((dt.year >> 8) & 0xff);
-    rv[3] = cast(ubyte) dt.month;
-    rv[4] = cast(ubyte) dt.day;
-    rv[0] = 4;
+    else
+    {
+        rv.length = 4;
+        rv[0] = 4;
+        rv[1] = cast(ubyte) (dt.year & 0xff);
+        rv[2] = cast(ubyte) ((dt.year >> 8) & 0xff);
+        rv[3] = cast(ubyte) dt.month;
+        rv[4] = cast(ubyte) dt.day;
+    }
     return rv;
 }
 
@@ -300,23 +305,26 @@ ubyte[] pack(Date dt)
 DateTime toDateTime(ubyte[] a)
 {
     enforceEx!MYX(a.length, "Supplied byte array is zero length");
-    DateTime dt;
     if (a[0] == 0)
-        return dt;
+        return DateTime();
+
     enforceEx!MYX(a[0] >= 4, "Supplied ubyte[] is not long enough");
-    int year = (a[2] << 8) + a[1];
-    int month = a[3];
-    int day = a[4];
+    int year    = (a[2] << 8) + a[1];
+    int month   = a[3];
+    int day     = a[4];
+    DateTime dt;
     if (a[0] == 4)
     {
         dt = DateTime(year, month, day);
-        return dt;
     }
-    enforceEx!MYX(a[0] >= 7, "Supplied ubyte[] is not long enough");
-    int hour = a[5];
-    int minute = a[6];
-    int second = a[7];
-    dt = DateTime(year, month, day, hour, minute, second);
+    else
+    {
+        enforceEx!MYX(a[0] >= 7, "Supplied ubyte[] is not long enough");
+        int hour    = a[5];
+        int minute  = a[6];
+        int second  = a[7];
+        dt = DateTime(year, month, day, hour, minute, second);
+    }
     return dt;
 }
 
@@ -649,20 +657,23 @@ ubyte[] parseLCS(ref ubyte* ubp, out bool nullFlag)
 }
 
 ubyte[] packLength(size_t l, out size_t offset)
+out(result)
+{
+    assert(result.length >= 1);
+}
+body
 {
     ubyte[] t;
     if (!l)
     {
         t.length = 1;
         t[0] = 0;
-        return t;
     }
-    if (l <= 250)
+    else if (l <= 250)
     {
         t.length = 1+l;
         t[0] = cast(ubyte) l;
         offset = 1;
-        return t;
     }
     else if (l <= 0xffff)
     {
@@ -671,7 +682,6 @@ ubyte[] packLength(size_t l, out size_t offset)
         t[1] = cast(ubyte) (l & 0xff);
         t[2] = cast(ubyte) ((l >> 8) & 0xff);
         offset = 3;
-        return t;
     }
     else if (l < 0xffffff)
     {
@@ -681,7 +691,6 @@ ubyte[] packLength(size_t l, out size_t offset)
         t[2] = cast(ubyte) ((l >> 8) & 0xff);
         t[3] = cast(ubyte) ((l >> 16) & 0xff);
         offset = 4;
-        return t;
     }
     else
     {
@@ -697,9 +706,8 @@ ubyte[] packLength(size_t l, out size_t offset)
         t[7] = cast(ubyte) ((u >> 48) & 0xff);
         t[8] = cast(ubyte) ((u >> 56) & 0xff);
         offset = 9;
-        return t;
     }
-    assert(0);
+    return t;
 }
 
 ubyte[] packLCS(void[] a)
