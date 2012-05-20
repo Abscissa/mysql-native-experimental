@@ -1247,8 +1247,6 @@ protected:
     ubyte   _sCharSet, _protocol;
     string  _serverVersion;
 
-    ubyte[] _authBuf;
-
     string _host, _user, _pwd, _db;
     ushort _port;
 
@@ -1386,7 +1384,7 @@ protected:
         p += 7;
     }
 
-    void parseGreeting()
+    ubyte[] parseGreeting()
     {
         // TODO: make the following code work instead of the leastSize workaround below:
         // read the handshake message from the socket
@@ -1433,9 +1431,10 @@ protected:
         _serverVersion = cast(string) _packet[offset..offset+len].idup;
         p++;
         _sThread = getInt(p);
-        _authBuf.length = 255;
+        ubyte[] authBuf;
+        authBuf.length = 255;
         foreach (uint i; 0..8)
-            _authBuf[i] = *p++;
+            authBuf[i] = *p++;
         assert(*p == 0);
         p++;
         getServerInfo(p);
@@ -1443,9 +1442,10 @@ protected:
         p += 10;       // skip 10 bytes of filler
         len = 8;
         for (uint i = 0; *p; i++, len++)
-            _authBuf[8+i] = *p++;
-        _authBuf.length = len;
+            authBuf[8+i] = *p++;
+        authBuf.length = len;
         assert(*p == 0);
+        return authBuf;
     }
 
     void init_connection()
@@ -1457,7 +1457,7 @@ protected:
         //_rbs = rbs;
     }
 
-    ubyte[] makeToken()
+    ubyte[] makeToken(ubyte[] authBuf)
     {
         SHA1 sha1;
         sha1.reset();
@@ -1471,7 +1471,7 @@ protected:
         sha1.input(pass1.ptr, pass1.length);
         pass2 = sha1.result();
         sha1.reset();
-        sha1.input(_authBuf.ptr, _authBuf.length);
+        sha1.input(authBuf.ptr, authBuf.length);
         sha1.input(pass2.ptr, pass2.length);
         result = sha1.result();
         foreach (uint i; 0..20)
@@ -1531,14 +1531,14 @@ protected:
         return rv;
     }
 
-    void authenticate()
+    void authenticate(ubyte[] greeting)
     in
     {
         assert(_open == OpenState.connected);
     }
     body
     {
-        auto token = makeToken();
+        auto token = makeToken(greeting);
         buildAuthPacket(token);
         send(_packet);
         uint pl;
@@ -1557,11 +1557,11 @@ protected:
     body
     {
         init_connection();
-        parseGreeting();
+        auto greeting = parseGreeting();
         _open = OpenState.connected;
 
         setClientFlags(clientCapabilities);
-        authenticate();
+        authenticate(greeting);
     }
 
     ~this() { if (_open != OpenState.notConnected) close(); }
