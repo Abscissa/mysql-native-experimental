@@ -1075,21 +1075,22 @@ public:
     {
         ubyte[] packet;
         ubyte* ubp;
-        uint pl, n;
+        uint n;
         ubyte pn;
         _fieldCount = fieldCount;
         _fieldDescriptions.length = _fieldCount;
         _fieldNames.length = _fieldCount;
         foreach (uint i; 0.._fieldCount)
         {
-            packet = con.getPacket(pl);
+            packet = con.getPacket();
             FieldDescription t = FieldDescription(packet);
             _fieldDescriptions[i] = FieldDescription(packet);
             _fieldNames[i] = _fieldDescriptions[i]._name;
         }
-        packet = con.getPacket(pl);
+        packet = con.getPacket();
         ubp = packet.ptr;
-        enforceEx!MYX(*ubp == 0xfe && pl < 9,  "Expected EOF packet in result header sequence");   // check signature for EOF packet
+        enforceEx!MYX(*ubp == 0xfe && packet.length < 9,
+                "Expected EOF packet in result header sequence");   // check signature for EOF packet
         EOFPacket eof = EOFPacket(packet);
         con._serverStatus = eof._serverStatus;
         _warnings = eof._warnings;
@@ -1149,8 +1150,7 @@ private:
     bool getEOFPacket()
     {
         ubyte[] packet;
-        uint pl;
-        packet = _con.getPacket(pl);
+        packet = _con.getPacket();
         ubyte* ubp = packet.ptr;
         if (*ubp != 0xfe) //signature for EOF packet
             return false;
@@ -1175,15 +1175,13 @@ public:
         // WireShark gives up on these records also.
         foreach (uint i; 0.._paramCount)
         {
-            uint pl;
-            _con.getPacket(pl);  // just eat them - they are not useful
+            _con.getPacket();  // just eat them - they are not useful
         }
         if (_paramCount)
             enforceEx!MYX(getEOFPacket(), "Expected EOF packet in result header sequence");
         foreach(uint i; 0.._colCount)
         {
-            uint pl;
-            packet = _con.getPacket(pl);
+            packet = _con.getPacket();
            _colDescriptions[i] = FieldDescription(packet);
         }
         if (_colCount)
@@ -1257,11 +1255,11 @@ protected:
     void bumpPacket()       { _cpn++; }
     void resetPacket()      { _cpn = 0; }
 
-    ubyte[] getPacket(out uint numDataBytes)
+    ubyte[] getPacket()
     {
         ubyte[4] header;
         _socket.read(header);
-        numDataBytes = (header[2] << 16) + (header[1] << 8) + header[0];
+        uint numDataBytes = (header[2] << 16) + (header[1] << 8) + header[0];
         ubyte pn = header[3];
         enforceEx!MYX(pn == pktNumber, "Server packet out of order");
         bumpPacket();
@@ -1312,9 +1310,8 @@ protected:
 
     OKPacket getCmdResponse(bool asString = false)
     {
-        uint pl;
-        auto packet = getPacket(pl);
-        OKPacket okp = OKPacket(packet.ptr, pl);
+        auto packet = getPacket();
+        OKPacket okp = OKPacket(packet.ptr, cast(uint)packet.length);
         enforceEx!MYX(!okp.error, "MySQL error: " ~ cast(string) okp.message);
         _serverStatus = okp.serverStatus;
         return okp;
@@ -1545,9 +1542,8 @@ protected:
         auto authPacket = buildAuthPacket(token);
         send(authPacket);
 
-        uint pl;
-        auto packet = getPacket(pl);
-        OKPacket okp = OKPacket(packet.ptr, pl);
+        auto packet = getPacket();
+        OKPacket okp = OKPacket(packet.ptr, cast(uint)packet.length);
         enforceEx!MYX(!okp.error, "Authentication failure: " ~ cast(string) okp.message);
         _open = OpenState.authenticated;
     }
@@ -1704,8 +1700,7 @@ public:
     string serverStats()
     {
         sendCmd(CommandType.STATISTICS, "");
-        uint pl;
-        return cast(string) getPacket(pl);
+        return cast(string) getPacket();
     }
 
     /**
@@ -1724,9 +1719,8 @@ public:
         sendCmd(CommandType.STMT_OPTION, cast(string) t);
 
         // For some reason this command gets an EOF packet as response
-        uint pl;
-        auto packet = getPacket(pl);
-        enforceEx!MYX(packet[0] == 254 && pl == 5, "Unexpected response to SET_OPTION command");
+        auto packet = getPacket();
+        enforceEx!MYX(packet[0] == 254 && packet.length == 5, "Unexpected response to SET_OPTION command");
     }
 
     /// Return the in-force protocol number
@@ -2292,7 +2286,8 @@ public:
                         checkpoint += cs;
                         remaining -= cs;
                     }
-                    ubyte[] more = con.getPacket(npl);
+                    ubyte[] more = con.getPacket();
+                    npl = cast(uint)more.length;
                     packet = packet[checkpoint..pl] ~ more;
                     pl = packet.length;
                     p = 0;
@@ -2312,7 +2307,8 @@ public:
                             p += cs;
                             remaining -= cs;
                         }
-                        more = con.getPacket(npl);
+                        more = con.getPacket();
+                        npl = cast(uint)more.length;
                         packet = packet[p..pl] ~ more;
                         pl = packet.length;
                         p = 0;
@@ -2323,7 +2319,8 @@ public:
                 {
                     // Process without chunking - pull in more packets uintil we have enough data
                     // to get the incomplete column.
-                    ubyte[] more = con.getPacket(npl);
+                    ubyte[] more = con.getPacket();
+                    npl = cast(uint)more.length;
                     packet = packet[checkpoint..pl] ~ more;
                     p = 0;   // previous stuff now gone
                     checkpoint = p;
@@ -3111,8 +3108,7 @@ public:
             releaseStatement();
         _con.sendCmd(CommandType.STMT_PREPARE, _sql);
         _fieldCount = 0;
-        uint pl;
-        ubyte[] packet = _con.getPacket(pl);
+        ubyte[] packet = _con.getPacket();
         ubyte* ubp = packet.ptr;
         if (*ubp == 0)
         {
@@ -3130,7 +3126,7 @@ public:
         }
         else
         {
-            OKPacket okp = OKPacket(ubp, pl);
+            OKPacket okp = OKPacket(ubp, cast(uint)packet.length);
             throw new MYX("MySQL Error: " ~ cast(string) okp.message, __FILE__, __LINE__);
         }
     }
@@ -3180,10 +3176,9 @@ public:
             {
                 for (uint i = 0;; i++)
                 {
-                    uint pl;
-                    ubyte[] packet = _con.getPacket(pl);
+                    ubyte[] packet = _con.getPacket();
                     ubyte* ubp = packet.ptr;
-                    if (pl < 9 && *ubp == 0xfe)
+                    if (packet.length < 9 && *ubp == 0xfe)
                     {
                         // Found an EOF packet
                         _headersPending = false;
@@ -3196,10 +3191,9 @@ public:
             {
                 for (;;  rows++)
                 {
-                    uint pl;
-                    ubyte[] packet = _con.getPacket(pl);
+                    ubyte[] packet = _con.getPacket();
                     ubyte* ubp = packet.ptr;
-                    if (pl < 9 && *ubp == 0xfe)
+                    if (packet.length < 9 && *ubp == 0xfe)
                     {
                         // Found an EOF packet
                         _rowsPending = _pendingBinary = false;
@@ -3333,14 +3327,13 @@ c.param(1) = "The answer";
     {
         _con.sendCmd(CommandType.QUERY, _sql);
         _fieldCount = 0;
-        uint pl;
-        ubyte[] packet = _con.getPacket(pl);
+        ubyte[] packet = _con.getPacket();
         ubyte* ubp = packet.ptr;
         bool rv;
         if (*ubp == 0 || *ubp == 255)
         {
             _con.resetPacket();
-            OKPacket okp = OKPacket(ubp, pl);
+            OKPacket okp = OKPacket(ubp, cast(uint)packet.length);
             enforceEx!MYX(!okp.error, "MySQL Error: " ~ cast(string) okp.message);
             ra = okp.affected;
             _con._serverStatus = okp.serverStatus;
@@ -3388,10 +3381,9 @@ c.param(1) = "The answer";
         ubyte[] packet;
         for (uint i = 0;; i++)
         {
-            uint pl;
-            packet = _con.getPacket(pl);
+            packet = _con.getPacket();
             ubyte* ubp = packet.ptr;
-            if (*ubp == 0xfe && pl < 9)      // EOF packet
+            if (*ubp == 0xfe && packet.length < 9)      // EOF packet
                 break;
 
             Row row = Row(_con, packet, _rsh, false);
@@ -3512,13 +3504,13 @@ c.param(1) = "The answer";
         packet[3] = _con.pktNumber;
         _con.bumpPacket();
         _con.send(packet);
-        packet = _con.getPacket(pl);
+        packet = _con.getPacket();
         ubyte* ubp = packet.ptr;
         bool rv;
         if (*ubp == 0 || *ubp == 255)
         {
             _con.resetPacket();
-            OKPacket okp = OKPacket(ubp, pl);
+            OKPacket okp = OKPacket(ubp, cast(uint)packet.length);
             enforceEx!MYX(!okp.error, "MySQL Error: " ~ cast(string) okp.message);
             ra = okp.affected;
             _con._serverStatus = okp.serverStatus;
@@ -3563,10 +3555,9 @@ c.param(1) = "The answer";
         ubyte[] packet;
         for (uint i = 0;; i++)
         {
-            uint pl;
-            packet = _con.getPacket(pl);
+            packet = _con.getPacket();
             ubyte* ubp = packet.ptr;
-            if (*ubp == 0xfe && pl < 9)      // EOF packet
+            if (*ubp == 0xfe && packet.length < 9)      // EOF packet
                 break;
             Row row = Row(_con, packet, _rsh, true);
             if (cr >= alloc)
@@ -3662,10 +3653,9 @@ c.param(1) = "The answer";
         }
         ubyte[] packet;
         Row rr;
-        uint pl;
-        packet = _con.getPacket(pl);
+        packet = _con.getPacket();
         ubyte* ubp = packet.ptr;
-        if (*ubp == 0xfe && pl < 9)      // EOF packet
+        if (*ubp == 0xfe && packet.length < 9)      // EOF packet
         {
             _rowsPending = _pendingBinary = false;
             return rr;
