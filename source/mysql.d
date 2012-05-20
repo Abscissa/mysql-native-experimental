@@ -1159,7 +1159,7 @@ public:
         _paramCount = params;
         _colDescriptions.length = cols;
         _paramDescriptions.length = params;
-        ubyte[] packet;
+
         // The order in which fields are sent is params first, followed by EOF, then cols followed by EOF
         // The parameter specs are useless - they are all the same. This observation is coroborated
         // by the fact that the C API does not have any information about parameter types either.
@@ -1168,13 +1168,13 @@ public:
         {
             _con.getPacket();  // just eat them - they are not useful
         }
+
         if (_paramCount)
             enforceEx!MYX(getEOFPacket(), "Expected EOF packet in result header sequence");
+
         foreach(uint i; 0.._colCount)
-        {
-            packet = _con.getPacket();
-           _colDescriptions[i] = FieldDescription(packet);
-        }
+           _colDescriptions[i] = FieldDescription(_con.getPacket());
+
         if (_colCount)
             enforceEx!MYX(getEOFPacket(), "Expected EOF packet in result header sequence");
     }
