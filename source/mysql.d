@@ -1233,14 +1233,13 @@ protected:
     {
         /// We have not yet connected to the server, or have sent QUIT to the server and closed the connection
         notConnected,
-        /// We have connected to the server, but not yet authenticated
+        /// We have connected to the server and parsed the greeting, but not yet authenticated
         connected,
         /// We have successfully authenticated against the server, and need to send QUIT to the server when closing the connection
         authenticated
     }
-
-    TcpConnection _socket;
     OpenState     _open;
+    TcpConnection _socket;
     ubyte[] _packet;
 
     uint    _sCaps, _sThread, _cCaps;
@@ -1276,6 +1275,11 @@ protected:
     }
 
     void send(ubyte[] packet)
+    in
+    {
+        assert(packet.length > 4); // at least 1 byte more than header
+    }
+    body
     {
         _socket.write(packet);
     }
@@ -1297,9 +1301,9 @@ protected:
     void sendCmd(T)(CommandType cmd, T[] data)
     {
         resetPacket();
-        size_t pl = data.length+1; // +1 for command type
+        size_t pl = data.length+1; // data length. +1 for command type
         _packet.length = pl+4; // +4 for packet header
-        assert(_packet.length <= uint.max);
+        assert(_packet.length <= uint.max); // cannot send more than uint.max bytes. TODO: better error message if we try?
         setPacketHeader(_packet, pktNumber, cast(uint)pl);
         _packet[4] = cmd;
         _packet[5 .. data.length+5] = cast(ubyte[])data[0..$];
