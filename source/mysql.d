@@ -1073,23 +1073,16 @@ public:
      */
     this(Connection con, uint fieldCount)
     {
-        ubyte[] packet;
-        ubyte* ubp;
-        uint n;
-        ubyte pn;
         _fieldCount = fieldCount;
         _fieldDescriptions.length = _fieldCount;
         _fieldNames.length = _fieldCount;
         foreach (uint i; 0.._fieldCount)
         {
-            packet = con.getPacket();
-            FieldDescription t = FieldDescription(packet);
-            _fieldDescriptions[i] = FieldDescription(packet);
+            _fieldDescriptions[i] = FieldDescription(con.getPacket());
             _fieldNames[i] = _fieldDescriptions[i]._name;
         }
-        packet = con.getPacket();
-        ubp = packet.ptr;
-        enforceEx!MYX(*ubp == 0xfe && packet.length < 9,
+        auto packet = con.getPacket();
+        enforceEx!MYX(packet[0] == 0xfe && packet.length < 9,
                 "Expected EOF packet in result header sequence");   // check signature for EOF packet
         EOFPacket eof = EOFPacket(packet);
         con._serverStatus = eof._serverStatus;
