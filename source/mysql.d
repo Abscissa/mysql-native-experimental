@@ -2662,20 +2662,7 @@ private:
         enforceEx!MYX(!(_headersPending || _rowsPending),
             "There are result set elements pending - purgeResult() required.");
 
-        _con.resetPacket();
-        ubyte[] packet;
-        size_t pl = _sql.length+1;
-        packet.length = pl+4;
-        ubyte* ubp = packet.ptr;
-        packet[0] = cast(ubyte) (pl & 0xff);
-        packet[1] = cast(ubyte) ((pl >> 8) & 0xff);
-        packet[2] = cast(ubyte) ((pl >> 16) & 0xff);
-        packet[3] = 0;
-        packet[4] = cmd;
-        packet[5 .. _sql.length+5] = (cast(ubyte[]) _sql)[0..$];
-        _fieldCount = 0;
-        _con.bumpPacket();
-        _con.send(packet);
+        _con.sendCmd(cmd, _sql);
         return true;
     }
 
