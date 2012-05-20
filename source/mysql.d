@@ -436,6 +436,8 @@ struct Timestamp
  *
  * During the connection handshake process, the server sends a uint of flags describing its
  * capabilities
+ *
+ * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Handshake_Initialization_Packet
  */
 enum SvrCapFlags: uint
 {
@@ -453,7 +455,7 @@ enum SvrCapFlags: uint
     SSL                 =   2048, /// Can switch to SSL after handshake
     IGNORE_SIGPIPE      =   4096, /// Ignore sigpipes?
     TRANSACTIONS        =   8192, /// Transaction support
-    RESERVED            =  16384,
+    RESERVED            =  16384, //  Old flag for 4.1 protocol
     SECURE_CONNECTION   =  32768, /// 4.1+ authentication
     MULTI_STATEMENTS    =  65536, /// Multiple statement support
     MULTI_RESULTS       = 131072  /// Multiple result set support
@@ -1227,8 +1229,18 @@ public:
 class Connection
 {
 protected:
+    enum OpenState
+    {
+        /// We have not yet connected to the server, or have sent QUIT to the server and closed the connection
+        notConnected,
+        /// We have connected to the server, but not yet authenticated
+        connected,
+        /// We have successfully authenticated against the server, and need to send QUIT to the server when closing the connection
+        authenticated
+    }
+
     TcpConnection _socket;
-    int     _open;
+    OpenState     _open;
     ubyte[] _packet;
 
     uint    _sCaps, _sThread, _cCaps;
@@ -1268,15 +1280,27 @@ protected:
         _socket.write(packet);
     }
 
+    // Set packet length and number
+    void setPacketHeader(ref ubyte[] packet, ubyte packetNumber, uint length)
+    in
+    {
+        assert(packet.length >= 4);
+    }
+    body
+    {
+        packet[0] = cast(ubyte) ( length        & 0xff);
+        packet[1] = cast(ubyte) ((length >> 8)  & 0xff);
+        packet[2] = cast(ubyte) ((length >> 16) & 0xff);
+        packet[3] = packetNumber;
+    }
+
     void sendCmd(T)(CommandType cmd, T[] data)
     {
         resetPacket();
-        size_t pl = data.length+1;
-        _packet.length = pl+4;
-        _packet[0] = cast(ubyte) ( pl        & 0xff);
-        _packet[1] = cast(ubyte) ((pl >> 8)  & 0xff);
-        _packet[2] = cast(ubyte) ((pl >> 16) & 0xff);
-        _packet[3] = 0;
+        size_t pl = data.length+1; // +1 for command type
+        _packet.length = pl+4; // +4 for packet header
+        assert(_packet.length <= uint.max);
+        setPacketHeader(_packet, pktNumber, cast(uint)pl);
         _packet[4] = cmd;
         _packet[5 .. data.length+5] = cast(ubyte[])data[0..$];
         bumpPacket();
@@ -1504,10 +1528,10 @@ protected:
         return rv;
     }
 
-    bool open()
+    void authenticate()
     in
     {
-        assert(_open == 1);
+        assert(_open == OpenState.connected);
     }
     body
     {
@@ -1519,11 +1543,25 @@ protected:
         ubyte* ubp = _packet.ptr;
         OKPacket okp = OKPacket(ubp, pl);
         enforceEx!MYX(!okp.error, "Authentication failure: " ~ cast(string) okp.message);
-        _open = 2;
-        return true;
+        _open = OpenState.authenticated;
     }
 
-    ~this() { if (_open) close(); }
+    void connect()
+    in
+    {
+        assert(_open == OpenState.notConnected);
+    }
+    body
+    {
+        init_connection();
+        parseGreeting();
+        _open = OpenState.connected;
+
+        setClientFlags(capFlags);
+        authenticate();
+    }
+
+    ~this() { if (_open != OpenState.notConnected) close(); }
 
 public:
 
@@ -1547,11 +1585,8 @@ public:
         _pwd = pwd;
         _db = db;
         _port = port;
-        init_connection();
-        parseGreeting();
-        _open = 1;
-        setClientFlags(capFlags);
-        open();
+
+        connect();
     }
 
     /**
@@ -1590,23 +1625,24 @@ public:
      */
     void close()
     {
-        if (_open > 1)
+        if (_open != OpenState.notConnected)
         {
             quit();
-            _open--;
+            _open = OpenState.connected;
         }
-        if (_open)
+
+        if (_open == OpenState.connected)
         {
             _socket.close();
         }
-        _open = 0;
+        _open = OpenState.notConnected;
         resetPacket();
     }
 
     private void quit()
     in
     {
-        assert(_open > 1);
+        assert(_open == OpenState.authenticated);
     }
     body
     {
