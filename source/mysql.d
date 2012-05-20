@@ -83,7 +83,6 @@ alias MySQLException MYX;
  * D's std.datetime does not have a type that is closely compatible with the MySQL
  * interpretation of a time difference, so we define a struct here to hold such
  * values.
- *
  */
 struct TimeDiff
 {
@@ -121,7 +120,7 @@ TimeDiff toTimeDiff(ubyte[] a)
         td.minutes  = a[7];
         td.seconds  = a[8];
     }
-    // Note that the fractional seconds part is not stored by MtSQL
+    // Note that the fractional seconds part is not stored by MySQL
     return td;
 }
 
@@ -143,12 +142,12 @@ TimeDiff toTimeDiff(string s)
         td.negative = true;
         t = -t;
     }
-    td.hours = t%24;
-    td.days = t/24;
+    td.hours    = t%24;
+    td.days     = t/24;
     munch(s, ":");
-    td.minutes = parse!ubyte(s);
+    td.minutes  = parse!ubyte(s);
     munch(s, ":");
-    td.seconds = parse!ubyte(s);
+    td.seconds  = parse!ubyte(s);
     return td;
 }
 
@@ -164,11 +163,11 @@ TimeDiff toTimeDiff(string s)
 TimeOfDay toTimeOfDay(ubyte[] a)
 {
     enforceEx!MYX(a.length, "Supplied byte array is zero length");
-    TimeOfDay tod;
     uint l = a[0];
     enforceEx!MYX(l == 0 || l == 5 || l == 8 || l == 12, "Bad Time length in binary row.");
-
     enforceEx!MYX(l >= 8, "Time column value is not in a time-of-day format");
+
+    TimeOfDay tod;
     tod.hour    = a[6];
     tod.minute  = a[7];
     tod.second  = a[8];
@@ -181,7 +180,7 @@ TimeOfDay toTimeOfDay(ubyte[] a)
  * Text representations of a time of day are as in 14:22:02
  *
  * Params: s = A string representation of the time.
- * Returns: A populated or default initialized std.datetine.TimeOfDay struct.
+ * Returns: A populated or default initialized std.datetime.TimeOfDay struct.
  */
 TimeOfDay toTimeOfDay(string s)
 {
@@ -840,16 +839,20 @@ struct OKPacket
         else
         {
             // It's OK - get supplied data
-            bool gash;
             enforceEx!MYX(ubp+1 < pe, "Malformed OK/Error packet");
+            bool gash;
             ubp++;
             affected = parseLCB(ubp, gash);
+
             enforceEx!MYX(ubp+1 < pe, "Malformed OK/Error packet");
             insertID = parseLCB(ubp, gash);
+
             enforceEx!MYX(ubp+2 < pe, "Malformed OK/Error packet");
             serverStatus = getShort(ubp);
+
             enforceEx!MYX(ubp+2 <= pe, "Malformed OK/Error packet");
             warnings = getShort(ubp);
+
             size_t rem = pe-ubp;
             if (rem)
             {
@@ -878,6 +881,7 @@ enum FieldFlags : ushort
     TIMESTAMP       = 0x0400,
     SET             = 0x0800
 }
+
 /**
  * A struct representing a field (column) description packet
  *
@@ -1224,35 +1228,36 @@ class Connection
 {
 protected:
     TcpConnection _socket;
-    int _open;
+    int     _open;
     ubyte[] _packet;
-    ubyte[4] _hdr;
-    uint _sCaps, _sThread, _cCaps;
-    ushort _serverStatus;
-    ubyte _sCharSet, _protocol;
+
+    uint    _sCaps, _sThread, _cCaps;
+    ushort  _serverStatus;
+    ubyte   _sCharSet, _protocol;
+    string  _serverVersion;
+
     ubyte[] _authBuf;
-    ushort _pl;
+    ubyte[] _token;
+
+    string _host, _user, _pwd, _db;
+    ushort _port;
 
     // This tiny thing here is pretty critical. Pay great attention to it's maintenance, otherwise
     // you'll get the dreaded "packet out of order" message. It, and the socket connection are
     // the reason why most other objects require a connection object for their construction.
-    ubyte _cpn;
-    string _serverVersion;
-    string _host, _user, _pwd, _db;
-    ushort _port;
-    ubyte[] _token;
-
-    @property pktNumber() { return _cpn; }
-    void bumpPacket() { _cpn++; }
-    void resetPacket() { _cpn = 0; }
+    ubyte _cpn; /// Packet Number in packet header. Serial number to ensure correct ordering. First packet should have 0
+    @property pktNumber()   { return _cpn; }
+    void bumpPacket()       { _cpn++; }
+    void resetPacket()      { _cpn = 0; }
 
     ubyte[] getPacket(out uint pl)
     {
-        _socket.read(_hdr);
-        pl = (_hdr[2] << 16) + (_hdr[1] << 8) + _hdr[0];
-        ubyte pn = _hdr[3];
-        enforceEx!MYX(pn == _cpn, "Server packet out of order");
-        _cpn++;
+        ubyte[4] header;
+        _socket.read(header);
+        pl = (header[2] << 16) + (header[1] << 8) + header[0];
+        ubyte pn = header[3];
+        enforceEx!MYX(pn == pktNumber, "Server packet out of order");
+        bumpPacket();
         _packet.length = pl;
         _socket.read(_packet);
         return _packet.dup;
@@ -1263,19 +1268,19 @@ protected:
         _socket.write(packet);
     }
 
-    void sendCmd(CommandType cmd, string s)
+    void sendCmd(T)(CommandType cmd, T[] data)
     {
-        _cpn  = 0;
-        size_t pl =s.length+1;
+        resetPacket();
+        size_t pl = data.length+1;
         _packet.length = pl+4;
-        _packet[0] = cast(ubyte) (pl & 0xff);
-        _packet[1] = cast(ubyte) ((pl >> 8) & 0xff);
+        _packet[0] = cast(ubyte) ( pl        & 0xff);
+        _packet[1] = cast(ubyte) ((pl >> 8)  & 0xff);
         _packet[2] = cast(ubyte) ((pl >> 16) & 0xff);
         _packet[3] = 0;
         _packet[4] = cmd;
-        _packet[5 .. s.length+5] = (cast(ubyte[]) s)[0..$];
-        _cpn++;
-        _socket.write(_packet);
+        _packet[5 .. data.length+5] = cast(ubyte[])data[0..$];
+        bumpPacket();
+        send(_packet);
     }
 
     OKPacket getCmdResponse(bool asString = false)
@@ -1294,10 +1299,10 @@ protected:
         _packet[] = 0;
         ubyte* p = _packet.ptr+4;
         // Set the default capabilities required by the client into the first four bytes
-        *p++ = cast(ubyte) (_cCaps & 0xff);
+        *p++ = cast(ubyte) (_cCaps         & 0xff);
         *p++ = cast(ubyte) ((_cCaps >> 8)  & 0xff);
-        *p++ = cast(ubyte) ((_cCaps >> 16)  & 0xff);
-        *p++ = cast(ubyte) ((_cCaps >> 24)  & 0xff);
+        *p++ = cast(ubyte) ((_cCaps >> 16) & 0xff);
+        *p++ = cast(ubyte) ((_cCaps >> 24) & 0xff);
         // Request a conventional maximum packet length.
         *p++ = 0;
         *p++ = 0;
@@ -1334,7 +1339,8 @@ protected:
         pl -= 4;
         // The server sent us a greeting with packet number 0, so we send the auth packet
         // back with the next number.
-        p[3] = _cpn++;
+        p[3] = pktNumber;
+        bumpPacket();
         // Fill in the logical packet length. We can skip the most significant byte, since at the worst
         // it is a short packet.
         p[2] = 0;
@@ -1387,7 +1393,7 @@ protected:
         _packet.length = cast(size_t)_socket.leastSize;
         _socket.read(_packet);
 
-        _cpn++;
+        bumpPacket();
 
         // parse the read buffer
         ubyte* p = _packet.ptr+4;
@@ -1499,10 +1505,15 @@ protected:
     }
 
     bool open()
+    in
+    {
+        assert(_open == 1);
+    }
+    body
     {
         _token = makeToken();
         buildAuthPacket();
-        _socket.write(_packet);
+        send(_packet);
         uint pl;
         getPacket(pl);
         ubyte* ubp = _packet.ptr;
@@ -1558,16 +1569,7 @@ public:
     this(string cs, uint capFlags = defaultClientFlags)
     {
         string[] a = parseConnectionString(cs);
-        _host = a[0];
-        _user = a[1];
-        _pwd  = a[2];
-        _db   = a[3];
-        _port = to!(ushort)(a[4]);
-        init_connection();
-        parseGreeting();
-        _open = 1;
-        setClientFlags(capFlags);
-        open();
+        this(a[0], a[1], a[2], a[3], to!ushort(a[4]), capFlags);
     }
 
     /**
@@ -1590,9 +1592,7 @@ public:
     {
         if (_open > 1)
         {
-            _packet.length = 5;
-            _packet[] = [1, 0, 0, 0, 1 ];
-            _socket.write(_packet);
+            quit();
             _open--;
         }
         if (_open)
@@ -1600,7 +1600,17 @@ public:
             _socket.close();
         }
         _open = 0;
-        _cpn = 0;
+        resetPacket();
+    }
+
+    private void quit()
+    in
+    {
+        assert(_open > 1);
+    }
+    body
+    {
+        sendCmd(CommandType.QUIT, []);
     }
 
     /**
@@ -1629,7 +1639,7 @@ public:
     }
 
     /**
-     * Refresh some feature[s] of he server.
+     * Refresh some feature(s) of the server.
      *
      * Returns: An OKPacket from which server status can be determined
      * Throws: MySQLException
@@ -1660,13 +1670,13 @@ public:
      *
      * This can be used later if this feature was not requested in the client capability flags.
      *
-     * Params: on = Boolean value to turn th capability on or off.
+     * Params: on = Boolean value to turn the capability on or off.
      */
     void enableMultiStatements(bool on)
     {
         ubyte[] t;
         t.length = 2;
-        t[0] = on? 0: 1;
+        t[0] = on ? 0 : 1;
         t[1] = 0;
         sendCmd(CommandType.STMT_OPTION, cast(string) t);
 
