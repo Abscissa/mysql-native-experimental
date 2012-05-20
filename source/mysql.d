@@ -561,6 +561,22 @@ ushort getShort(ref ubyte* ubp)
     return us;
 }
 
+ushort takeShort(ref ubyte[] packet)
+in
+{
+    assert(packet.length >= 2);
+}
+body
+{
+    ushort us;
+    us |= packet[1];
+    us <<= 8;
+    us |= packet[0];
+    packet.popFront();
+    packet.popFront();
+    return us;
+}
+
 uint getInt(ref ubyte* ubp)
 {
     uint rv = (ubp[3] << 24) + (ubp[2] << 16) + (ubp[1] << 8) + ubp[0];
@@ -568,10 +584,34 @@ uint getInt(ref ubyte* ubp)
     return rv;
 }
 
+uint takeInt(ref ubyte[] packet)
+in
+{
+    assert(packet.length >= 4);
+}
+body
+{
+    uint rv = (packet[3] << 24) + (packet[2] << 16) + (packet[1] << 8) + packet[0];
+    packet = packet[4 .. $];
+    return rv;
+}
+
 uint getInt24(ref ubyte* ubp)
 {
     uint rv = (ubp[2] << 16) + (ubp[1] << 8) + ubp[0];
     ubp += 3;
+    return rv;
+}
+
+uint takeInt24(ref ubyte[] packet)
+in
+{
+    assert(packet.length >= 3);
+}
+body
+{
+    uint rv = (packet[2] << 16) + (packet[1] << 8) + packet[0];
+    packet = packet[3..$];
     return rv;
 }
 
@@ -652,6 +692,60 @@ ulong parseLCB(ref ubyte* ubp)
 {
     bool isNull;
     return parseLCB(ubp, isNull);
+}
+
+ulong parseLCB(ref ubyte[] packet)
+in
+{
+    assert(packet.length);
+}
+body
+{
+    bool nullFlag = false;
+    int consumed = 1;
+    ulong t;
+    byte numLCBBytes = getNumLCBBytes(packet[0]);
+    switch (numLCBBytes)
+    {
+        case -1: // Null - only for Row Data Packet
+            nullFlag = true;
+            t = 0;
+            break;
+        case 8: // 64-bit word
+            t |= packet[8];
+            t <<= 8;
+            t |= packet[7];
+            t <<= 8;
+            t |= packet[6];
+            t <<= 8;
+            t |= packet[5];
+            t <<= 8;
+            t |= packet[4];
+            t <<= 8;
+            consumed += 5;
+            goto case;
+        case 3: // 24-bit word
+            t |= packet[3];
+            t <<= 8;
+            t |= packet[2];
+            t <<= 8;
+            t |= packet[1];
+            consumed += 3;
+            goto case;
+        case 2: // 16-bit word
+            t |= packet[2];
+            t <<= 8;
+            t |= packet[1];
+            consumed += 2;
+            break;
+        case 0: // Value of first byte
+            t = cast(ulong)*packet.ptr;
+            break;
+        default:
+            assert(0);
+    }
+    packet = packet[consumed .. $];
+    return t;
 }
 
 
@@ -827,56 +921,42 @@ struct OKErrorPacket
 
     this(ubyte[] packet)
     {
-        this(packet.ptr, cast(uint)packet.length);
-    }
-
-    private this(ubyte* ubp, uint length)
-    {
-        enforceEx!MYX(*ubp == 0xff || *ubp == 0x00, "Malformed OK/Error packet - Incorrect type of packet");
-        ubyte* ps = ubp; // packet start
-        ubyte* pe = ps+length; // packet end
-
-        if (*ubp == 0xff) // error packet
+        if (packet.front == 0xff) // error packet
         {
-            ubp++; // skip marker/field code
+            packet.popFront(); // skip marker/field code
             error = true;
 
-            enforceEx!MYX(ubp+2 < pe, "Malformed Error packet - Missing error code");
-            serverStatus = getShort(ubp); // error code into server state
-            if (*ubp == cast(ubyte) '#') //4.1+ error packet
+            enforceEx!MYX(packet.length > 2, "Malformed Error packet - Missing error code");
+            serverStatus = packet.takeShort(); // error code into server state
+            if (packet.front == cast(ubyte) '#') //4.1+ error packet
             {
-                ubp++; // skip 4.1 marker
-                enforceEx!MYX(ubp+5 < pe, "Malformed Error packet - Missing SQL state");
-                sqlState[] = cast(char[]) ubp[0..5];
-                ubp += 5;
+                packet.popFront(); // skip 4.1 marker
+                enforceEx!MYX(packet.length > 5, "Malformed Error packet - Missing SQL state");
+                sqlState[] = cast(char[]) packet[0..5];
+                packet = packet[5..$];
             }
         }
-        else if(*ubp == 0x00) // ok packet
+        else if(packet.front == 0x00) // ok packet
         {
-            ubp++; // skip marker/field code
+            packet.popFront(); // skip marker/field code
 
-            enforceEx!MYX(ubp+1 < pe, "Malformed OK packet - Missing affected rows");
-            affected = parseLCB(ubp);
+            enforceEx!MYX(packet.length > 1, "Malformed OK packet - Missing affected rows");
+            affected = parseLCB(packet);
 
-            enforceEx!MYX(ubp+1 < pe, "Malformed OK packet - Missing insert id");
-            insertID = parseLCB(ubp);
+            enforceEx!MYX(packet.length > 1, "Malformed OK packet - Missing insert id");
+            insertID = parseLCB(packet);
 
-            enforceEx!MYX(ubp+2 < pe, "Malformed OK packet - Missing server status");
-            serverStatus = getShort(ubp);
+            enforceEx!MYX(packet.length > 2, "Malformed OK packet - Missing server status");
+            serverStatus = packet.takeShort();
 
-            enforceEx!MYX(ubp+2 <= pe, "Malformed OK packet - Missing warnings");
-            warnings = getShort(ubp);
+            enforceEx!MYX(packet.length >= 2, "Malformed OK packet - Missing warnings");
+            warnings = packet.takeShort();
         }
         else
-            assert(0); // Should never get here. Should have been taken care of by an exception earlier
+            throw new MYX("Malformed OK/Error packet - Incorrect type of packet", __FILE__, __LINE__);
 
         // both OK and Error packets end with a message for the rest of the packet
-        size_t msglen = pe-ubp;
-        if (msglen)
-        {
-            message.length = msglen;
-            message[] = cast(char[]) ubp[0..msglen];
-        }
+        message = cast(char[])packet.dup;
     }
 }
 
