@@ -1637,8 +1637,8 @@ public:
         if (_open == OpenState.connected)
         {
             _socket.close();
+            _open = OpenState.notConnected;
         }
-        _open = OpenState.notConnected;
         resetPacket();
     }
 
