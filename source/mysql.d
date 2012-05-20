@@ -2375,9 +2375,9 @@ public:
  *
  * Another case where a null flag on Variant would simplify matters.
  */
-struct Column
+struct DBValue
 {
-    Variant val;
+    Variant value;
     bool isNull;
 }
 
@@ -2521,17 +2521,17 @@ public:
      * The row in question will be that which was the most recent subject of
      * front, back, or opIndex. If there have been no such references it will be front.
      */
-     Column[string] asAA()
+     DBValue[string] asAA()
      {
         enforceEx!MYX(_rb.length, "Attempted use of empty ResultSet as an associative array.");
         Row r = _ra[_cr];
-        Column[string] aa;
+        DBValue[string] aa;
         foreach (uint i, string s; _colNames)
         {
-            Column c;
-            c.val = r._uva[i];
+            DBValue c;
+            c.value  = r._uva[i];
             c.isNull = r._nulls[i];
-            aa[s] = c;
+            aa[s]    = c;
         }
         return aa;
      }
@@ -2603,16 +2603,16 @@ public:
     /**
      * Get the current row as an associative array by column name
      */
-     Column[string] asAA()
+     DBValue[string] asAA()
      {
         enforceEx!MYX(!_empty, "Attempted 'front' on exhausted result sequence.");
-        Column[string] aa;
+        DBValue[string] aa;
         foreach (uint i, string s; _colNames)
         {
-            Column c;
-            c.val = _cr._uva[i];
+            DBValue c;
+            c.value  = _cr._uva[i];
             c.isNull = _cr._nulls[i];
-            aa[s] = c;
+            aa[s]    = c;
         }
         return aa;
      }
