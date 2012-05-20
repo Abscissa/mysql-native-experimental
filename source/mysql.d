@@ -1240,7 +1240,6 @@ protected:
     }
     OpenState     _open;
     TcpConnection _socket;
-    ubyte[] _packet;
 
     uint    _sCaps, _sThread, _cCaps;
     ushort  _serverStatus;
@@ -1258,17 +1257,19 @@ protected:
     void bumpPacket()       { _cpn++; }
     void resetPacket()      { _cpn = 0; }
 
-    ubyte[] getPacket(out uint pl)
+    ubyte[] getPacket(out uint numDataBytes)
     {
         ubyte[4] header;
         _socket.read(header);
-        pl = (header[2] << 16) + (header[1] << 8) + header[0];
+        numDataBytes = (header[2] << 16) + (header[1] << 8) + header[0];
         ubyte pn = header[3];
         enforceEx!MYX(pn == pktNumber, "Server packet out of order");
         bumpPacket();
-        _packet.length = pl;
-        _socket.read(_packet);
-        return _packet.dup;
+
+        ubyte[] packet;
+        packet.length = numDataBytes;
+        _socket.read(packet);
+        return packet;
     }
 
     void send(ubyte[] packet)
@@ -1298,31 +1299,32 @@ protected:
     void sendCmd(T)(CommandType cmd, T[] data)
     {
         resetPacket();
+        ubyte[] packet;
         size_t pl = data.length+1; // data length. +1 for command type
-        _packet.length = pl+4; // +4 for packet header
-        assert(_packet.length <= uint.max); // cannot send more than uint.max bytes. TODO: better error message if we try?
-        setPacketHeader(_packet, pktNumber, cast(uint)pl);
-        _packet[4] = cmd;
-        _packet[5 .. data.length+5] = cast(ubyte[])data[0..$];
+        packet.length = pl+4; // +4 for packet header
+        assert(packet.length <= uint.max); // cannot send more than uint.max bytes. TODO: better error message if we try?
+        setPacketHeader(packet, pktNumber, cast(uint)pl);
+        packet[4] = cmd;
+        packet[5 .. data.length+5] = cast(ubyte[])data[0..$];
         bumpPacket();
-        send(_packet);
+        send(packet);
     }
 
     OKPacket getCmdResponse(bool asString = false)
     {
         uint pl;
-        getPacket(pl);
-        ubyte* ubp = _packet.ptr;
-        OKPacket okp = OKPacket(ubp, pl);
+        auto packet = getPacket(pl);
+        OKPacket okp = OKPacket(packet.ptr, pl);
         enforceEx!MYX(!okp.error, "MySQL error: " ~ cast(string) okp.message);
         _serverStatus = okp.serverStatus;
         return okp;
     }
 
-    uint buildAuthPacket(ubyte[] token)
+    ubyte[] buildAuthPacket(ubyte[] token)
     {
-        _packet[] = 0;
-        ubyte* p = _packet.ptr+4;
+        ubyte[] packet;
+        packet.length = 4/*header*/ + 4 + 4 + 1 + 23 + _user.length+1 + 1+20 + _db.length+1 + 10/*just to be sure we have a large enough array*/;
+        ubyte* p = packet.ptr+4; // skip packet header
         // Set the default capabilities required by the client into the first four bytes
         *p++ = cast(ubyte) (_cCaps         & 0xff);
         *p++ = cast(ubyte) ((_cCaps >> 8)  & 0xff);
@@ -1355,10 +1357,10 @@ protected:
             *p++ = 0;
         }
         // Now we can determine the size of the packet and trim the array to that length.
-        size_t pl = p - _packet.ptr;
-        _packet.length = pl;
+        size_t pl = p - packet.ptr;
+        packet.length = pl;
         // Back to the beginning of the packet
-        p = _packet.ptr;
+        p = packet.ptr;
         // The calculated length is from the packet start as opposed to the content start,
         // so allow for the packet header before we fill it in.
         pl -= 4;
@@ -1373,7 +1375,7 @@ protected:
         p[0] = cast(ubyte) (pl & 0xff);
         // Hopefully at this point it is ready to send.
         assert(pl <= uint.max);
-        return cast(uint)pl;
+        return packet;
     }
 
     void getServerInfo(ref ubyte* p)
@@ -1415,20 +1417,21 @@ protected:
         _packet.length = _packet.length - dst.length;*/
 
         // for now we leave the original behavior to use the network to determine the packet size
-        _packet.length = cast(size_t)_socket.leastSize;
-        _socket.read(_packet);
+        ubyte[] packet;
+        packet.length = cast(size_t)_socket.leastSize;
+        _socket.read(packet);
 
         bumpPacket();
 
         // parse the read buffer
-        ubyte* p = _packet.ptr+4;
+        ubyte* p = packet.ptr+4;
         _protocol = *p++;
         size_t len, offset;
         ubyte* q = p;
-        offset = q-_packet.ptr;
+        offset = q-packet.ptr;
         while (*p) p++;
         len = p-q;
-        _serverVersion = cast(string) _packet[offset..offset+len].idup;
+        _serverVersion = cast(string) packet[offset..offset+len].idup;
         p++;
         _sThread = getInt(p);
         ubyte[] authBuf;
@@ -1539,12 +1542,12 @@ protected:
     body
     {
         auto token = makeToken(greeting);
-        buildAuthPacket(token);
-        send(_packet);
+        auto authPacket = buildAuthPacket(token);
+        send(authPacket);
+
         uint pl;
-        getPacket(pl);
-        ubyte* ubp = _packet.ptr;
-        OKPacket okp = OKPacket(ubp, pl);
+        auto packet = getPacket(pl);
+        OKPacket okp = OKPacket(packet.ptr, pl);
         enforceEx!MYX(!okp.error, "Authentication failure: " ~ cast(string) okp.message);
         _open = OpenState.authenticated;
     }
@@ -1564,7 +1567,11 @@ protected:
         authenticate(greeting);
     }
 
-    ~this() { if (_open != OpenState.notConnected) close(); }
+    ~this()
+    {
+        if (_open != OpenState.notConnected)
+            close();
+    }
 
 public:
 
@@ -1698,8 +1705,7 @@ public:
     {
         sendCmd(CommandType.STATISTICS, "");
         uint pl;
-        getPacket(pl);
-        return cast(string) _packet;
+        return cast(string) getPacket(pl);
     }
 
     /**
@@ -1719,8 +1725,8 @@ public:
 
         // For some reason this command gets an EOF packet as response
         uint pl;
-        getPacket(pl);
-        enforceEx!MYX(_packet[0] == 254 && pl == 5, "Unexpected response to SET_OPTION command");
+        auto packet = getPacket(pl);
+        enforceEx!MYX(packet[0] == 254 && pl == 5, "Unexpected response to SET_OPTION command");
     }
 
     /// Return the in-force protocol number
