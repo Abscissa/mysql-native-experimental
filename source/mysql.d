@@ -1628,11 +1628,8 @@ public:
      */
     void close()
     {
-        if (_open != OpenState.notConnected)
-        {
+        if (_open == OpenState.authenticated)
             quit();
-            _open = OpenState.connected;
-        }
 
         if (_open == OpenState.connected)
         {
@@ -1650,6 +1647,7 @@ public:
     body
     {
         sendCmd(CommandType.QUIT, []);
+        _open = OpenState.connected;
     }
 
     /**
