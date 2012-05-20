@@ -1394,8 +1394,7 @@ protected:
 
     OKErrorPacket getCmdResponse(bool asString = false)
     {
-        auto packet = getPacket();
-        auto okp = OKErrorPacket(packet);
+        auto okp = OKErrorPacket(getPacket());
         enforceEx!MYX(!okp.error, "MySQL error: " ~ cast(string) okp.message);
         _serverStatus = okp.serverStatus;
         return okp;
