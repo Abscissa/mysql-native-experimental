@@ -694,21 +694,21 @@ ulong parseLCB(ref ubyte* ubp)
     return parseLCB(ubp, isNull);
 }
 
-ulong takeLCB(ref ubyte[] packet)
+ulong takeLCB(ref ubyte[] packet, out bool isNull)
 in
 {
     assert(packet.length);
 }
 body
 {
-    bool nullFlag = false;
+    isNull = false;
     int consumed = 1;
     ulong t;
     byte numLCBBytes = getNumLCBBytes(packet[0]);
     switch (numLCBBytes)
     {
         case -1: // Null - only for Row Data Packet
-            nullFlag = true;
+            isNull = true;
             t = 0;
             break;
         case 8: // 64-bit word
@@ -748,6 +748,17 @@ body
     return t;
 }
 
+ulong takeLCB(ref ubyte[] packet)
+in
+{
+    assert(packet.length);
+}
+body
+{
+    bool isNull;
+    return packet.takeLCB(isNull);
+}
+
 
 /** Parse Length Coded String
  *
@@ -765,6 +776,53 @@ ubyte[] parseLCS(ref ubyte* ubp, out bool nullFlag)
     ubyte* t = ubp;
     ubp += len;
     return t[0..len].dup;
+}
+
+/** Extracts Length Coded String and advances the packet
+ * Returns: The length coded String
+ * */
+ubyte[] takeLCS(ref ubyte[] packet)
+{
+    bool isNull;
+    return packet.takeLCS(isNull);
+}
+
+/** Skips over n items, advances the array, and return the newly advanced array to allow method chaining
+ * */
+T[] skip(T)(ref T[] array, size_t n)
+in
+{
+    assert(n <= array.length);
+}
+body
+{
+    array = array[n..$];
+    return array;
+}
+
+/** Returns n items and advances the array
+ * */
+T[] takeSkip(T)(ref T[] array, size_t n)
+in
+{
+    assert(n <= array.length);
+}
+body
+{
+    auto data = array.take(n);
+    array.skip(n);
+    return data;
+}
+
+ubyte[] takeLCS(ref ubyte[] packet, out bool isNull)
+{
+    auto length = packet.takeLCB(isNull);
+    if (isNull)
+        return null;
+    else if (length == 0)
+        return [];
+    enforceEx!MYX(length <= uint.max, "Protocol Length Coded String is too long");
+    return packet.takeSkip(cast(size_t)length).dup;
 }
 
 ubyte[] packLength(size_t l, out size_t offset)
@@ -1012,29 +1070,34 @@ public:
      * Parameters: packet = The packet contents excluding the 4 byte packet header
      */
     this(ubyte[] packet)
+    in
     {
-        ubyte* sp = packet.ptr;
-        ubyte* ep = sp+packet.length;
-        ubyte* ubp = sp+4;     // Skip catalog - it's always 'def'
-        bool isnull;
-        _db            = cast(string) parseLCS(ubp, isnull);
-        _table         = cast(string) parseLCS(ubp, isnull);
-        _originalTable = cast(string) parseLCS(ubp, isnull);
-        _name          = cast(string) parseLCS(ubp, isnull);
-        _originalName  = cast(string) parseLCS(ubp, isnull);
-        enforceEx!MYX(ep-ubp >= 13, "Malformed field specification packet");
-        ubp++;   // one byte of filler here
-        _charSet  = getShort(ubp);
-        _length   = getInt(ubp);
-        _type     = cast(SQLType)*ubp++;
-        _flags    = cast(FieldFlags)getShort(ubp);
-        _scale    = *ubp++;
-        ubp += 2;      // 2 bytes filler here
-        if (ubp < ep)
+        assert(packet.length);
+    }
+    body
+    {
+        packet.skip(4); // Skip catalog - it's always 'def'
+        _db             = cast(string)packet.takeLCS();
+        _table          = cast(string)packet.takeLCS();
+        _originalTable  = cast(string)packet.takeLCS();
+        _name           = cast(string)packet.takeLCS();
+        _originalName   = cast(string)packet.takeLCS();
+
+        enforceEx!MYX(packet.length >= 13, "Malformed field specification packet");
+        packet.popFront(); // one byte filler here
+        _charSet    = packet.takeShort();
+        _length     = packet.takeInt();
+        _type       = cast(SQLType)packet.takeSkip(1)[0];
+        _flags      = cast(FieldFlags)packet.takeShort();
+        _scale      = packet.takeSkip(1)[0];
+        packet.skip(2); // two byte filler
+
+        if(packet.length)
         {
-            ubp++;      // one byte filler
-            _deflt = parseLCB(ubp, isnull);
+            packet.skip(1); // one byte filler
+            _deflt = packet.takeLCB();
         }
+        assert(!packet.length);
     }
 
     /// Database name for column as string
