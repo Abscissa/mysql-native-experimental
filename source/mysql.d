@@ -694,7 +694,7 @@ ulong parseLCB(ref ubyte* ubp)
     return parseLCB(ubp, isNull);
 }
 
-ulong parseLCB(ref ubyte[] packet)
+ulong takeLCB(ref ubyte[] packet)
 in
 {
     assert(packet.length);
@@ -941,10 +941,10 @@ struct OKErrorPacket
             packet.popFront(); // skip marker/field code
 
             enforceEx!MYX(packet.length > 1, "Malformed OK packet - Missing affected rows");
-            affected = parseLCB(packet);
+            affected = packet.takeLCB();
 
             enforceEx!MYX(packet.length > 1, "Malformed OK packet - Missing insert id");
-            insertID = parseLCB(packet);
+            insertID = packet.takeLCB();
 
             enforceEx!MYX(packet.length > 2, "Malformed OK packet - Missing server status");
             serverStatus = packet.takeShort();
@@ -1401,11 +1401,16 @@ protected:
     }
 
     ubyte[] buildAuthPacket(ubyte[] token)
+    in
+    {
+        assert(token.length == 20);
+    }
+    body
     {
         ubyte[] packet;
         packet.length = 4/*header*/ + 4 + 4 + 1 + 23 + _user.length+1 + 1+20 + _db.length+1 + 10/*just to be sure we have a large enough array*/;
         ubyte* p = packet.ptr+4; // skip packet header
-        // Set the default capabilities required by the client into the first four bytes
+        // Set the default capabilities required by the client
         *p++ = cast(ubyte) (_cCaps         & 0xff);
         *p++ = cast(ubyte) ((_cCaps >> 8)  & 0xff);
         *p++ = cast(ubyte) ((_cCaps >> 16) & 0xff);
