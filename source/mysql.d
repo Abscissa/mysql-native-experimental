@@ -1157,11 +1157,11 @@ private:
 public:
     this(ubyte[] packet)
     {
-        ubyte* ubp = packet.ptr;
-        _type = getShort(ubp);
-        _flags = cast(FieldFlags)getShort(ubp);
-        _scale = *ubp++;
-        _length = getInt(ubp);
+        _type   = packet.takeShort();
+        _flags  = cast(FieldFlags)packet.takeShort();
+        _scale  = packet.takeSkip(1)[0];
+        _length = packet.takeInt();
+        assert(!packet.length);
     }
     @property uint length() { return _length; }
     @property ushort type() { return _type; }
@@ -1186,18 +1186,23 @@ private:
     ushort _serverStatus;
 public:
 
-/**
- * Construct an EOFPacket struct from the raw data packet
- *
- * Parameters: packet = The packet contents excluding the 4 byte packet header
- */
+   /**
+    * Construct an EOFPacket struct from the raw data packet
+    *
+    * Parameters: packet = The packet contents excluding the 4 byte packet header
+    */
     this(ubyte[] packet)
+    in
     {
-        ubyte* ubp = packet.ptr;
-        ubyte* ep = ubp+packet.length;
-        assert(*ubp == 0xfe && ep-ubp == 5);
-        _warnings = getShort(ubp);
-        _serverStatus = getShort(ubp);
+        assert(packet.front == 0xfe);
+        assert(packet.length == 5);
+    }
+    body
+    {
+        packet.popFront();
+        _warnings = packet.takeShort();
+        _serverStatus = packet.takeShort();
+        assert(!packet.length);
     }
 
     /// Retrieve the warning count
@@ -1242,7 +1247,7 @@ public:
         auto packet = con.getPacket();
         enforceEx!MYX(packet[0] == 0xfe && packet.length < 9,
                 "Expected EOF packet in result header sequence");   // check signature for EOF packet
-        EOFPacket eof = EOFPacket(packet);
+        auto eof = EOFPacket(packet);
         con._serverStatus = eof._serverStatus;
         _warnings = eof._warnings;
     }
