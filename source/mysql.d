@@ -2599,24 +2599,15 @@ struct DBValue
 struct ResultSet
 {
 private:
-    Row[] _ra;
-    string[] _colNames;
-    size_t[] _rb;  // Current span of the range
-    size_t _rc;
-    size_t _cr;
+    Row[]       _rows;      // all rows in ResultSet, we store this to be able to revert
+    string[]    _colNames;
+    Row[]       _curRows;   // current rows in ResultSet - we might be popFront()/popBack(), 
 
-    this (Row[] ra, string[] colNames)
+    this (Row[] rows, string[] colNames)
     {
-        _ra = ra;
-        _rc = ra.length;
+        _rows = rows;
+        _curRows = _rows[];
         _colNames = colNames;
-        if(_rc)
-        {
-            _rb.length = _ra.length;
-            foreach (size_t i; 0.._ra.length)
-                _rb[i] = i;
-            _cr = _rb[0];
-        }
     }
 
 public:
@@ -2624,7 +2615,7 @@ public:
      * Make the ResultSet behave as a random access range - empty
      *
      */
-    @property bool empty() { return (_rb.length == 0); }
+    @property bool empty() { return _curRows.length == 0; }
 
     /**
      * Make the ResultSet behave as a random access range - save
@@ -2642,9 +2633,8 @@ public:
      */
     @property Row front()
     {
-        enforceEx!MYX(_rb.length, "Attempted 'front' on empty ResultSet range.");
-        _cr = _rb[0];
-        return _ra[_cr];
+        enforceEx!MYX(_curRows.length, "Attempted to get front of an empty ResultSet");
+        return _curRows[0];
     }
 
     /**
@@ -2654,9 +2644,8 @@ public:
      */
     @property Row back()
     {
-        enforceEx!MYX(_rb.length, "Attempted 'back' on empty ResultSet range.");
-        _cr = _rb[$-1];
-        return _ra[_cr];
+        enforceEx!MYX(_curRows.length, "Attempted to get back on an empty ResultSet");
+        return _curRows[$-1];
     }
 
     /**
@@ -2665,11 +2654,8 @@ public:
      */
     void popFront()
     {
-        enforceEx!MYX(_rb.length, "Attempted 'popFront' on empty ResultSet range.");
-        bool updateCr = (_cr == _rb[0]);
-        _rb = _rb[1 .. $];
-        if (updateCr && _rb.length)
-            _cr = _rb[0];
+        enforceEx!MYX(_curRows.length, "Attempted to popFront() on an empty ResultSet");
+        _curRows = _curRows[1..$];
     }
 
     /**
@@ -2678,12 +2664,8 @@ public:
      */
     void popBack()
     {
-        enforceEx!MYX(_rb.length, "Attempted 'popBack' on empty ResultSet range.");
-        // Fetch the required row
-        bool updateCr = (_cr == _rb[$-1]);
-        _rb= _rb[0 .. $-1];
-        if (updateCr && _rb.length)
-            _cr = _rb[$-1];
+        enforceEx!MYX(_curRows.length, "Attempted to popBack() on an empty ResultSet");
+        _curRows = _curRows[0 .. $-1];
     }
 
     /**
@@ -2693,17 +2675,16 @@ public:
      */
     Row opIndex(size_t i)
     {
-        enforceEx!MYX(_rb.length, "Attempted to index into an empty ResultSet range.");
-        enforceEx!MYX(i < _rb.length, "Requested range index out of range");
-        _cr = _rb[i];
-        return _ra[_cr];
+        enforceEx!MYX(_curRows.length, "Attempted to index into an empty ResultSet range.");
+        enforceEx!MYX(i < _curRows.length, "Requested range index out of range");
+        return _curRows[i];
     }
 
     /**
      * Make the ResultSet behave as a random access range - length
      *
      */
-    @property size_t length() { return _rb.length; }
+    @property size_t length() { return _curRows.length; }
 
     /**
      * Restore the range to its original span.
@@ -2713,9 +2694,7 @@ public:
      */
     void revert()
     {
-        _rb.length = _ra.length;
-        foreach (size_t i; 0.._ra.length)
-            _rb[i] = i;
+        _curRows = _rows[];
     }
 
     /**
@@ -2724,20 +2703,19 @@ public:
      * The row in question will be that which was the most recent subject of
      * front, back, or opIndex. If there have been no such references it will be front.
      */
-     DBValue[string] asAA()
-     {
-        enforceEx!MYX(_rb.length, "Attempted use of empty ResultSet as an associative array.");
-        Row r = _ra[_cr];
+    DBValue[string] asAA()
+    {
+        enforceEx!MYX(_curRows.length, "Attempted use of empty ResultSet as an associative array.");
         DBValue[string] aa;
         foreach (uint i, string s; _colNames)
         {
-            DBValue c;
-            c.value  = r._uva[i];
-            c.isNull = r._nulls[i];
-            aa[s]    = c;
+            DBValue value;
+            value.value  = front._uva[i];
+            value.isNull = front._nulls[i];
+            aa[s]        = value;
         }
         return aa;
-     }
+    }
 }
 
 /**
