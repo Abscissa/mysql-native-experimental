@@ -1428,6 +1428,21 @@ public:
     }
 }
 
+
+// Set packet length and number
+void setPacketHeader(ref ubyte[] packet, ubyte packetNumber)
+in
+{
+    assert(packet.length >= 4);
+}
+body
+{
+    auto dataLength = packet.length - 4;
+    assert(dataLength <= 0xffff_ffff_ffff); // 24-bit
+    (cast(uint)dataLength).packInto!(uint, true)(packet);
+    packet[3] = packetNumber;
+}
+
 /**
  * A struct representing a database connection.
  *
@@ -1502,26 +1517,13 @@ protected:
         _socket.write(packet);
     }
 
-    // Set packet length and number
-    void setPacketHeader(ref ubyte[] packet, ubyte packetNumber, uint length)
-    in
-    {
-        assert(packet.length >= 4);
-    }
-    body
-    {
-        length.packInto!(uint, true)(packet);
-        packet[3] = packetNumber;
-    }
-
     void sendCmd(T)(CommandType cmd, T[] data)
     {
         resetPacket();
         ubyte[] packet;
-        size_t pl = data.length+1; // data length. +1 for command type
-        packet.length = pl+4; // +4 for packet header
+        packet.length = 4 /*header*/ + 1 /*cmd*/ + data.length;
         assert(packet.length <= uint.max); // cannot send more than uint.max bytes. TODO: better error message if we try?
-        setPacketHeader(packet, pktNumber, cast(uint)pl);
+        packet.setPacketHeader(pktNumber);
         packet[4] = cmd;
         packet[5 .. data.length+5] = cast(ubyte[])data[0..$];
         bumpPacket();
@@ -1581,7 +1583,7 @@ protected:
 
         // The server sent us a greeting with packet number 0, so we send the auth packet
         // back with the next number.
-        setPacketHeader(packet, pktNumber, cast(uint)packet.length-4/*don't include header in size*/);
+        packet.setPacketHeader(pktNumber);
         bumpPacket();
         return packet;
     }
@@ -3172,16 +3174,14 @@ private:
             if (!psn.chunkSize) continue;
             uint cs = psn.chunkSize;
             uint delegate(ubyte[]) dg = psn.chunkDelegate;
+
             ubyte[] chunk;
             chunk.length = cs+11;
-            uint pl = cs+7;
-
-            _con.setPacketHeader(chunk, 0 /*each chunk is separate cmd*/, pl);
-
-            // Data chunk
+            chunk.setPacketHeader(0 /*each chunk is separate cmd*/);
             chunk[4] = CommandType.STMT_SEND_LONG_DATA;
             _hStmt.packInto(chunk[5..9]); // statement handle
             packInto(i, chunk[9..11]); // parameter number
+
             // byte 11 on is payload
             for (;;)
             {
@@ -3310,7 +3310,7 @@ public:
     {
         ubyte[] packet;
         packet.length = 9;
-        _con.setPacketHeader(packet, 0/*packet number*/, 5/*data length*/);
+        packet.setPacketHeader(0/*packet number*/);
         _con.bumpPacket();
         packet[4] = CommandType.STMT_CLOSE;
         _hStmt.packInto(packet[5..9]);
@@ -3657,13 +3657,12 @@ c.param(1) = "The answer";
             sendLongData();
 
         assert(packet.length <= uint.max);
-        uint pl = cast(uint)packet.length - 4;
-        _con.setPacketHeader(packet, _con.pktNumber, pl);
+        packet.setPacketHeader(_con.pktNumber);
         _con.bumpPacket();
         _con.send(packet);
         packet = _con.getPacket();
         bool rv;
-        if (packet[0] == 0 || packet[0] == 255)
+        if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
         {
             _con.resetPacket();
             auto okp = OKErrorPacket(packet);
