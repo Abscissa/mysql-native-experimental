@@ -1662,7 +1662,7 @@ protected:
     {
         _socket = connectTcp(_host, _port);
         //_socket.setOption(SocketOptionLevel.SOCKET, SocketOption.RCVBUF, (1 << 24)-1);
-        int rbs;
+        //int rbs;
         //_socket.getOption(SocketOptionLevel.SOCKET, SocketOption.RCVBUF, rbs);
         //_rbs = rbs;
     }
