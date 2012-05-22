@@ -1155,32 +1155,46 @@ public:
 
     /// Database name for column as string
     @property string db() { return _db; }
+
     /// Table name for column as string - this could be an alias as in 'from tablename as foo'
     @property string table() { return _table; }
+
     /// Real table name for column as string
     @property string originalTable() { return _originalTable; }
+
     /// Column name as string - this could be an alias
     @property string name() { return _name; }
+
     /// Real column name as string
     @property string originalName() { return _originalName; }
+
     /// The character set in force
     @property ushort charSet() { return _charSet; }
+
     /// The 'length' of the column as defined at table creation
     @property uint length() { return _length; }
+
     /// The type of the column hopefully (but not always) corresponding to enum SQLType. Only the low byte currently used
     @property ushort type() { return _type; }
+
     /// Column flags - unsigned, binary, null and so on
     @property FieldFlags flags() { return _flags; }
+
     /// Precision for floating point values
     @property ubyte scale() { return _scale; }
+
     /// NotNull from flags
     @property bool notNull() { return (_flags & FieldFlags.NOT_NULL) != 0; }
+
     /// Unsigned from flags
     @property bool unsigned() { return (_flags & FieldFlags.UNSIGNED) != 0; }
+
     /// Binary from flags
     @property bool binary() { return (_flags & FieldFlags.BINARY) != 0; }
+
     /// Is-enum from flags
     @property bool isenum() { return (_flags & FieldFlags.ENUM) != 0; }
+
     /// Is-set (a SET column that is) from flags
     @property bool isset() { return (_flags & FieldFlags.SET) != 0; }
 
@@ -2057,7 +2071,7 @@ alias ColumnSpecialization CSN;
 struct Row
 {
 private:
-    Variant[]   _uva;
+    Variant[]   _values;
     bool[]      _nulls;
     bool        _valid;
 
@@ -2126,7 +2140,7 @@ public:
     this(Connection con, ubyte[] packet, ResultSetHeaders rh, bool binary)
     {
         uint fc = rh._fieldCount;
-        _uva.length = fc;
+        _values.length = fc;
         _nulls.length = fc;
         uint p = 0;
         size_t pl = packet.length;
@@ -2211,25 +2225,25 @@ public:
                         ubyte ub = fromBytes!ubyte(p, packet, incomplete);
                         if (incomplete) break;  // The packet we ar looking at does not contain the entire result row - we must fetch another
                         if (uns)
-                            _uva[i] = ub;
+                            _values[i] = ub;
                         else
-                            _uva[i] = cast(byte) ub;
+                            _values[i] = cast(byte) ub;
                         break;
                     case SQLType.SHORT:
                         ushort us =  fromBytes!ushort(p, packet, incomplete);
                         if (incomplete) break;
                         if (uns)
-                            _uva[i] = us;
+                            _values[i] = us;
                         else
-                            _uva[i] = cast(short) us;
+                            _values[i] = cast(short) us;
                         break;
                     case SQLType.INT:
                         uint ui =  fromBytes!uint(p, packet, incomplete);
                         if (incomplete) break;
                         if (uns)
-                            _uva[i] = ui;
+                            _values[i] = ui;
                         else
-                            _uva[i] = cast(int) ui;
+                            _values[i] = cast(int) ui;
                         break;
                     case SQLType.FLOAT:
                         if (pl-p < 4)
@@ -2241,7 +2255,7 @@ public:
                         ubyte* fp = cast(ubyte*) &f;
                         fp[0..4] = packet[p..p+4];
                         p += 4;
-                        _uva[i] = f;
+                        _values[i] = f;
                         break;
                     case SQLType.DOUBLE:
                         if (pl-p < 8)
@@ -2253,7 +2267,7 @@ public:
                         ubyte* dp = cast(ubyte*) &d;
                         dp[0..8] = packet[p..p+8];
                         p += 8;
-                        _uva[i] = d;
+                        _values[i] = d;
                         break;
                     case SQLType.NULL:
                         _nulls[i] = true;
@@ -2266,23 +2280,23 @@ public:
                             incomplete = true;
                             break;
                         }
-                        _uva[i] = toDateTime(packet[p..p+tl+1]);
+                        _values[i] = toDateTime(packet[p..p+tl+1]);
                         p += tl+1;
                         break;
                     case SQLType.LONGLONG:
                         ulong ul =  fromBytes!ulong(p, packet, incomplete);
                         if (uns)
-                            _uva[i] = ul;
+                            _values[i] = ul;
                         else
-                            _uva[i] = cast(long) ul;
+                            _values[i] = cast(long) ul;
                         break;
                     case SQLType.INT24:
                         uint ui24 =  fromBytes!(uint, 3)(p, packet, incomplete);
                         if (incomplete) break;
                         if (uns)
-                            _uva[i] = ui24;
+                            _values[i] = ui24;
                         else
-                            _uva[i] = cast(int) ui24;
+                            _values[i] = cast(int) ui24;
                         break;
                     case SQLType.BIT:  // equated here to bool
                         if (pl-p < 2)
@@ -2292,7 +2306,7 @@ public:
                         }
                         enforceEx!MYX(packet[p++] == 1, "Expected single bit for bool column");
                         bool bv = (packet[p++] == 1);
-                        _uva[i] = bv;
+                        _values[i] = bv;
                         break;
                     case SQLType.DATE:
                         tl = packet[p];
@@ -2301,7 +2315,7 @@ public:
                             incomplete = true;
                             break;
                         }
-                        _uva[i] = toDate(packet[p..p+tl+1]);
+                        _values[i] = toDate(packet[p..p+tl+1]);
                         p += tl+1;
                         break;
                     case SQLType.TIME:
@@ -2311,7 +2325,7 @@ public:
                             incomplete = true;
                             break;
                         }
-                        _uva[i] = toTimeOfDay(packet[p..p+tl+1]);
+                        _values[i] = toTimeOfDay(packet[p..p+tl+1]);
                         p += tl+1;
                         break;
                     case SQLType.DATETIME:
@@ -2321,13 +2335,13 @@ public:
                             incomplete = true;
                             break;
                         }
-                        _uva[i] = toDateTime(packet[p..p+tl+1]);
+                        _values[i] = toDateTime(packet[p..p+tl+1]);
                         p += tl+1;
                         break;
                     case SQLType.YEAR:  // appears to be an unsigned short
                         ushort y =  fromBytes!ushort(p, packet, incomplete);
                         if (incomplete) break;
-                        _uva[i] = y;
+                        _values[i] = y;
                         break;
                     case SQLType.VARCHAR:
                     case SQLType.ENUM:   // both this and SET actually get sent by the protocol as SQLType.BLOB
@@ -2336,7 +2350,7 @@ public:
                     case SQLType.STRING:
                         uint sl = cast(uint) parseLCB();
                         if (incomplete) break;
-                            _uva[i] = cast(string) packet[p..p+sl];
+                            _values[i] = cast(string) packet[p..p+sl];
                         p += sl;
                         break;
                     case SQLType.TINYBLOB:
@@ -2344,16 +2358,16 @@ public:
                     case SQLType.LONGBLOB:
                         uint sl = cast(uint) parseLCB();
                         if (incomplete) break;
-                            _uva[i] = cast(ubyte[]) packet[p..p+sl];
+                            _values[i] = cast(ubyte[]) packet[p..p+sl];
                         p += sl;
                         break;
                     case SQLType.BLOB:
                         uint sl = cast(uint) parseLCB();
                         if (incomplete) break;
                         if (fd.binary)
-                            _uva[i] = cast(ubyte[]) packet[p..p+sl];
+                            _values[i] = cast(ubyte[]) packet[p..p+sl];
                         else
-                            _uva[i] = packet[p..p+sl];
+                            _values[i] = packet[p..p+sl];
                         p += sl;
                         break;
                 }
@@ -2379,56 +2393,56 @@ public:
                 {
                     case  SQLType.TINY:
                         if (uns)
-                            _uva[i] = to!ubyte(val);
+                            _values[i] = to!ubyte(val);
                         else
-                            _uva[i] = to!byte(val);
+                            _values[i] = to!byte(val);
                         break;
                     case SQLType.SHORT:
                         if (uns)
-                            _uva[i] = to!ushort(val);
+                            _values[i] = to!ushort(val);
                         else
-                            _uva[i] = to!short(val);
+                            _values[i] = to!short(val);
                         break;
                     case SQLType.INT:
                     case SQLType.INT24:
                         if (uns)
-                            _uva[i] = to!uint(val);
+                            _values[i] = to!uint(val);
                         else
-                            _uva[i] = to!int(val);
+                            _values[i] = to!int(val);
                         break;
                     case SQLType.FLOAT:
-                        _uva[i] = to!float(val);
+                        _values[i] = to!float(val);
                         break;
                     case SQLType.DOUBLE:
-                        _uva[i] = to!double(val);
+                        _values[i] = to!double(val);
                         break;
                     case SQLType.NULL:
                         _nulls[i] = true;
                         break;
                     case SQLType.TIMESTAMP:
-                        _uva[i] = toDateTime(val);
+                        _values[i] = toDateTime(val);
                         break;
                     case SQLType.LONGLONG:
                         if (uns)
-                            _uva[i] = to!ulong(val);
+                            _values[i] = to!ulong(val);
                         else
-                            _uva[i] = to!long(val);
+                            _values[i] = to!long(val);
                         break;
                     case SQLType.BIT:  // equated here to bool
                         val = val[0]? "true": "false";
-                        _uva[i] = to!bool(val);
+                        _values[i] = to!bool(val);
                         break;
                     case SQLType.DATE:
-                        _uva[i] = toDate(val);
+                        _values[i] = toDate(val);
                         break;
                     case SQLType.TIME:
-                        _uva[i] = toTimeOfDay(val);
+                        _values[i] = toTimeOfDay(val);
                         break;
                     case SQLType.DATETIME:
-                        _uva[i] = toDateTime(val);
+                        _values[i] = toDateTime(val);
                         break;
                     case SQLType.YEAR:  // treat as unsigned short to match the prepared case
-                        _uva[i] = to!ushort(val);
+                        _values[i] = to!ushort(val);
                         break;
                     case SQLType.VARCHAR:    // new in 5.0, but does not appear for a VARCHAR column
                     case SQLType.ENUM:       // both this and SET actually get sent by the protocol as BLOB - 0xfe
@@ -2437,18 +2451,18 @@ public:
                     // They don't even have values in the list of protocol types
                     case SQLType.VARSTRING:
                     case SQLType.STRING:
-                        _uva[i] = val;
+                        _values[i] = val;
                         break;
                     case SQLType.TINYBLOB:
                     case SQLType.MEDIUMBLOB:
                     case SQLType.LONGBLOB:
-                        _uva[i] = cast(ubyte[]) val;
+                        _values[i] = cast(ubyte[]) val;
                         break;
                     case SQLType.BLOB: // Covers a multitude of sins  - TINYTEXT TEXT MEDIUMTEXT LONGTEXT all appear as BLOB - 0xfc
                         if (fd.binary)
-                            _uva[i] = cast(ubyte[]) val;
+                            _values[i] = cast(ubyte[]) val;
                         else
-                            _uva[i] = val;
+                            _values[i] = val;
                         break;
                 }
             }
@@ -2535,7 +2549,7 @@ public:
      * Params: i = the zero based index of the column whose value is required.
      * Returns: A Variant holding the column value.
      */
-    Variant opIndex(uint i) { return _uva[i]; }
+    Variant opIndex(uint i) { return _values[i]; }
     /**
      * Check if a column in the result row was NULL
      *
@@ -2559,15 +2573,15 @@ public:
     {
         foreach (i, dummy; s.tupleof)
         {
-            enforceEx!MYX(_uva[i].convertsTo!(typeof(s.tupleof[i]))(),
+            enforceEx!MYX(_values[i].convertsTo!(typeof(s.tupleof[i]))(),
                     "At col "~to!string(i)~" the value is not implicitly convertible to the structure type");
-            s.tupleof[i] = _nulls[i]? typeof(s.tupleof[i]).init: _uva[i].get!(typeof(s.tupleof[i]));
+            s.tupleof[i] = _nulls[i]? typeof(s.tupleof[i]).init: _values[i].get!(typeof(s.tupleof[i]));
         }
     }
 
     void show()
     {
-        foreach(Variant v; _uva)
+        foreach(Variant v; _values)
             writef("%s, ", v.toString());
         writeln("");
     }
@@ -2710,7 +2724,7 @@ public:
         foreach (uint i, string s; _colNames)
         {
             DBValue value;
-            value.value  = front._uva[i];
+            value.value  = front._values[i];
             value.isNull = front._nulls[i];
             aa[s]        = value;
         }
@@ -2796,7 +2810,7 @@ public:
         foreach (uint i, string s; _colNames)
         {
             DBValue value;
-            value.value  = _row._uva[i];
+            value.value  = _row._values[i];
             value.isNull = _row._nulls[i];
             aa[s]        = value;
         }
@@ -3593,12 +3607,12 @@ c.param(1) = "The answer";
         Row rr = getNextRow();
         if (!rr._valid)   // The result set was empty - not a crime.
             return;
-        enforceEx!MYX(rr._uva.length == args.length, "Result column count does not match the target tuple.");
+        enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
         foreach (uint i, dummy; args)
         {
-            enforceEx!MYX(typeid(args[i]).toString() == rr._uva[i].type.toString(),
+            enforceEx!MYX(typeid(args[i]).toString() == rr._values[i].type.toString(),
                 "Tuple "~to!string(i)~" type and column type are not compatible.");
-            args[i] = rr._uva[i].get!(typeof(args[i]));
+            args[i] = rr._values[i].get!(typeof(args[i]));
         }
         // If there were more rows, flush them away
         // Question: Should I check in purgeResult and throw if there were - it's very inefficient to
@@ -3758,12 +3772,12 @@ c.param(1) = "The answer";
         enforceEx!MYX(execPrepared(ra), "The executed query did not produce a result set.");
         Row rr = getNextRow();
         enforceEx!MYX(rr._valid, "The result set was empty.");
-        enforceEx!MYX(rr._uva.length == args.length, "Result column count does not match the target tuple.");
+        enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
         foreach (uint i, dummy; args)
         {
-            enforceEx!MYX(typeid(args[i]).toString() == rr._uva[i].type.toString(),
+            enforceEx!MYX(typeid(args[i]).toString() == rr._values[i].type.toString(),
                 "Tuple "~to!string(i)~" type and column type are not compatible.");
-            args[i] = rr._uva[i].get!(typeof(args[i]));
+            args[i] = rr._values[i].get!(typeof(args[i]));
         }
         // If there were more rows, flush them away
         // Question: Should I check in purgeResult and throw if there were - it's very inefficient to
@@ -3858,11 +3872,11 @@ c.param(1) = "The answer";
         enforceEx!MYX(execPrepared(ra), "The executed query did not produce a result set.");
         Row rr = getNextRow();
         enforceEx!MYX(rr._valid, "The result set was empty.");
-        enforceEx!MYX(rr._uva.length == 1, "Result was not a single column.");
-        enforceEx!MYX(typeid(target).toString() == rr._uva[0].type.toString(),
+        enforceEx!MYX(rr._values.length == 1, "Result was not a single column.");
+        enforceEx!MYX(typeid(target).toString() == rr._values[0].type.toString(),
                         "Target type and column type are not compatible.");
         if (!rr.isNull(0))
-            target = rr._uva[0].get!(T);
+            target = rr._values[0].get!(T);
         // If there were more rows, flush them away
         // Question: Should I check in purgeResult and throw if there were - it's very inefficient to
         // allow sloppy SQL that does not ensure just one row!
@@ -4037,7 +4051,7 @@ unittest
         dt = rs[0][14].get!(DateTime);
         assert(dt.year == 2007 && dt.month == 1 && dt.day == 1 && dt.hour == 12 && dt.minute == 12 && dt.second == 12);
         assert(rs[0][15].toString() == "1.23457");
-        assert(rs[0]._uva[16].toString() == "22.4");
+        assert(rs[0]._values[16].toString() == "22.4");
         assert(rs[0].isNull(17) == true);
 
         c1.sql = "select bytecol, ushortcol, intcol, charscol, floatcol from basetest limit 1";
