@@ -4329,45 +4329,39 @@ struct MetaData
 {
 private:
     Connection _con;
-    ResultSet _rs;
-    Command _mdc;
 
     MySQLProcedure[] stored(bool procs)
     {
         enforceEx!MYX(_con.currentDB.length, "There is no selected database");
-        string query = procs? "show procedure status where db='": "show function status where db='";
+        string query = procs ? "SHOW PROCEDURE STATUS WHERE db='": "SHOW FUNCTION STATUS WHERE db='";
         query ~= _con.currentDB ~ "'";
 
-        _mdc = Command(_con, query);
-        _rs = _mdc.execSQLResult();
+        auto cmd = Command(_con, query);
+        auto rs = cmd.execSQLResult();
         MySQLProcedure[] pa;
-        size_t n = _rs.length;
-        pa.length = n;
-        foreach (size_t i; 0..n)
+        pa.length = rs.length;
+        foreach (size_t i; 0..rs.length)
         {
             MySQLProcedure foo;
-            Row r = _rs[i];
+            Row r = rs[i];
             foreach (int j; 0..11)
             {
-                string t;
-                bool isNull = r.isNull(j);
-                if (!isNull)
-                    t = r[j].toString();
-                else
+                if (r.isNull(j))
                     continue;
+                auto value = r[j].toString();
                 switch (j)
                 {
                     case 0:
-                        foo.db = t;
+                        foo.db = value;
                         break;
                     case 1:
-                        foo.name = t;
+                        foo.name = value;
                         break;
                     case 2:
-                        foo.type = t;
+                        foo.type = value;
                         break;
                     case 3:
-                        foo.definer = t;
+                        foo.definer = value;
                         break;
                     case 4:
                         foo.modified = r[j].get!(DateTime);
@@ -4376,22 +4370,22 @@ private:
                         foo.created = r[j].get!(DateTime);
                         break;
                     case 6:
-                        foo.securityType = t;
+                        foo.securityType = value;
                         break;
                     case 7:
-                        foo.comment = t;
+                        foo.comment = value;
                         break;
                     case 8:
-                        foo.charSetClient = t;
+                        foo.charSetClient = value;
                         break;
                     case 9:
-                        foo.collationConnection = t;
+                        foo.collationConnection = value;
                         break;
                     case 10:
-                        foo.collationDB = t;
+                        foo.collationDB = value;
                         break;
                     default:
-                        break;
+                        assert(0);
                 }
             }
             pa[i] = foo;
@@ -4416,17 +4410,13 @@ public:
      */
     string[] databases()
     {
-        string[] rv;
-        _mdc = Command(_con, "show databases");
-        _rs = _mdc.execSQLResult();
-        size_t n = _rs.length;
-        foreach (size_t i; 0..n)
-        {
-            string s;
-            Row r = _rs[i];
-            rv ~= r[0].toString();
-        }
-        return rv;
+        auto cmd = Command(_con, "SHOW DATABASES");
+        auto rs = cmd.execSQLResult();
+        string[] dbNames;
+        dbNames.length = rs.length;
+        foreach (size_t i; 0..rs.length)
+            dbNames[i] = rs[i][0].toString();
+        return dbNames;
     }
 
     /**
@@ -4437,17 +4427,13 @@ public:
      */
     string[] tables()
     {
-        string[] rv;
-        _mdc = Command(_con, "show tables");
-        _rs = _mdc.execSQLResult();
-        size_t n = _rs.length;
-        foreach (size_t i; 0..n)
-        {
-            string s;
-            Row r = _rs[i];
-            rv ~= r[0].toString();
-        }
-        return rv;
+        auto cmd = Command(_con, "SHOW TABLES");
+        auto rs = cmd.execSQLResult();
+        string[] tblNames;
+        tblNames.length = rs.length;
+        foreach (size_t i; 0..rs.length)
+            tblNames[i] = rs[i][0].toString();
+        return tblNames;
     }
 
     /**
@@ -4460,16 +4446,15 @@ public:
      */
     ColumnInfo[] columns(string table)
     {
-        string query = "select * from information_schema.COLUMNS where table_name='" ~ table ~ "'";
-        _mdc = Command(_con, query);
-        _rs = _mdc.execSQLResult();
-        size_t n = _rs.length;
+        string query = "SELECT * FROM information_schema.COLUMNS WHERE table_name='" ~ table ~ "'";
+        auto cmd = Command(_con, query);
+        auto rs = cmd.execSQLResult();
         ColumnInfo[] ca;
-        ca.length = n;
-        foreach (size_t i; 0..n)
+        ca.length = rs.length;
+        foreach (size_t i; 0..rs.length)
         {
             ColumnInfo col;
-            Row r = _rs[i];
+            Row r = rs[i];
             for (int j = 1; j < 19; j++)
             {
                 string t;
