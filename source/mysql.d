@@ -3338,9 +3338,7 @@ public:
             {
                 for (uint i = 0;; i++)
                 {
-                    ubyte[] packet = _con.getPacket();
-                    ubyte* ubp = packet.ptr;
-                    if (packet.isEOFPacket())
+                    if (_con.getPacket().isEOFPacket())
                     {
                         _headersPending = false;
                         break;
@@ -3352,9 +3350,7 @@ public:
             {
                 for (;;  rows++)
                 {
-                    ubyte[] packet = _con.getPacket();
-                    ubyte* ubp = packet.ptr;
-                    if (packet.isEOFPacket())
+                    if (_con.getPacket().isEOFPacket())
                     {
                         _rowsPending = _pendingBinary = false;
                         break;
