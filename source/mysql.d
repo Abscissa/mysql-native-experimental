@@ -998,10 +998,22 @@ unittest
     assert(x.length == 0x20000ff && x[0] == '<' && x[0x20000fe] == '>');
 }
 
+/// Magic marker sent in the first byte of mysql results in response to auth or command packets
 enum ResultPacketMarker : ubyte
 {
+    /** Server reports an error
+     * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Error_Packet
+     */
     error   = 0xff,
+
+    /** No error, no result set.
+     * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#OK_Packet
+     */
     ok      = 0x00,
+
+    /** Server reports end of data
+     * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#EOF_Packet
+     */
     eof     = 0xfe,
 }
 
