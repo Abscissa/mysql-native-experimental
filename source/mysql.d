@@ -2809,8 +2809,10 @@ public:
      */
     void close()
     {
-        _cmd.purgeResult();
+        if(_cmd)
+            _cmd.purgeResult();
         _empty = true; // small hack to throw an exception rather than using a closed command
+        _cmd = null;
     }
 
     /**
