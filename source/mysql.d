@@ -1108,7 +1108,6 @@ private:
     string   _originalName;
     ushort   _charSet;
     uint     _length;
-    uint     _actualLength;
     SQLType  _type;
     FieldFlags _flags;
     ubyte    _scale;
@@ -1301,7 +1300,6 @@ public:
 struct ResultSetHeaders
 {
 private:
-    uint _fieldCount;
     FieldDescription[] _fieldDescriptions;
     string[] _fieldNames;
     ushort _warnings;
@@ -1317,13 +1315,15 @@ public:
      */
     this(Connection con, uint fieldCount)
     {
-        _fieldCount = fieldCount;
-        _fieldDescriptions.length = _fieldCount;
-        _fieldNames.length = _fieldCount;
-        foreach (uint i; 0.._fieldCount)
+        _fieldNames.length = _fieldDescriptions.length = fieldCount;
+        foreach (uint i; 0 .. fieldCount)
         {
-            _fieldDescriptions[i] = FieldDescription(con.getPacket());
-            _fieldNames[i] = _fieldDescriptions[i]._name;
+            auto packet = con.getPacket();
+            enforceEx!MYX(!packet.isEOFPacket(),
+                    "Expected field description packet, got EOF packet in result header sequence");
+
+            _fieldDescriptions[i]   = FieldDescription(packet);
+            _fieldNames[i]          = _fieldDescriptions[i]._name;
         }
         auto packet = con.getPacket();
         enforceEx!MYX(packet.isEOFPacket(),
@@ -1357,7 +1357,7 @@ public:
     /// Index into the set of field descriptions
     FieldDescription opIndex(size_t i) { return _fieldDescriptions[i]; }
     /// Get the number of fields in a result row.
-    @property fieldCount() { return _fieldCount; }
+    @property fieldCount() { return _fieldDescriptions.length; }
     /// Get the warning count as per the EOF packet
     @property ushort warnings() { return _warnings; }
     /// Get an array of strings representing the column names
@@ -1440,14 +1440,17 @@ public:
 }
 
 
-// Set packet length and number
+/// Set packet length and number. It's important that the length of packet has
+/// already been set to the final state as its length is used
 void setPacketHeader(ref ubyte[] packet, ubyte packetNumber)
 in
 {
+    // packet should include header, and possibly data
     assert(packet.length >= 4);
 }
 body
 {
+    // don't include header in calculated size
     auto dataLength = packet.length - 4;
     assert(dataLength <= 0xffff_ffff_ffff); // 24-bit
     (cast(uint)dataLength).packInto!(uint, true)(packet);
@@ -1529,6 +1532,25 @@ protected:
     }
 
     void sendCmd(T)(CommandType cmd, T[] data)
+    in
+    {
+        // Internal thread states. Clients shouldn't use this
+        assert(cmd != CommandType.SLEEP);
+        assert(cmd != CommandType.CONNECT);
+        assert(cmd != CommandType.TIME);
+        assert(cmd != CommandType.DELAYED_INSERT);
+        assert(cmd != CommandType.CONNECT_OUT);
+
+        // Deprecated
+        assert(cmd != CommandType.CREATE_DB);
+        assert(cmd != CommandType.DROP_DB);
+        assert(cmd != CommandType.TABLE_DUMP);
+    }
+    out
+    {
+        assert(pktNumber == 1);
+    }
+    body
     {
         resetPacket();
         ubyte[] packet;
@@ -1536,7 +1558,8 @@ protected:
         assert(packet.length <= uint.max); // cannot send more than uint.max bytes. TODO: better error message if we try?
         packet.setPacketHeader(pktNumber);
         packet[4] = cmd;
-        packet[5 .. data.length+5] = cast(ubyte[])data[0..$];
+        if(data.length) // not all commands have arguments
+            packet[5 .. data.length+5] = cast(ubyte[])data[0..$];
         bumpPacket();
         send(packet);
     }
@@ -2031,7 +2054,6 @@ struct ParameterSpecialization
     SQLType type = SQLType.INFER_FROM_D_TYPE;
     uint chunkSize;
     uint delegate(ubyte[]) chunkDelegate;
-    bool dummy;
 }
 alias ParameterSpecialization PSN;
 
@@ -2052,9 +2074,9 @@ alias ParameterSpecialization PSN;
  */
 struct ColumnSpecialization
 {
-    uint cIndex;    // parameter number 0 - number of params-1
-    ushort type;
-    uint chunkSize;
+    uint    cIndex;    // parameter number 0 - number of params-1
+    ushort  type;
+    uint    chunkSize;
     void delegate(ubyte[] chunk, bool finished) chunkDelegate;
 }
 alias ColumnSpecialization CSN;
@@ -2078,7 +2100,7 @@ private:
     T fromBytes(T, int N = 0)(ref uint p, ubyte[] packet, out bool incomplete) if (is(T: ulong))
     {
         ulong ac = 0;
-        uint len = N? N: T.sizeof;
+        uint len = N ? N: T.sizeof;
         if (p+len >= packet.length-1)
         {
             incomplete = true;
@@ -2140,8 +2162,7 @@ public:
     this(Connection con, ubyte[] packet, ResultSetHeaders rh, bool binary)
     {
         uint fc = rh._fieldCount;
-        _values.length = fc;
-        _nulls.length = fc;
+        _values.length = _nulls.length = fc;
         uint p = 0;
         size_t pl = packet.length;
         uint tl;
