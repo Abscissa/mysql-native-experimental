@@ -1227,19 +1227,29 @@ public:
     @property bool unsigned() { return (_flags & FieldFlags.UNSIGNED) != 0; }
 }
 
+bool isEOFPacket(ubyte[] packet)
+{
+    return packet.front == ResultPacketMarker.eof && packet.length < 9;
+}
+
 /**
- * A struct representing an EOF packet
+ * A struct representing an EOF packet from the server
  *
- * an EOF packet is sent after each sequence of field description and parameter description
- * packets, and after a sequence of result set row packets.
+ * An EOF packet is sent from the server after each sequence of field
+ * description and parameter description packets, and after a sequence of
+ * result set row packets.
+ * An EOF packet is also called "Last Data Packet" or "End Packet".
  *
  * These EOF packets contain a server status and a warning count.
+ *
+ * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#EOF_Packet
  */
 struct EOFPacket
 {
 private:
     ushort _warnings;
     ushort _serverStatus;
+
 public:
 
    /**
@@ -1250,19 +1260,23 @@ public:
     this(ubyte[] packet)
     in
     {
-        assert(packet.front == ResultPacketMarker.eof);
+        assert(packet.isEOFPacket());
         assert(packet.length == 5);
+    }
+    out
+    {
+        assert(!packet.length);
     }
     body
     {
-        packet.popFront();
+        packet.popFront(); // eof marker
         _warnings = packet.takeShort();
         _serverStatus = packet.takeShort();
-        assert(!packet.length);
     }
 
     /// Retrieve the warning count
-    @property ushort warnings() { return _warnings; }
+    @property ushort warnings()     { return _warnings; }
+
     /// Retrieve the server status
     @property ushort serverStatus() { return _serverStatus; }
 }
@@ -1301,7 +1315,7 @@ public:
             _fieldNames[i] = _fieldDescriptions[i]._name;
         }
         auto packet = con.getPacket();
-        enforceEx!MYX(packet[0] == ResultPacketMarker.eof && packet.length < 9,
+        enforceEx!MYX(packet.isEOFPacket(),
                 "Expected EOF packet in result header sequence");   // check signature for EOF packet
         auto eof = EOFPacket(packet);
         con._serverStatus = eof._serverStatus;
@@ -1362,7 +1376,7 @@ private:
     bool getEOFPacket()
     {
         auto packet = _con.getPacket();
-        if (packet.front != ResultPacketMarker.eof)
+        if (!packet.isEOFPacket())
             return false;
         EOFPacket eof = EOFPacket(packet);
         _con._serverStatus = eof._serverStatus;
@@ -3326,7 +3340,7 @@ public:
                 {
                     ubyte[] packet = _con.getPacket();
                     ubyte* ubp = packet.ptr;
-                    if (packet.length < 9 && *ubp == ResultPacketMarker.eof)
+                    if (packet.isEOFPacket())
                     {
                         // Found an EOF packet
                         _headersPending = false;
@@ -3341,7 +3355,7 @@ public:
                 {
                     ubyte[] packet = _con.getPacket();
                     ubyte* ubp = packet.ptr;
-                    if (packet.length < 9 && *ubp == ResultPacketMarker.eof)
+                    if (packet.isEOFPacket())
                     {
                         // Found an EOF packet
                         _rowsPending = _pendingBinary = false;
@@ -3531,7 +3545,7 @@ c.param(1) = "The answer";
         {
             packet = _con.getPacket();
             ubyte* ubp = packet.ptr;
-            if (*ubp == ResultPacketMarker.eof && packet.length < 9)      // EOF packet
+            if (packet.isEOFPacket())      // EOF packet
                 break;
 
             Row row = Row(_con, packet, _rsh, false);
@@ -3701,7 +3715,7 @@ c.param(1) = "The answer";
         {
             packet = _con.getPacket();
             ubyte* ubp = packet.ptr;
-            if (*ubp == ResultPacketMarker.eof && packet.length < 9)      // EOF packet
+            if (packet.isEOFPacket())      // EOF packet
                 break;
             Row row = Row(_con, packet, _rsh, true);
             if (cr >= alloc)
@@ -3799,7 +3813,7 @@ c.param(1) = "The answer";
         Row rr;
         packet = _con.getPacket();
         ubyte* ubp = packet.ptr;
-        if (*ubp == ResultPacketMarker.eof && packet.length < 9)      // EOF packet
+        if (packet.isEOFPacket())      // EOF packet
         {
             _rowsPending = _pendingBinary = false;
             return rr;
