@@ -1769,7 +1769,7 @@ protected:
     }
     out
     {
-        assert(_open == OpenState.connected);
+        assert(_open == OpenState.authenticated);
     }
     body
     {
