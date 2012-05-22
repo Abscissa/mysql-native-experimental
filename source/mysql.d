@@ -1746,6 +1746,10 @@ protected:
     {
         assert(_open == OpenState.connected);
     }
+    out
+    {
+        assert(_open == OpenState.authenticated);
+    }
     body
     {
         auto token = makeToken(greeting);
