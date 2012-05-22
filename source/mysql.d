@@ -3277,12 +3277,9 @@ public:
     {
         ubyte[] packet;
         packet.length = 9;
-        packet[0] = 5;
-        packet[1] = 0;
-        packet[2] = 0;
-        packet[3] = 0;//_con.pktNumber;
+        _con.setPacketHeader(packet, 0/*packet number*/, 5/*data length*/);
         _con.bumpPacket();
-        packet[4] = 0x19;
+        packet[4] = CommandType.STMT_CLOSE;
         _hStmt.packInto(packet[5..9]);
         purgeResult();
         _con.send(packet);
