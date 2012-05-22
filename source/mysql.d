@@ -455,7 +455,7 @@ enum SvrCapFlags: uint
     MULTI_RESULTS       = 131072  /// Multiple result set support
 }
 // 000000001111011111111111
-immutable uint defaultClientFlags =
+immutable SvrCapFlags defaultClientFlags =
         SvrCapFlags.SECURE_PWD | SvrCapFlags.ALL_COLUMN_FLAGS |
         SvrCapFlags.WITH_DB | SvrCapFlags.PROTOCOL41 |
         SvrCapFlags.SECURE_CONNECTION;// | SvrCapFlags.MULTI_STATEMENTS |
@@ -499,7 +499,7 @@ enum SQLType : short
 /**
  * Server refresh flags
  */
-enum RefreshFlags
+enum RefreshFlags : ubyte
 {
     GRANT    =   1,
     LOG      =   2,
@@ -1347,7 +1347,7 @@ public:
     {
         foreach(CSN csn; csa)
         {
-            enforceEx!MYX(csn.cIndex < _fieldCount && _fieldDescriptions[csn.cIndex].type == csn.type,
+            enforceEx!MYX(csn.cIndex < fieldCount && _fieldDescriptions[csn.cIndex].type == csn.type,
                     "Column specialization index or type does not match the corresponding column.");
             _fieldDescriptions[csn.cIndex].chunkSize = csn.chunkSize;
             _fieldDescriptions[csn.cIndex].chunkDelegate = csn.chunkDelegate;
@@ -1726,7 +1726,7 @@ protected:
         return result;
     }
 
-    void setClientFlags(uint capFlags)
+    void setClientFlags(SvrCapFlags capFlags)
     {
         uint filter = 1;
         uint sCaps = _sCaps;
@@ -1799,7 +1799,7 @@ protected:
         _open = OpenState.authenticated;
     }
 
-    void connect(uint clientCapabilities)
+    void connect(SvrCapFlags clientCapabilities)
     in
     {
         assert(_open == OpenState.notConnected);
@@ -1839,7 +1839,7 @@ public:
      *    db = Desired initial database.
      *    capFlags = The set of flag bits from the server's capabilities that the client requires
      */
-    this(string host, string user, string pwd, string db, ushort port = 3306, uint capFlags = defaultClientFlags)
+    this(string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
     {
         _host = host;
         _user = user;
@@ -1862,7 +1862,7 @@ public:
      *    cs = A connetion string of the form "host=localhost;user=user;pwd=password;db=mysqld"
      *    capFlags = The set of flag bits from the server's capabilities that the client requires
      */
-    this(string cs, uint capFlags = defaultClientFlags)
+    this(string cs, SvrCapFlags capFlags = defaultClientFlags)
     {
         string[] a = parseConnectionString(cs);
         this(a[0], a[1], a[2], a[3], to!ushort(a[4]), capFlags);
@@ -1905,6 +1905,7 @@ public:
     body
     {
         sendCmd(CommandType.QUIT, []);
+        // No response is sent for a quit packet
         _open = OpenState.connected;
     }
 
@@ -1929,7 +1930,7 @@ public:
      */
     OKErrorPacket pingServer()
     {
-        sendCmd(CommandType.PING, "");
+        sendCmd(CommandType.PING, []);
         return getCmdResponse();
     }
 
@@ -1939,22 +1940,20 @@ public:
      * Returns: An OKErrorPacket from which server status can be determined
      * Throws: MySQLException
      */
-    OKErrorPacket refreshServer(int flags)
+    OKErrorPacket refreshServer(RefreshFlags flags)
     {
-        ubyte[] t;
-        t.length = 1;
-        t[0] = cast(ubyte) flags;
-        sendCmd(CommandType.REFRESH, cast(string) t);
+        sendCmd(CommandType.REFRESH, [flags]);
         return getCmdResponse();
     }
 
     /**
      * Get a textual report on the server status.
      *
+     * (COM_STATISTICS)
      */
     string serverStats()
     {
-        sendCmd(CommandType.STATISTICS, "");
+        sendCmd(CommandType.STATISTICS, []);
         return cast(string) getPacket();
     }
 
@@ -2161,7 +2160,8 @@ public:
      */
     this(Connection con, ubyte[] packet, ResultSetHeaders rh, bool binary)
     {
-        uint fc = rh._fieldCount;
+        assert(rh.fieldCount <= uint.max);
+        uint fc = cast(uint)rh.fieldCount;
         _values.length = _nulls.length = fc;
         uint p = 0;
         size_t pl = packet.length;
