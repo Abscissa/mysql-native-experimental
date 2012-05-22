@@ -825,6 +825,53 @@ ubyte[] takeLCS(ref ubyte[] packet, out bool isNull)
     return packet.takeSkip(cast(size_t)length).dup;
 }
 
+/**
+ * Converts a value into a sequence of bytes and fills the supplied array
+ *
+ * Parameters:
+ * IsInt24 = If only the most significant 3 bytes from the value should be used
+ * value = The value to add to array
+ * array = The array we should add the values for. It has to be large enough, and the values are packed starting index 0
+ */
+void packInto(T, bool IsInt24 = false)(T value, ref ubyte[] array)
+in
+{
+    static if(IsInt24)
+        assert(array.length >= 3);
+    else
+        assert(array.length >= T.sizeof, "Not enough space to unpack "~T.stringof);
+}
+body
+{
+    static if(T.sizeof >= 1)
+    {
+        array[0] = cast(ubyte) (value >> 8*0) & 0xff;
+    }
+    static if(T.sizeof >= 2)
+    {
+        array[1] = cast(ubyte) (value >> 8*1) & 0xff;
+    }
+    static if(!IsInt24)
+    {
+        static if(T.sizeof >= 4)
+        {
+            array[2] = cast(ubyte) (value >> 8*2) & 0xff;
+            array[3] = cast(ubyte) (value >> 8*3) & 0xff;
+        }
+        static if(T.sizeof >= 8)
+        {
+            array[4] = cast(ubyte) (value >> 8*4) & 0xff;
+            array[5] = cast(ubyte) (value >> 8*5) & 0xff;
+            array[6] = cast(ubyte) (value >> 8*6) & 0xff;
+            array[7] = cast(ubyte) (value >> 8*7) & 0xff;
+        }
+    }
+    else
+    {
+        array[2] = cast(ubyte) (value >> 8*2) & 0xff;
+    }
+}
+
 ubyte[] packLength(size_t l, out size_t offset)
 out(result)
 {
@@ -844,36 +891,26 @@ body
         t[0] = cast(ubyte) l;
         offset = 1;
     }
-    else if (l <= 0xffff)
+    else if (l <= 0xffff) // 16-bit
     {
         t.length = 3+l;
         t[0] = 252;
-        t[1] = cast(ubyte) (l & 0xff);
-        t[2] = cast(ubyte) ((l >> 8) & 0xff);
+        packInto(cast(ushort)l, t[1..3]);
         offset = 3;
     }
-    else if (l < 0xffffff)
+    else if (l < 0xffffff) // 24-bit
     {
         t.length = 4+l;
         t[0] = 253;
-        t[1] = cast(ubyte) (l & 0xff);
-        t[2] = cast(ubyte) ((l >> 8) & 0xff);
-        t[3] = cast(ubyte) ((l >> 16) & 0xff);
+        packInto!(uint, true)(cast(uint)l, t[1..4]);
         offset = 4;
     }
-    else
+    else // 64-bit
     {
         ulong u = cast(ulong) l;
         t.length = 9+l;
         t[0] = 254;
-        t[1] = cast(ubyte) (u & 0xff);
-        t[2] = cast(ubyte) ((u >> 8) & 0xff);
-        t[3] = cast(ubyte) ((u >> 16) & 0xff);
-        t[4] = cast(ubyte) ((u >> 24) & 0xff);
-        t[5] = cast(ubyte) ((u >> 32) & 0xff);
-        t[6] = cast(ubyte) ((u >> 40) & 0xff);
-        t[7] = cast(ubyte) ((u >> 48) & 0xff);
-        t[8] = cast(ubyte) ((u >> 56) & 0xff);
+        u.packInto(t[1..9]);
         offset = 9;
     }
     return t;
@@ -1440,9 +1477,7 @@ protected:
     }
     body
     {
-        packet[0] = cast(ubyte) ( length        & 0xff);
-        packet[1] = cast(ubyte) ((length >> 8)  & 0xff);
-        packet[2] = cast(ubyte) ((length >> 16) & 0xff);
+        length.packInto!(uint, true)(packet);
         packet[3] = packetNumber;
     }
 
@@ -1476,58 +1511,45 @@ protected:
     body
     {
         ubyte[] packet;
-        packet.length = 4/*header*/ + 4 + 4 + 1 + 23 + _user.length+1 + 1+20 + _db.length+1 + 10/*just to be sure we have a large enough array*/;
-        ubyte* p = packet.ptr+4; // skip packet header
+        packet.reserve(4/*header*/ + 4 + 4 + 1 + 23 + _user.length+1 + token.length+1 + _db.length+1);
+        packet.length = 4 + 4 + 4; // create room for the beginning headers that we set rather than append
+
+        // NOTE: we'll set the header last when we know the size
+
         // Set the default capabilities required by the client
-        *p++ = cast(ubyte) (_cCaps         & 0xff);
-        *p++ = cast(ubyte) ((_cCaps >> 8)  & 0xff);
-        *p++ = cast(ubyte) ((_cCaps >> 16) & 0xff);
-        *p++ = cast(ubyte) ((_cCaps >> 24) & 0xff);
+        _cCaps.packInto(packet[4..$]);
+
         // Request a conventional maximum packet length.
-        *p++ = 0;
-        *p++ = 0;
-        *p++ = 0;
-        *p++ = 1;
-        // Request utf-8 as default charSet
-        *p++ = 33;
+        1.packInto(packet[8..$]);
+
+        packet ~= 33; // Set UTF-8 as default charSet
+
         // There's a statutory block of zero bytes here - fill them in.
-        foreach (int i; 0..23)
-            *p++ = 0;
+        foreach(i; 0 .. 23)
+            packet ~= 0;
+
         // Add the user name as a null terminated string
-        foreach (i; 0.._user.length)
-            *p++ = _user[i];
-        *p++ = 0;
-        // Add our calculated authentication token as a length prefixed string. It is basically a
-        // SHA1 hash, so we know how long is is.
-        *p++ = 20;
-        foreach (uint i; 0..20)
-            *p++ = token[i];
-        // if the default database is being set, add this finally as a null terminated string.
-        if (_db.length)
+        foreach(i; 0 .. _user.length)
+            packet ~= _user[i];
+        packet ~= 0; // \0
+
+        // Add our calculated authentication token as a length prefixed string.
+        assert(token.length <= ubyte.max);
+        packet ~= cast(ubyte)token.length;
+        foreach(i; 0 .. token.length)
+            packet ~= token[i];
+
+        if(_db.length)
         {
-            foreach (i; 0.._db.length)
-                *p++ = _db[i];
-            *p++ = 0;
+            foreach(i; 0 .. _db.length)
+                packet ~= _db[i];
+            packet ~= 0; // \0
         }
-        // Now we can determine the size of the packet and trim the array to that length.
-        size_t pl = p - packet.ptr;
-        packet.length = pl;
-        // Back to the beginning of the packet
-        p = packet.ptr;
-        // The calculated length is from the packet start as opposed to the content start,
-        // so allow for the packet header before we fill it in.
-        pl -= 4;
+
         // The server sent us a greeting with packet number 0, so we send the auth packet
         // back with the next number.
-        p[3] = pktNumber;
+        setPacketHeader(packet, pktNumber, cast(uint)packet.length-4/*don't include header in size*/);
         bumpPacket();
-        // Fill in the logical packet length. We can skip the most significant byte, since at the worst
-        // it is a short packet.
-        p[2] = 0;
-        p[1] = cast(ubyte) ((pl >> 8) & 0xff);
-        p[0] = cast(ubyte) (pl & 0xff);
-        // Hopefully at this point it is ready to send.
-        assert(pl <= uint.max);
         return packet;
     }
 
@@ -2831,10 +2853,7 @@ private:
         prefix.length = 14;
 
         prefix[4] = 0x17;
-        prefix[5] = cast(ubyte) (_hStmt & 0xff);
-        prefix[6] = cast(ubyte) ((_hStmt >> 8) & 0xff);
-        prefix[7] = cast(ubyte) ((_hStmt >> 16) & 0xff);
-        prefix[8] = cast(ubyte) ((_hStmt >> 24) & 0xff);
+        _hStmt.packInto(prefix[5..9]);
         prefix[9] = flags;   // flags, no cursor
         prefix[10] = 1; // iteration count - currently always 1
         prefix[11] = 0;
@@ -3114,7 +3133,8 @@ private:
 
     void sendLongData()
     {
-        foreach (uint i, PSN psn; _psa)
+        assert(_psa.length <= ushort.max); // parameter number is sent as short
+        foreach (ushort i, PSN psn; _psa)
         {
             if (!psn.chunkSize) continue;
             uint cs = psn.chunkSize;
@@ -3122,20 +3142,13 @@ private:
             ubyte[] chunk;
             chunk.length = cs+11;
             uint pl = cs+7;
-            // Packet header
-            chunk[0] = cast(ubyte) (pl & 0xff);
-            chunk[1] = cast(ubyte) ((pl >> 8) & 0xff);
-            chunk[2] = cast(ubyte) ((pl >> 16) & 0xff);
-            chunk[3] = 0;  // Each long data chunk is a separate command
+
+            _con.setPacketHeader(chunk, 0 /*each chunk is separate cmd*/, pl);
 
             // Data chunk
             chunk[4] = CommandType.STMT_SEND_LONG_DATA;
-            chunk[5] = cast(ubyte) (_hStmt & 0xff);                 // statement handle - 4 bytes
-            chunk[6] = cast(ubyte) ((_hStmt >> 8) & 0xff);
-            chunk[7] = cast(ubyte) ((_hStmt >> 16) & 0xff);
-            chunk[8] = cast(ubyte) ((_hStmt >> 24) & 0xff);
-            chunk[9] = cast(ubyte) (i & 0xff);                            // parameter number - 2 bytes
-            chunk[10] = cast(ubyte) ((i >> 8) & 0xff);
+            _hStmt.packInto(chunk[5..9]); // statement handle
+            packInto(i, chunk[9..11]); // parameter number
             // byte 11 on is payload
             for (;;)
             {
@@ -3146,9 +3159,7 @@ private:
                         break;
                     sent += 7;        // adjust for non-payload bytes
                     chunk.length = chunk.length - (cs-sent);     // trim the chunk
-                    chunk[0] = cast(ubyte) (sent & 0xff);
-                    chunk[1] = cast(ubyte) ((sent >> 8) & 0xff);
-                    chunk[2] = cast(ubyte) ((sent >> 16) & 0xff);
+                    packInto!(uint, true)(cast(uint)sent, chunk[0..3]);
                     _con.send(chunk);
                     break;
                 }
@@ -3272,10 +3283,7 @@ public:
         packet[3] = 0;//_con.pktNumber;
         _con.bumpPacket();
         packet[4] = 0x19;
-        packet[5] = cast(ubyte) (_hStmt & 0xff);
-        packet[6] = cast(ubyte) ((_hStmt >> 8) & 0xff);
-        packet[7] = cast(ubyte) ((_hStmt >> 16) & 0xff);
-        packet[8] = cast(ubyte) ((_hStmt >> 24) & 0xff);
+        _hStmt.packInto(packet[5..9]);
         purgeResult();
         _con.send(packet);
         // It seems that the server does not find it necessary to send a response
@@ -3622,10 +3630,7 @@ c.param(1) = "The answer";
 
         assert(packet.length <= uint.max);
         uint pl = cast(uint)packet.length - 4;
-        packet[0] = cast(ubyte) (pl & 0xff);
-        packet[1] = cast(ubyte) ((pl >> 8) & 0xff);
-        packet[2] = cast(ubyte) ((pl >> 16) & 0xff);
-        packet[3] = _con.pktNumber;
+        _con.setPacketHeader(packet, _con.pktNumber, pl);
         _con.bumpPacket();
         _con.send(packet);
         packet = _con.getPacket();
