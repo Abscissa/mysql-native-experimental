@@ -1316,7 +1316,7 @@ public:
         }
         auto packet = con.getPacket();
         enforceEx!MYX(packet.isEOFPacket(),
-                "Expected EOF packet in result header sequence");   // check signature for EOF packet
+                "Expected EOF packet in result header sequence");
         auto eof = EOFPacket(packet);
         con._serverStatus = eof._serverStatus;
         _warnings = eof._warnings;
@@ -3342,7 +3342,6 @@ public:
                     ubyte* ubp = packet.ptr;
                     if (packet.isEOFPacket())
                     {
-                        // Found an EOF packet
                         _headersPending = false;
                         break;
                     }
@@ -3357,7 +3356,6 @@ public:
                     ubyte* ubp = packet.ptr;
                     if (packet.isEOFPacket())
                     {
-                        // Found an EOF packet
                         _rowsPending = _pendingBinary = false;
                         break;
                     }
@@ -3545,7 +3543,7 @@ c.param(1) = "The answer";
         {
             packet = _con.getPacket();
             ubyte* ubp = packet.ptr;
-            if (packet.isEOFPacket())      // EOF packet
+            if (packet.isEOFPacket())
                 break;
 
             Row row = Row(_con, packet, _rsh, false);
@@ -3715,7 +3713,7 @@ c.param(1) = "The answer";
         {
             packet = _con.getPacket();
             ubyte* ubp = packet.ptr;
-            if (packet.isEOFPacket())      // EOF packet
+            if (packet.isEOFPacket())
                 break;
             Row row = Row(_con, packet, _rsh, true);
             if (cr >= alloc)
@@ -3813,7 +3811,7 @@ c.param(1) = "The answer";
         Row rr;
         packet = _con.getPacket();
         ubyte* ubp = packet.ptr;
-        if (packet.isEOFPacket())      // EOF packet
+        if (packet.isEOFPacket())
         {
             _rowsPending = _pendingBinary = false;
             return rr;
