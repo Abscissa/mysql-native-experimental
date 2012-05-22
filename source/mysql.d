@@ -1767,6 +1767,10 @@ protected:
     {
         assert(_open == OpenState.notConnected);
     }
+    out
+    {
+        assert(_open == OpenState.connected);
+    }
     body
     {
         init_connection();
