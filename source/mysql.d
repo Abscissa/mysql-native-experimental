@@ -463,13 +463,10 @@ immutable uint defaultClientFlags =
 
 /**
  * Column type codes
- *
- * DEFAULT means infer parameter type or column type from D variable type.
- *
  */
 enum SQLType : short
 {
-    DEFAULT      =   -1,
+    INFER_FROM_D_TYPE = -1,
     DECIMAL      = 0x00,
     TINY         = 0x01,
     SHORT        = 0x02,
@@ -2009,7 +2006,7 @@ struct ParameterSpecialization
 {
     uint pIndex;    //parameter number 0 - number of params-1
     bool isNull;
-    SQLType type = SQLType.DEFAULT;
+    SQLType type = SQLType.INFER_FROM_D_TYPE;
     uint chunkSize;
     uint delegate(ubyte[]) chunkDelegate;
     bool dummy;
@@ -2939,7 +2936,7 @@ private:
             switch (ts)
             {
                 case "bool":
-                    if (ext == SQLType.DEFAULT)
+                    if (ext == SQLType.INFER_FROM_D_TYPE)
                         types[ct++] = SQLType.BIT;
                     else
                         types[ct++] = cast(ubyte) ext;
@@ -3107,7 +3104,7 @@ private:
                     vcl += l;
                     break;
                 case "immutable(char)[]":
-                    if (ext == SQLType.DEFAULT)
+                    if (ext == SQLType.INFER_FROM_D_TYPE)
                         types[ct++] = SQLType.VARCHAR;
                     else
                         types[ct++] = cast(ubyte) ext;
@@ -3120,7 +3117,7 @@ private:
                     vcl += packed.length;
                     break;
                 case "char[]":
-                    if (ext == SQLType.DEFAULT)
+                    if (ext == SQLType.INFER_FROM_D_TYPE)
                         types[ct++] = SQLType.VARCHAR;
                     else
                         types[ct++] = cast(ubyte) ext;
@@ -3133,7 +3130,7 @@ private:
                     vcl += packed.length;
                     break;
                 case "byte[]":
-                    if (ext == SQLType.DEFAULT)
+                    if (ext == SQLType.INFER_FROM_D_TYPE)
                         types[ct++] = SQLType.TINYBLOB;
                     else
                         types[ct++] = cast(ubyte) ext;
@@ -3146,7 +3143,7 @@ private:
                     vcl += packed.length;
                     break;
                 case "ubyte[]":
-                    if (ext == SQLType.DEFAULT)
+                    if (ext == SQLType.INFER_FROM_D_TYPE)
                         types[ct++] = SQLType.TINYBLOB;
                     else
                         types[ct++] = cast(ubyte) ext;
@@ -3372,7 +3369,7 @@ public:
      * To bind to some D variable, we set the corrsponding variant with its address, so there is no
      * need to rebind between calls to execPreparedXXX.
      */
-    void bindParameter(T)(ref T val, uint pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.DEFAULT, 0, null, true))
+    void bindParameter(T)(ref T val, uint pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null, true))
     {
         // Now in theory we should be able to check the parameter type here, since the protocol is supposed
         // to send us type information for the parameters, but this capability seems to be broken. This assertion
