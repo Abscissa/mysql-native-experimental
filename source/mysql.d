@@ -3485,7 +3485,7 @@ c.param(1) = "The answer";
         _fieldCount = 0;
         ubyte[] packet = _con.getPacket();
         bool rv;
-        if (packet[0] == 0 || packet[0] == 255)
+        if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
         {
             _con.resetPacket();
             auto okp = OKErrorPacket(packet);
@@ -3498,11 +3498,11 @@ c.param(1) = "The answer";
         else
         {
             // There was presumably a result set
+            assert(packet.front >= 1 && packet.front <= 250); // ResultSet packet header should have this value
             _headersPending = _rowsPending = true;
             _pendingBinary = false;
             bool isNull;
-            auto ptr = packet.ptr;
-            _fieldCount = cast(ushort) parseLCB(ptr);
+            _fieldCount = cast(ushort) packet.takeLCB();
             rv = true;
             ra = 0;
         }
@@ -3707,7 +3707,6 @@ c.param(1) = "The answer";
         for (uint i = 0;; i++)
         {
             packet = _con.getPacket();
-            ubyte* ubp = packet.ptr;
             if (packet.isEOFPacket())
                 break;
             Row row = Row(_con, packet, _rsh, true);
@@ -3805,7 +3804,6 @@ c.param(1) = "The answer";
         ubyte[] packet;
         Row rr;
         packet = _con.getPacket();
-        ubyte* ubp = packet.ptr;
         if (packet.isEOFPacket())
         {
             _rowsPending = _pendingBinary = false;
