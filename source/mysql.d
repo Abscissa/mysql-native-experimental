@@ -2599,9 +2599,9 @@ struct DBValue
 struct ResultSet
 {
 private:
-    Row[]       _rows;      // all rows in ResultSet, we store this to be able to revert
+    Row[]       _rows;      // all rows in ResultSet, we store this to be able to revert() to it's original state
     string[]    _colNames;
-    Row[]       _curRows;   // current rows in ResultSet - we might be popFront()/popBack(), 
+    Row[]       _curRows;   // current rows in ResultSet
 
     this (Row[] rows, string[] colNames)
     {
@@ -2730,26 +2730,27 @@ public:
 struct ResultSequence
 {
 private:
-    Command* _cmd;
-    Row _cr;
-    string[] _colNames;
-    ulong _rc;
-    bool _empty;
+    Command*    _cmd;
+    Row         _row; // current row
+    string[]    _colNames;
+    ulong       _numRowsFetched;
+    bool        _empty;
 
     this (Command* cmd, string[] colNames)
     {
-        _cmd = cmd;
-        _colNames = colNames;
-        _cr = _cmd.getNextRow();
-        if (!_cr._valid)
-            _empty = true;
-        else
-            _rc++;
+        _cmd        = cmd;
+        _colNames   = colNames;
+        popFront();
     }
 
     ~this()
     {
         close();
+    }
+
+    invariant()
+    {
+        assert(_empty && _cmd); // command must exist while not empty
     }
 
 public:
@@ -2758,6 +2759,7 @@ public:
      *
      */
     @property bool empty() { return _empty; }
+
     /**
      * Make the ResultSequence behave as an input range - front
      *
@@ -2766,8 +2768,9 @@ public:
     @property Row front()
     {
         enforceEx!MYX(!_empty, "Attempted 'front' on exhausted result sequence.");
-        return _cr;
+        return _row;
     }
+
     /**
      * Make the ResultSequence behave as am input range - popFront()
      *
@@ -2776,9 +2779,11 @@ public:
     void popFront()
     {
         enforceEx!MYX(!_empty, "Attempted 'popFront' when no more rows available");
-        _cr = _cmd.getNextRow();
-        if (!_cr._valid)
+        _row = _cmd.getNextRow();
+        if (!_row._valid)
             _empty = true;
+        else
+            _numRowsFetched++;
     }
 
     /**
@@ -2790,10 +2795,10 @@ public:
         DBValue[string] aa;
         foreach (uint i, string s; _colNames)
         {
-            DBValue c;
-            c.value  = _cr._uva[i];
-            c.isNull = _cr._nulls[i];
-            aa[s]    = c;
+            DBValue value;
+            value.value  = _row._uva[i];
+            value.isNull = _row._nulls[i];
+            aa[s]        = value;
         }
         return aa;
      }
@@ -2805,6 +2810,7 @@ public:
     void close()
     {
         _cmd.purgeResult();
+        _empty = true; // small hack to throw an exception rather than using a closed command
     }
 
     /**
@@ -2812,7 +2818,7 @@ public:
      *
      * Note that this is not neccessarlly the same as the length of the range.
      */
-     @property ulong rowCount() { return _rc; }
+     @property ulong rowCount() { return _numRowsFetched; }
 }
 
 /**
