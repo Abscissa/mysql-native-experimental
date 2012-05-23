@@ -2785,7 +2785,7 @@ private:
 
     invariant()
     {
-        assert(_empty && _cmd); // command must exist while not empty
+        assert(!_empty && _cmd); // command must exist while not empty
     }
 
 public:
@@ -2913,7 +2913,7 @@ private:
         ubyte[] prefix;
         prefix.length = 14;
 
-        prefix[4] = 0x17;
+        prefix[4] = CommandType.STMT_EXECUTE;
         _hStmt.packInto(prefix[5..9]);
         prefix[9] = flags;   // flags, no cursor
         prefix[10] = 1; // iteration count - currently always 1
@@ -3256,6 +3256,7 @@ public:
     {
         /// Get the current SQL for the Command
         string sql() { return _sql; }
+
         /**
         * Set a new SQL command.
         *
@@ -3302,27 +3303,31 @@ public:
             releaseStatement();
         _con.sendCmd(CommandType.STMT_PREPARE, _sql);
         _fieldCount = 0;
+
         ubyte[] packet = _con.getPacket();
-        ubyte* ubp = packet.ptr;
-        if (*ubp == 0)
+        if (packet.front == ResultPacketMarker.ok)
         {
-            ubp++;
-            _hStmt = getInt(ubp);
-            _fieldCount = getShort(ubp);
-            _psParams = getShort(ubp);
-            _inParams.length = _psParams;
-            _psa.length = _psParams;
-            ubp++;      // one byte of filler
-            _psWarnings = getShort(ubp);
+            packet.popFront();
+            _hStmt              = packet.takeInt();
+            _fieldCount         = packet.takeShort();
+            _psParams           = packet.takeShort();
+
+            _inParams.length    = _psParams;
+            _psa.length         = _psParams;
+
+            packet.popFront(); // one byte filler
+            _psWarnings         = packet.takeShort();
 
             // At this point the server also sends field specs for parameters and columns if there were any of each
             _psh = PreparedStmtHeaders(_con, _fieldCount, _psParams);
         }
-        else
+        else if(packet.front == ResultPacketMarker.error)
         {
-            auto okp = OKErrorPacket(packet);
-            throw new MYX("MySQL Error: " ~ cast(string) okp.message, __FILE__, __LINE__);
+            auto error = OKErrorPacket(packet);
+            throw new MYX("MySQL Error: " ~ cast(string) error.message, __FILE__, __LINE__);
         }
+        else
+            assert(0); // FIXME: what now?
     }
 
     /**
