@@ -2131,28 +2131,31 @@ private:
     }
 
     // This is to decode the bitmap in a binary result row. First two bits are skipped
-    static bool[] decodeBitmap(ubyte[] bits, uint cols)
+    static bool[] decodeNullBitmap(ubyte[] bitmap, uint numFields)
     {
-        bool[] rv;
-        rv.length = cols;
-        uint next = 1;
-        uint rem = 6;
-        ubyte src = bits[0] >> 2;
-        uint n = 0;
-        for (;;)
+        bool[] nulls;
+        nulls.length = numFields;
+
+        ubyte bits = bitmap.front(); // the current byte we are processing for nulls
+        bits >>= 2;      // strip away the first two bits as they are reserved
+        uint rem = 6;   // store the number of bits we have left to process in the byte. The first byte only has 6 values
+        foreach(ref isNull; nulls)
         {
-            if (n >= cols)
-                break;
-            if (!rem)
+            if (!rem) // we have processed all bits in this byte, and must fetch the next
             {
-                src = bits[next++];
+                assert(bits == 0, "not all bits are processed!");
+                assert(!bitmap.empty, "bits array too short for number of columns");
+                bitmap.popFront();
+                bits = bitmap.front;
                 rem = 8;
             }
-            rv[n++] = (src & 1) != 0;
-            src >>= 1;
+            isNull = (bits & 0b000_0001) != 0;
+
+            // get ready to process next bit
+            bits >>= 1;
             rem--;
         }
-        return rv;
+        return nulls;
     }
 
 public:
@@ -2233,9 +2236,9 @@ public:
             // There's a null byte header on a binary result sequence, followed by some bytes of bitmap
             // indicating which columns are null
             enforceEx!MYX(packet[p++] == 0, "Expected null header byte for binary result row");
-            uint bml = (fc+7+2)/8;
-            _nulls = decodeBitmap(packet[p..p+bml], fc);
-            p += bml;
+            uint bitmapLength = (fc+7+2)/8;
+            _nulls = decodeNullBitmap(packet[p..p+bitmapLength], fc);
+            p += bitmapLength;
         }
 
         foreach (int i; 0..fc)
