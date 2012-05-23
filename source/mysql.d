@@ -2096,6 +2096,20 @@ private:
     bool[]      _nulls;
     bool        _valid;
 
+    /**
+     * Extracts a type from a series of bytes
+     *
+     * Parameters:
+     *  T            = Type to extract from the packet
+     *  N            = Number of bytes to use from packet. 0 means use T.sizeof
+     *  p            = offset in packet where the data begins
+     *  packet       = packet containing data
+     *  incomplete   = true if packet contains less than N bytes
+     *
+     * Returns:
+     *  The extracted value, or 0 if there isn't enough bytes to extract the value.
+     *  p is set to offset after the last used byte
+     * */
     T fromBytes(T, int N = 0)(ref uint p, ubyte[] packet, out bool incomplete) if (is(T: ulong))
     {
         ulong ac = 0;
