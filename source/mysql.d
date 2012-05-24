@@ -2132,6 +2132,16 @@ private:
 
     // This is to decode the bitmap in a binary result row. First two bits are skipped
     static bool[] decodeNullBitmap(ubyte[] bitmap, uint numFields)
+    in
+    {
+        assert(bitmap.length >= (numFields+7+2)/8,
+                "bitmap not large enough to store all null fields");
+    }
+    out(result)
+    {
+        assert(result.length == numFields);
+    }
+    body
     {
         bool[] nulls;
         nulls.length = numFields;
@@ -2140,9 +2150,10 @@ private:
         ubyte bits = bitmap.front();
         // strip away the first two bits as they are reserved
         bits >>= 2;
-        uint bitsLeftInByte = 6;
+        ubyte bitsLeftInByte = 6;
         foreach(ref isNull; nulls)
         {
+            assert(bitsLeftInByte <= 8);
             // processed all bits? fetch new byte
             if (bitsLeftInByte == 0)
             {
