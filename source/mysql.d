@@ -2136,24 +2136,28 @@ private:
         bool[] nulls;
         nulls.length = numFields;
 
-        ubyte bits = bitmap.front(); // the current byte we are processing for nulls
-        bits >>= 2;      // strip away the first two bits as they are reserved
-        uint rem = 6;   // store the number of bits we have left to process in the byte. The first byte only has 6 values
+        // the current byte we are processing for nulls
+        ubyte bits = bitmap.front();
+        // strip away the first two bits as they are reserved
+        bits >>= 2;
+        uint bitsLeftInByte = 6;
         foreach(ref isNull; nulls)
         {
-            if (!rem) // we have processed all bits in this byte, and must fetch the next
+            // processed all bits? fetch new byte
+            if (bitsLeftInByte == 0)
             {
                 assert(bits == 0, "not all bits are processed!");
                 assert(!bitmap.empty, "bits array too short for number of columns");
                 bitmap.popFront();
                 bits = bitmap.front;
-                rem = 8;
+                bitsLeftInByte = 8;
             }
-            isNull = (bits & 0b000_0001) != 0;
+            assert(bitsLeftInByte > 0);
+            isNull = (bits & 0b0000_0001) != 0;
 
             // get ready to process next bit
             bits >>= 1;
-            rem--;
+            bitsLeftInByte--;
         }
         return nulls;
     }
