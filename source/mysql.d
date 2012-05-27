@@ -77,6 +77,52 @@ class MySQLException: Exception
 }
 alias MySQLException MYX;
 
+Command createCommand(Params...)(Connection cn, string query, Params params)
+{
+    auto cmd = Command(cn, query);
+    static if(params.length)
+    {
+        cmd.prepare();
+        Variant[Params.length] vparams;
+        foreach(i, param; params)
+            vparams[i] = Variant(param);
+        cmd.bindParameters(vparams);
+    }
+    return cmd;
+}
+
+ResultSet queryEager(Params...)(Connection cn, string query, Params params)
+{
+    auto cmd = cn.createCommand(query, params);
+    static if(params.length)
+        return cmd.execPreparedResult();
+    else
+        return cmd.execSQLResult();
+}
+
+ResultSequence queryLazy(Params...)(Connection cn, string query, Params params)
+{
+    auto cmd = cn.createCommand(query, params);
+    static if(params.length)
+        return cmd.execPreparedSequence();
+    else
+        return cmd.execSQLSequence();
+}
+
+// Query with no result. Returns number of rows affected
+size_t exec(Params...)(Connection cn, string query, Params params)
+{
+    auto cmd = cn.createCommand(query, params);
+    size_t rowsAffected;
+    bool hasResult;
+    static if(params.length)
+        hasResult = cmd.execPrepared(rowsAffected);
+    else
+        assert(0, "not implemented");
+    assert(!hasResult);
+    return rowsAffected;
+}
+
 /**
  * A simple struct to represent time difference.
  *
