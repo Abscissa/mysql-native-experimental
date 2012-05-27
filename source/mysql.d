@@ -1868,6 +1868,16 @@ public:
         this(a[0], a[1], a[2], a[3], to!ushort(a[4]), capFlags);
     }
 
+    @property closed()
+    {
+        return _open == OpenState.notConnected || !_socket.connected;
+    }
+
+    void acquire()
+    {
+        _socket.acquire();
+    }
+
     /**
      * Explicitly close the connection.
      *
@@ -1886,12 +1896,13 @@ public:
      */
     void close()
     {
-        if (_open == OpenState.authenticated)
+        if (_open == OpenState.authenticated && _socket.connected)
             quit();
 
         if (_open == OpenState.connected)
         {
-            _socket.close();
+            if(_socket.connected)
+                _socket.close();
             _open = OpenState.notConnected;
         }
         resetPacket();
@@ -2810,17 +2821,17 @@ private:
         popFront();
     }
 
-    ~this()
-    {
-        close();
-    }
-
     invariant()
     {
         assert(!_empty && _cmd); // command must exist while not empty
     }
 
 public:
+    ~this()
+    {
+        close();
+    }
+
     /**
      * Make the ResultSequence behave as an input range - empty
      *
