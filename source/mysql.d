@@ -60,6 +60,7 @@ import sha1;
 
 import vibe.core.tcp;
 
+import core.thread : Fiber;
 import std.exception;
 import std.range;
 import std.stdio;
@@ -121,6 +122,60 @@ size_t exec(Params...)(Connection cn, string query, Params params)
         assert(0, "not implemented");
     assert(!hasResult);
     return rowsAffected;
+}
+
+class FiberConnectionPool
+{
+    private Connection[Fiber] cns;
+    private Connection delegate() createConnection;
+
+    this(string host, string usr, string pwd, string db, ushort port=3306)
+    {
+        createConnection = () => new Connection(host, usr, pwd, db, port);
+    }
+
+    @property Connection connection()
+    in
+    {
+        assert(Fiber.getThis());
+    }
+    out(cn)
+    {
+        assert(cn);
+        //assert(!cn.closed); // Cannot call without ()...? Must be a dmd bug.
+        assert(cns[Fiber.getThis()]);
+    }
+    body
+    {
+        Connection cn;
+        auto cnp = Fiber.getThis() in cns;
+        if(cnp)
+            cn = *cnp;
+        else
+            cns[Fiber.getThis()] = cn = createConnection();
+
+        // the underlying socket might have been closed
+        if(cn.closed)
+            cns[Fiber.getThis()] = cn = createConnection();
+
+        assert(!cn.closed); // See bug in out contract
+        return cn;
+    }
+
+    void close()
+    {
+        foreach(fiber, cn; cns)
+        {
+            cn.acquire();
+            cn.close();
+        }
+        cns.clear();
+    }
+
+    ~this()
+    {
+        close();
+    }
 }
 
 /**
@@ -1914,7 +1969,7 @@ public:
         this(a[0], a[1], a[2], a[3], to!ushort(a[4]), capFlags);
     }
 
-    @property closed()
+    @property bool closed()
     {
         return _open == OpenState.notConnected || !_socket.connected;
     }
