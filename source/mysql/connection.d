@@ -54,11 +54,10 @@
  * License:   $(LINK www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Author:   Steve Teale
  */
-module mysql;
+module mysql.connection;
 
-import sha1;
+import mysql.sha1;
 
-import vibe.core.connectionpool;
 import vibe.core.tcp;
 
 import std.exception;
@@ -4387,31 +4386,3 @@ unittest
    pa = md.procedures();
    assert(pa[0].db == "mysqld" && pa[0].name == "insert2" && pa[0].type == "PROCEDURE");
 }
-
-
-class MysqlDB {
-   private {
-      string m_host;
-      string m_user;
-      string m_password;
-      string m_database;
-      ConnectionPool!Connection m_pool;
-   }
-
-   this(string host, string user, string password, string database)
-   {
-      m_host = host;
-      m_user = user;
-      m_password = password;
-      m_database = database;
-      m_pool = new ConnectionPool!Connection(&createConnection);
-   }
-
-   auto lockConnection() { return m_pool.lockConnection(); }
-
-   private Connection createConnection()
-   {
-      return new Connection(m_host, m_user, m_password, m_database);
-   }
-}
-

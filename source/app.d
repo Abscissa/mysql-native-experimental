@@ -1,6 +1,4 @@
-module mysqln;
-
-import mysql;
+import mysql.db;
 import std.stdio;
 
 void main(string [] args)
