@@ -58,6 +58,7 @@ module mysql;
 
 import sha1;
 
+import vibe.core.connectionpool;
 import vibe.core.tcp;
 
 import std.exception;
@@ -1144,7 +1145,7 @@ public:
  * zero sequence number, to which the server replies with zero or more packets with sequential
  * sequence numbers.
  */
-class Connection
+class Connection : EventedObject
 {
 protected:
    TcpConnection _socket;
@@ -1526,6 +1527,10 @@ public:
       _open = 0;
       _cpn = 0;
    }
+
+   void acquire() { if( _socket ) _socket.acquire(); }
+   void release() { if( _socket ) _socket.release(); }
+   bool isOwner() { return _socket ? _socket.isOwner() : false; }
 
 /**
  * Select a current database.
@@ -4381,5 +4386,32 @@ unittest
    assert(pa[0].db == "mysqld" && pa[0].name == "hello" && pa[0].type == "FUNCTION");
    pa = md.procedures();
    assert(pa[0].db == "mysqld" && pa[0].name == "insert2" && pa[0].type == "PROCEDURE");
+}
+
+
+class MysqlDB {
+   private {
+      string m_host;
+      string m_user;
+      string m_password;
+      string m_database;
+      ConnectionPool!Connection m_pool;
+   }
+
+   this(string host, string user, string password, string database)
+   {
+      m_host = host;
+      m_user = user;
+      m_password = password;
+      m_database = database;
+      m_pool = new ConnectionPool!Connection(&createConnection);
+   }
+
+   auto lockConnection() { return m_pool.lockConnection(); }
+
+   private Connection createConnection()
+   {
+      return new Connection(m_host, m_user, m_password, m_database);
+   }
 }
 
