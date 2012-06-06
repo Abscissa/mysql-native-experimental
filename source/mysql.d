@@ -2326,7 +2326,6 @@ public:
         _values.length = _nulls.length = fc;
         uint p = 0;
         size_t pl = packet.length;
-        uint tl;
         bool nullFlag, incomplete, gotPrefix;
         ulong lc;
 
@@ -2458,7 +2457,7 @@ public:
                         break;
                     case SQLType.TIMESTAMP:
                         // The length of all the time/date types can be indicated by a byte
-                        tl = packet[p];
+                        uint tl = packet[p];
                         if (pl-p < tl+1)
                         {
                             incomplete = true;
@@ -2493,7 +2492,7 @@ public:
                         _values[i] = bv;
                         break;
                     case SQLType.DATE:
-                        tl = packet[p];
+                        uint tl = packet[p];
                         if (pl-p < tl+1)
                         {
                             incomplete = true;
@@ -2503,7 +2502,7 @@ public:
                         p += tl+1;
                         break;
                     case SQLType.TIME:
-                        tl = packet[p];
+                        uint tl = packet[p];
                         if (pl-p < packet[p]+1)
                         {
                             incomplete = true;
@@ -2513,7 +2512,7 @@ public:
                         p += tl+1;
                         break;
                     case SQLType.DATETIME:
-                        tl = packet[p];
+                        uint tl = packet[p];
                         if (pl-p < tl+1)
                         {
                             incomplete = true;
