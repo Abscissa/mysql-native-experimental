@@ -84,10 +84,27 @@ Command createCommand(Params...)(Connection cn, string query, Params params)
     static if(params.length)
     {
         cmd.prepare();
-        Variant[Params.length] vparams;
-        foreach(i, param; params)
-            vparams[i] = Variant(param);
-        cmd.bindParameters(vparams);
+        Variant[] vparams;
+        size_t i;
+        foreach(param; params)
+        {
+            static if(is(typeof(param) == Variant[]))
+            {
+                foreach(vparam; param)
+                {
+                    if(i >= vparams.length)
+                        vparams.length += 10;
+                    vparams[i++] = vparam;
+                }
+            }
+            else
+            {
+                if(i >= vparams.length)
+                    vparams.length += 10;
+                vparams[i++] = Variant(param);
+            }
+        }
+        cmd.bindParameters(vparams[0 .. i]);
     }
     return cmd;
 }
@@ -117,12 +134,12 @@ size_t exec(Params...)(Connection cn, string query, Params params)
     size_t rowsAffected;
     bool hasResult;
     static if(params.length)
-        hasResult = cmd.execPrepared(rowsAffected);
+        enforce(!cmd.execPrepared(rowsAffected), "Query returned results. Use query* methods instead");
     else
         assert(0, "not implemented");
-    assert(!hasResult);
     return rowsAffected;
 }
+
 
 class FiberConnectionPool
 {
@@ -2364,6 +2381,8 @@ public:
             // indicating which columns are null
             enforceEx!MYX(packet[p++] == 0, "Expected null header byte for binary result row");
             uint bitmapLength = (fc+7+2)/8;
+            auto end = p+bitmapLength;
+            enforceEx!MYX(packet.length >= p+end, "Packet too small!");
             _nulls = decodeNullBitmap(packet[p..p+bitmapLength], fc);
             p += bitmapLength;
         }
@@ -4103,7 +4122,7 @@ c.param(1) = "The answer";
 
     /// After a command that inserted a row into a table with an auto-increment  ID
     /// column, this method allows you to retrieve the last insert ID.
-    @ property ulong lastInsertID() { return _insertID; }
+    @property ulong lastInsertID() { return _insertID; }
 }
 
 unittest
