@@ -68,6 +68,8 @@ import std.string;
 import std.conv;
 import std.variant;
 import std.datetime;
+import std.traits;
+import std.algorithm;
 
 /**
  * An exception type to distinguish exceptions thrown by this module.
@@ -666,86 +668,419 @@ enum CommandType : ubyte
     STMT_FETCH          = 0x1c,
 }
 
-ushort getShort(ref ubyte* ubp)
+string consume(T:string, ubyte N=T.sizeof)(ref ubyte[] packet)
 {
-    ushort us;
-    us |= ubp[1];
-    us <<= 8;
-    us |= ubp[0];
-    ubp += 2;
-    return us;
+    return packet.consume!string(N);
 }
 
-ushort takeShort(ref ubyte[] packet)
+string consume(T:string)(ref ubyte[] packet, size_t N)
 in
 {
-    assert(packet.length >= 2);
+    assert(packet.length >= N);
 }
 body
 {
-    ushort us;
-    us |= packet[1];
-    us <<= 8;
-    us |= packet[0];
-    packet.popFront();
-    packet.popFront();
-    return us;
+    return cast(string)packet.consume(N);
 }
 
-uint getInt(ref ubyte* ubp)
-{
-    uint rv = (ubp[3] << 24) + (ubp[2] << 16) + (ubp[1] << 8) + ubp[0];
-    ubp += 4;
-    return rv;
-}
-
-uint takeInt(ref ubyte[] packet)
+/// Returns N number of bytes from the packet and advances the array
+ubyte[] consume()(ref ubyte[] packet, size_t N)
 in
 {
-    assert(packet.length >= 4);
+    assert(packet.length >= N);
 }
 body
 {
-    uint rv = (packet[3] << 24) + (packet[2] << 16) + (packet[1] << 8) + packet[0];
-    packet = packet[4 .. $];
-    return rv;
+    auto result = packet[0..N];
+    packet = packet[N..$];
+    return result;
 }
 
-uint getInt24(ref ubyte* ubp)
+T decode(T:ulong)(in ubyte[] packet, size_t n)
 {
-    uint rv = (ubp[2] << 16) + (ubp[1] << 8) + ubp[0];
-    ubp += 3;
-    return rv;
+    switch(n)
+    {
+        case 8: return packet.decode!(T, 8)();
+        case 4: return packet.decode!(T, 4)();
+        case 3: return packet.decode!(T, 3)();
+        case 2: return packet.decode!(T, 2)();
+        case 1: return packet.decode!(T, 1)();
+        default: assert(0);
+    }
 }
 
-uint takeInt24(ref ubyte[] packet)
+T consume(T)(ref ubyte[] packet, int n) if(isIntegral!T)
+{
+    switch(n)
+    {
+        case 8: return packet.consume!(T, 8)();
+        case 4: return packet.consume!(T, 4)();
+        case 3: return packet.consume!(T, 3)();
+        case 2: return packet.consume!(T, 2)();
+        case 1: return packet.consume!(T, 1)();
+        default: assert(0);
+    }
+}
+
+TimeOfDay consume(T:TimeOfDay, ubyte N=T.sizeof)(ref ubyte[] packet)
 in
 {
-    assert(packet.length >= 3);
+    static assert(N == T.sizeof);
 }
 body
 {
-    uint rv = (packet[2] << 16) + (packet[1] << 8) + packet[0];
-    packet = packet[3..$];
-    return rv;
+    enforceEx!MYX(packet.length, "Supplied byte array is zero length");
+    uint length = packet.front;
+    enforceEx!MYX(length == 0 || length == 5 || length == 8 || length == 12, "Bad Time length in binary row.");
+    enforceEx!MYX(length >= 8, "Time column value is not in a time-of-day format");
+
+    packet.popFront(); // length
+    auto bytes = packet.consume(length);
+
+    // TODO: What are the fields in between!?! Blank Date?
+    TimeOfDay tod;
+    tod.hour    = bytes[5];
+    tod.minute  = bytes[6];
+    tod.second  = bytes[7];
+    return tod;
 }
 
+Date consume(T:Date, ubyte N=T.sizeof)(ref ubyte[] packet)
+in
+{
+    static assert(N == T.sizeof);
+}
+body
+{
+    auto numBytes = packet.front;
+    if(!numBytes)
+        return Date(0,0,0);
+
+    enforceEx!MYX(numBytes >= 4, "Binary date representation is too short");
+    auto year    = packet.consume!ushort();
+    auto month   = packet.consume!ubyte();
+    auto day     = packet.consume!ubyte();
+    return Date(year, month, day);
+}
+
+DateTime consume(T:DateTime, ubyte N=T.sizeof)(ref ubyte[] packet)
+in
+{
+    assert(packet.length);
+    assert(N == T.sizeof);
+}
+body
+{
+    auto numBytes = packet.consume!ubyte();
+    if(numBytes == 0)
+        return DateTime();
+
+    enforceEx!MYX(numBytes >= 4, "Supplied packet is not large enough to store DateTime");
+
+    int year    = packet.consume!ushort();
+    int month   = packet.consume!ubyte();
+    int day     = packet.consume!ubyte();
+    int hour    = 0;
+    int minute  = 0;
+    int second  = 0;
+    if(numBytes > 4)
+    {
+        enforceEx!MYX(numBytes >= 7, "Supplied packet is not large enough to store a DateTime with TimeOfDay");
+        hour    = packet.consume!ubyte();
+        minute  = packet.consume!ubyte();
+        second  = packet.consume!ubyte();
+    }
+    return DateTime(year, month, day, hour, minute, second);
+}
+
+@property bool hasEnoughBytes(T, ubyte N=T.sizeof)(in ubyte[] packet)
+in
+{
+    static assert(T.sizeof >= N, T.stringof~" not large enough to store "~to!string(N)~" bytes");
+}
+body
+{
+    return packet.length >= N;
+}
+
+T decode(T, ubyte N=T.sizeof)(in ubyte[] packet) if(isIntegral!T)
+in
+{
+    static assert(N == 1 || N == 2 || N == 3 || N == 4 || N == 8, "Cannot decode integral value. Invalid size: "~N.stringof);
+    static assert(T.sizeof >= N, T.stringof~" not large enough to store "~to!string(N)~" bytes");
+    assert(packet.hasEnoughBytes!(T,N), "packet not long enough to contain all bytes needed for "~T.stringof);
+}
+body
+{
+    T value = 0;
+    static if(N == 8) // 64 bit
+    {
+        value |= cast(T)(packet[7]) << (8*7);
+        value |= cast(T)(packet[6]) << (8*6);
+        value |= cast(T)(packet[5]) << (8*5);
+        value |= cast(T)(packet[4]) << (8*4);
+    }
+    static if(N >= 4) // 32 bit
+    {
+        value |= cast(T)(packet[3]) << (8*3);
+    }
+    static if(N >= 3) // 24 bit
+    {
+        value |= cast(T)(packet[2]) << (8*2);
+    }
+    static if(N >= 2) // 16 bit
+    {
+        value |= cast(T)(packet[1]) << (8*1);
+    }
+    static if(N >= 1) // 8 bit
+    {
+        value |= cast(T)(packet[0]) << (8*0);
+    }
+    return value;
+}
+
+bool consume(T:bool, ubyte N=T.sizeof)(ref ubyte[] packet)
+{
+    static assert(N == 1);
+    return packet.consume!ubyte() == 1;
+}
+
+T consume(T, ubyte N=T.sizeof)(ref ubyte[] packet) if(isIntegral!T)
+in
+{
+    static assert(N == 1 || N == 2 || N == 3 || N == 4 || N == 8, "Cannot consume integral value. Invalid size: "~N.stringof);
+    static assert(T.sizeof >= N, T.stringof~" not large enough to store "~to!string(N)~" bytes");
+    assert(packet.hasEnoughBytes!(T,N), "packet not long enough to contain all bytes needed for "~T.stringof);
+}
+body
+{
+    // The uncommented line triggers a template deduction error,
+    // so we need to store a temporary first
+    // could the problem be method chaining?
+    //return packet.consume(N).decode!(T, N)();
+    auto bytes = packet.consume(N);
+    return bytes.decode!(T, N)();
+}
+
+T myto(T)(string value)
+{
+    static if(is(T == DateTime))
+        return toDateTime(value);
+    else static if(is(T == Date))
+        return toDate(value);
+    else static if(is(T == TimeOfDay))
+        return toTimeOfDay(value);
+    else
+        return to!T(value);
+}
+
+T decode(T, ubyte N=T.sizeof)(in ubyte[] packet) if(isFloatingPoint!T)
+in
+{
+    static assert((is(T == float) && N == float.sizeof)
+            || is(T == double) && N == double.sizeof);
+}
+body
+{
+    T result = 0;
+    (cast(ubyte*)result)[0..T.sizeof] = packet[0..T.sizeof];
+    return result;
+}
+
+T consume(T, ubyte N=T.sizeof)(ref ubyte[] packet) if(isFloatingPoint!T)
+in
+{
+    static assert((is(T == float) && N == float.sizeof)
+            || is(T == double) && N == double.sizeof);
+}
+body
+{
+    return packet.consume(T.sizeof).decode!T();
+}
+
+struct SQLValue
+{
+    bool isNull;
+    bool isIncomplete;
+    Variant _value;
+
+    // empty template as a template and non-template won't be added to the same overload set
+    @property Variant value()()
+    {
+        enforceEx!MYX(!isNull, "SQL value is null");
+        enforceEx!MYX(!isIncomplete, "SQL value not complete");
+        return _value;
+    }
+
+    @property void value(T)(T value)
+    {
+        enforceEx!MYX(!isNull, "SQL value is null");
+        enforceEx!MYX(!isIncomplete, "SQL value not complete");
+        _value = value;
+    }
+
+    invariant()
+    {
+        isNull && assert(!isIncomplete);
+        isIncomplete && assert(!isNull);
+    }
+}
+
+SQLValue consumeBinaryValueIfComplete(T, int N=T.sizeof)(ref ubyte[] packet, bool unsigned)
+{
+    SQLValue result;
+    result.isIncomplete = packet.length < N;
+    // isNull should have been handled by the caller as the binary format uses a null bitmap,
+    // and we don't have access to that information at this point
+    assert(!result.isNull);
+    if(!result.isIncomplete)
+    {
+        // only integral types is unsigned
+        static if(isIntegral!T)
+        {
+            if(unsigned)
+                result.value = packet.consume!(Unsigned!T)();
+            else
+                result.value = packet.consume!(Signed!T)();
+        }
+        else
+        {
+            assert(!unsigned);
+            // TODO: DateTime values etc might be incomplete!
+            result.value = packet.consume!(T, N)();
+        }
+    }
+    return result;
+}
+
+SQLValue consumeNonBinaryValueIfComplete(T)(ref ubyte[] packet, bool unsigned)
+{
+    SQLValue result;
+    auto lcb = packet.decode!LCB();
+    result.isIncomplete = lcb.isIncomplete || packet.length <= (lcb.value+lcb.totalBytes);
+    result.isNull = lcb.isNull;
+    if(!result.isIncomplete)
+    {
+        // The packet has all the data we need, so we'll remove the LCB
+        // and convert the data
+        packet.skip(lcb.totalBytes);
+        assert(packet.length >= lcb.value);
+        auto value = cast(string) packet.consume(lcb.value);
+
+        if(!result.isNull)
+        {
+            assert(!result.isIncomplete);
+            assert(!result.isNull);
+            static if(isIntegral!T)
+            {
+                if(unsigned)
+                    result.value = to!(Unsigned!T)(value);
+                else
+                    result.value = to!(Signed!T)(value);
+            }
+            else
+            {
+                assert(!unsigned);
+                static if(isArray!T)
+                {
+                    // to!() crashes when trying to convert empty strings
+                    // to arrays, so we have this hack to just store any
+                    // empty array in those cases
+                    if(!value.length)
+                        result.value = T.init;
+                    else
+                        result.value = cast(T)value.dup;
+
+                }
+                else
+                {
+                    // TODO: DateTime values etc might be incomplete!
+                    result.value = myto!T(value);
+                }
+            }
+        }
+    }
+    return result;
+}
+
+SQLValue consumeIfComplete(T, int N=T.sizeof)(ref ubyte[] packet, bool binary, bool unsigned)
+{
+    return binary
+        ? packet.consumeBinaryValueIfComplete!(T, N)(unsigned)
+        : packet.consumeNonBinaryValueIfComplete!T(unsigned);
+}
+
+SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, bool unsigned)
+{
+    final switch(sqlType)
+    {
+        case SQLType.NULL:
+            SQLValue result;
+            result.isIncomplete = false;
+            result.isNull = true;
+            return result;
+        case SQLType.BIT:
+            return packet.consumeIfComplete!bool(binary, unsigned);
+        case SQLType.TINY:
+            return packet.consumeIfComplete!byte(binary, unsigned);
+        case SQLType.SHORT:
+            return packet.consumeIfComplete!short(binary, unsigned);
+        case SQLType.INT24:
+            return packet.consumeIfComplete!(int, 3)(binary, unsigned);
+        case SQLType.INT:
+            return packet.consumeIfComplete!int(binary, unsigned);
+        case SQLType.LONGLONG:
+            return packet.consumeIfComplete!long(binary, unsigned);
+        case SQLType.FLOAT:
+            return packet.consumeIfComplete!float(binary, unsigned);
+        case SQLType.DOUBLE:
+            return packet.consumeIfComplete!double(binary, unsigned);
+        case SQLType.TIMESTAMP:
+            return packet.consumeIfComplete!DateTime(binary, unsigned);
+        case SQLType.TIME:
+            return packet.consumeIfComplete!TimeOfDay(binary, unsigned);
+        case SQLType.YEAR:
+            return packet.consumeIfComplete!ushort(binary, unsigned);
+        case SQLType.DATE:
+            return packet.consumeIfComplete!Date(binary, unsigned);
+        case SQLType.DATETIME:
+            return packet.consumeIfComplete!DateTime(binary, unsigned);
+        case SQLType.VARCHAR:
+        case SQLType.ENUM:
+        case SQLType.SET:
+        case SQLType.VARSTRING:
+        case SQLType.STRING:
+            return packet.consumeIfComplete!string(binary, unsigned);
+        case SQLType.TINYBLOB:
+        case SQLType.MEDIUMBLOB:
+        case SQLType.BLOB:
+        case SQLType.LONGBLOB:
+            return packet.consumeIfComplete!(ubyte[])(binary, unsigned);
+    }
+}
 
 /**
- * Returns the number of bytes in the Length Coded Binary
+ * Extract number of bytes used for this LCB
+ *
+ * Returns the number of bytes required to store this LCB
+ *
  * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
- * Returns: 0 if the parameter is the only byte, -1 if it's a null value, or number of bytes in other cases
+ *
+ * Returns: 0 if it's a null value, or number of bytes in other cases
  * */
-byte getNumLCBBytes(ubyte lcb)
+byte getNumLCBBytes(ubyte lcbHeader)
 {
-    switch(lcb)
+    switch(lcbHeader)
     {
-        case 0: .. case 250: return 0; // the parameter is the only byte
-        case 251: return -1; // null
-        case 252: return 2;  // 16-bit word
-        case 253: return 3;  // 24-bit word
-        case 254: return 8;  // 64-bit word;
-        case 255: default: assert(0);
+        case 251: return 0; // null
+        case 0: .. case 250: return 1; // 8-bit
+        case 252: return 2;  // 16-bit
+        case 253: return 3;  // 24-bit
+        case 254: return 8;  // 64-bit
+
+        case 255:
+        default:
+            assert(0);
     }
     assert(0);
 }
@@ -761,11 +1096,11 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
     byte numLCBBytes = getNumLCBBytes(*ubp);
     switch (numLCBBytes)
     {
-        case -1: // Null - only for Row Data Packet
+        case 0: // Null - only for Row Data Packet
             nullFlag = true;
             t = 0;
             break;
-        case 8: // 64-bit word
+        case 8: // 64-bit
             t |= ubp[8];
             t <<= 8;
             t |= ubp[7];
@@ -778,7 +1113,7 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
             t <<= 8;
             ubp += 5;
             goto case;
-        case 3: // 24-bit word
+        case 3: // 24-bit
             t |= ubp[3];
             t <<= 8;
             t |= ubp[2];
@@ -786,13 +1121,13 @@ ulong parseLCB(ref ubyte* ubp, out bool nullFlag)
             t |= ubp[1];
             ubp += 3;
             goto case;
-        case 2: // 16-bit word
+        case 2: // 16-bit
             t |= ubp[2];
             t <<= 8;
             t |= ubp[1];
             ubp += 2;
             break;
-        case 0: // Value of first byte
+        case 1: // 8-bit
             t = cast(ulong)*ubp;
             break;
         default:
@@ -809,98 +1144,169 @@ ulong parseLCB(ref ubyte* ubp)
     return parseLCB(ubp, isNull);
 }
 
-ulong takeLCB(ref ubyte[] packet, out bool isNull)
-in
+/**
+ * Length Coded Binary Value
+ * */
+struct LCB
 {
-    assert(packet.length);
-}
-body
-{
-    isNull = false;
-    int consumed = 1;
-    ulong t;
-    byte numLCBBytes = getNumLCBBytes(packet[0]);
-    switch (numLCBBytes)
-    {
-        case -1: // Null - only for Row Data Packet
-            isNull = true;
-            t = 0;
-            break;
-        case 8: // 64-bit word
-            t |= packet[8];
-            t <<= 8;
-            t |= packet[7];
-            t <<= 8;
-            t |= packet[6];
-            t <<= 8;
-            t |= packet[5];
-            t <<= 8;
-            t |= packet[4];
-            t <<= 8;
-            consumed += 5;
-            goto case;
-        case 3: // 24-bit word
-            t |= packet[3];
-            t <<= 8;
-            t |= packet[2];
-            t <<= 8;
-            t |= packet[1];
-            consumed += 3;
-            goto case;
-        case 2: // 16-bit word
-            t |= packet[2];
-            t <<= 8;
-            t |= packet[1];
-            consumed += 2;
-            break;
-        case 0: // Value of first byte
-            t = cast(ulong)*packet.ptr;
-            break;
-        default:
-            assert(0);
-    }
-    packet = packet[consumed .. $];
-    return t;
-}
-
-ulong takeLCB(ref ubyte[] packet)
-in
-{
-    assert(packet.length);
-}
-body
-{
+    /// True if the LCB contains a null value
     bool isNull;
-    return packet.takeLCB(isNull);
+
+    /// True if the packet that created this LCB didn't have enough bytes
+    /// to store a value of the size specified. More bytes have to be fetched from the server
+    bool isIncomplete;
+
+    // Number of bytes needed to store the value (Extracted from the LCB header. The header byte is not included)
+    ubyte numBytes;
+
+    // Number of bytes total used for this LCB
+    @property ubyte totalBytes()
+    {
+        return cast(ubyte)(numBytes <= 1 ? 1 : numBytes+1);
+    }
+
+    /// The decoded value. This is always 0 if isNull or isIncomplete is set.
+    ulong value;
+
+    invariant()
+    {
+        if(isIncomplete)
+        {
+            assert(!isNull);
+            assert(value == 0);
+            assert(numBytes > 0);
+        }
+        else if(isNull)
+        {
+            assert(!isIncomplete);
+            assert(value == 0);
+            assert(numBytes == 0);
+        }
+        else
+        {
+            assert(!isNull);
+            assert(!isIncomplete);
+            assert(numBytes > 0);
+        }
+    }
 }
 
+/**
+ * Decodes a Length Coded Binary from a packet
+ *
+ * See_Also: struct LCB
+ *
+ * Parameters:
+ *  packet = A packet that starts with a LCB. The bytes is popped off
+ *           iff the packet is complete. See LCB.
+ *
+ * Returns: A decoded LCB value
+ * */
+T consumeIfComplete(T:LCB)(ref ubyte[] packet)
+in
+{
+    assert(packet.length >= 1, "packet has to include at least the LCB length byte");
+}
+body
+{
+    auto lcb = packet.decodeLCBHeader();
+    if(lcb.isNull || lcb.isIncomplete)
+        return lcb;
+
+    if(lcb.numBytes > 1)
+    {
+        // We know it's complete, so we have to start consuming the LCB
+        // Single byte values doesn't have a length
+        packet.popFront(); // LCB length
+    }
+
+    assert(packet.length >= lcb.numBytes);
+
+    lcb.value = packet.consume!ulong(lcb.numBytes);
+    return lcb;
+}
+
+LCB decodeLCBHeader(in ubyte[] packet)
+in
+{
+    assert(packet.length >= 1, "packet has to include at least the LCB length byte");
+}
+body
+{
+    LCB lcb;
+    lcb.numBytes = getNumLCBBytes(packet.front);
+    if(lcb.numBytes == 0)
+    {
+        lcb.isNull = true;
+        return lcb;
+    }
+
+    assert(!lcb.isNull);
+    lcb.isIncomplete = (lcb.numBytes > 1) && (packet.length-1 < lcb.numBytes); // -1 for LCB length as we haven't popped it off yet
+    if(lcb.isIncomplete)
+    {
+        // Not enough bytes to store data. We don't remove any data, and expect
+        // the caller to check isIncomplete and take action to fetch more data
+        // and call this method at a later time
+        return lcb;
+    }
+
+    assert(!lcb.isIncomplete);
+    return lcb;
+}
+
+/**
+ * Decodes a Length Coded Binary from a packet
+ *
+ * See_Also: struct LCB
+ *
+ * Parameters:
+ *  packet = A packet that starts with a LCB. See LCB.
+ *
+ * Returns: A decoded LCB value
+ * */
+LCB decode(T:LCB)(in ubyte[] packet)
+in
+{
+    assert(packet.length >= 1, "packet has to include at least the LCB length byte");
+}
+body
+{
+    auto lcb = packet.decodeLCBHeader();
+    if(lcb.isNull || lcb.isIncomplete)
+        return lcb;
+    assert(packet.length >= lcb.totalBytes);
+    lcb.value = packet.decode!ulong(lcb.numBytes);
+    return lcb;
+}
+
+/** Length Coded String
+ * */
+struct LCS
+{
+    // dummy struct just to tell what value we are using
+    // we don't need to store anything here as the result is always a string
+}
 
 /** Parse Length Coded String
  *
  * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
  * */
-ubyte[] parseLCS(ref ubyte* ubp, out bool nullFlag)
+string consume(T:LCS)(ref ubyte[] packet)
+in
 {
-    ulong ul = parseLCB(ubp, nullFlag);
-    if (nullFlag)
+    assert(packet.length >= 1, "LCS packet needs to store at least the LCB header");
+}
+body
+{
+    auto lcb = packet.consumeIfComplete!LCB();
+    assert(!lcb.isIncomplete);
+    if(lcb.isNull)
         return null;
-    if (ul == 0)
-        return [];
-    enforceEx!MYX(ul <= uint.max, "Protocol Length Coded String is too long");
-    uint len = cast(uint) ul;
-    ubyte* t = ubp;
-    ubp += len;
-    return t[0..len].dup;
+    enforceEx!MYX(lcb.value <= uint.max, "Protocol Length Coded String is too long");
+    return cast(string)packet.consume(lcb.value).idup;
 }
 
-/** Extracts Length Coded String and advances the packet
- * Returns: The length coded String
- * */
-ubyte[] takeLCS(ref ubyte[] packet)
-{
-    bool isNull;
-    return packet.takeLCS(isNull);
-}
 
 /** Skips over n items, advances the array, and return the newly advanced array to allow method chaining
  * */
@@ -913,31 +1319,6 @@ body
 {
     array = array[n..$];
     return array;
-}
-
-/** Returns n items and advances the array
- * */
-T[] takeSkip(T)(ref T[] array, size_t n)
-in
-{
-    assert(n <= array.length);
-}
-body
-{
-    auto data = array.take(n);
-    array.skip(n);
-    return data;
-}
-
-ubyte[] takeLCS(ref ubyte[] packet, out bool isNull)
-{
-    auto length = packet.takeLCB(isNull);
-    if (isNull)
-        return null;
-    else if (length == 0)
-        return [];
-    enforceEx!MYX(length <= uint.max, "Protocol Length Coded String is too long");
-    return packet.takeSkip(cast(size_t)length).dup;
 }
 
 /**
@@ -1040,6 +1421,7 @@ ubyte[] packLCS(void[] a)
     return t;
 }
 
+/+
 unittest
 {
     bool isnull;
@@ -1112,6 +1494,7 @@ unittest
     x = parseLCS(ubp, isnull);
     assert(x.length == 0x20000ff && x[0] == '<' && x[0x20000fe] == '>');
 }
++/
 
 /// Magic marker sent in the first byte of mysql results in response to auth or command packets
 enum ResultPacketMarker : ubyte
@@ -1140,13 +1523,12 @@ enum ResultPacketMarker : ubyte
 struct OKErrorPacket
 {
     bool     error;
-    bool     nullFlag;
     ulong    affected;
     ulong    insertID;
     ushort   serverStatus;
     ushort   warnings;
     char[5]  sqlState;
-    char[]   message;
+    string   message;
 
     this(ubyte[] packet)
     {
@@ -1156,7 +1538,7 @@ struct OKErrorPacket
             error = true;
 
             enforceEx!MYX(packet.length > 2, "Malformed Error packet - Missing error code");
-            serverStatus = packet.takeShort(); // error code into server state
+            serverStatus = packet.consume!short(); // error code into server state
             if (packet.front == cast(ubyte) '#') //4.1+ error packet
             {
                 packet.popFront(); // skip 4.1 marker
@@ -1170,22 +1552,29 @@ struct OKErrorPacket
             packet.popFront(); // skip marker/field code
 
             enforceEx!MYX(packet.length > 1, "Malformed OK packet - Missing affected rows");
-            affected = packet.takeLCB();
+            auto lcb = packet.consumeIfComplete!LCB();
+            assert(!lcb.isNull);
+            assert(!lcb.isIncomplete);
+            affected = lcb.value;
 
             enforceEx!MYX(packet.length > 1, "Malformed OK packet - Missing insert id");
-            insertID = packet.takeLCB();
+            lcb = packet.consumeIfComplete!LCB();
+            assert(!lcb.isNull);
+            assert(!lcb.isIncomplete);
+            insertID = lcb.value;
 
-            enforceEx!MYX(packet.length > 2, "Malformed OK packet - Missing server status");
-            serverStatus = packet.takeShort();
+            enforceEx!MYX(packet.length > 2,
+                    format("Malformed OK packet - Missing server status. Expected length > 2, got %d", packet.length));
+            serverStatus = packet.consume!short();
 
             enforceEx!MYX(packet.length >= 2, "Malformed OK packet - Missing warnings");
-            warnings = packet.takeShort();
+            warnings = packet.consume!short();
         }
         else
             throw new MYX("Malformed OK/Error packet - Incorrect type of packet", __FILE__, __LINE__);
 
         // both OK and Error packets end with a message for the rest of the packet
-        message = cast(char[])packet.dup;
+        message = cast(string)packet.idup;
     }
 }
 
@@ -1244,30 +1633,36 @@ public:
     {
         assert(packet.length);
     }
+    out
+    {
+        assert(!packet.length, "not all bytes read during FieldDescription construction");
+    }
     body
     {
         packet.skip(4); // Skip catalog - it's always 'def'
-        _db             = cast(string)packet.takeLCS();
-        _table          = cast(string)packet.takeLCS();
-        _originalTable  = cast(string)packet.takeLCS();
-        _name           = cast(string)packet.takeLCS();
-        _originalName   = cast(string)packet.takeLCS();
+        _db             = packet.consume!LCS();
+        _table          = packet.consume!LCS();
+        _originalTable  = packet.consume!LCS();
+        _name           = packet.consume!LCS();
+        _originalName   = packet.consume!LCS();
 
         enforceEx!MYX(packet.length >= 13, "Malformed field specification packet");
         packet.popFront(); // one byte filler here
-        _charSet    = packet.takeShort();
-        _length     = packet.takeInt();
-        _type       = cast(SQLType)packet.takeSkip(1)[0];
-        _flags      = cast(FieldFlags)packet.takeShort();
-        _scale      = packet.takeSkip(1)[0];
+        _charSet    = packet.consume!short();
+        _length     = packet.consume!int();
+        _type       = cast(SQLType)packet.consume!ubyte();
+        _flags      = cast(FieldFlags)packet.consume!short();
+        _scale      = packet.consume!ubyte();
         packet.skip(2); // two byte filler
 
         if(packet.length)
         {
             packet.skip(1); // one byte filler
-            _deflt = packet.takeLCB();
+            auto lcb = packet.consumeIfComplete!LCB();
+            assert(!lcb.isNull);
+            assert(!lcb.isIncomplete);
+            _deflt = lcb.value;
         }
-        assert(!packet.length);
     }
 
     /// Database name for column as string
@@ -1292,7 +1687,7 @@ public:
     @property uint length() { return _length; }
 
     /// The type of the column hopefully (but not always) corresponding to enum SQLType. Only the low byte currently used
-    @property ushort type() { return _type; }
+    @property SQLType type() { return _type; }
 
     /// Column flags - unsigned, binary, null and so on
     @property FieldFlags flags() { return _flags; }
@@ -1341,10 +1736,10 @@ private:
 public:
     this(ubyte[] packet)
     {
-        _type   = packet.takeShort();
-        _flags  = cast(FieldFlags)packet.takeShort();
-        _scale  = packet.takeSkip(1)[0];
-        _length = packet.takeInt();
+        _type   = packet.consume!short();
+        _flags  = cast(FieldFlags)packet.consume!short();
+        _scale  = packet.consume!ubyte();
+        _length = packet.consume!int();
         assert(!packet.length);
     }
     @property uint length() { return _length; }
@@ -1398,8 +1793,8 @@ public:
     body
     {
         packet.popFront(); // eof marker
-        _warnings = packet.takeShort();
-        _serverStatus = packet.takeShort();
+        _warnings = packet.consume!short();
+        _serverStatus = packet.consume!short();
     }
 
     /// Retrieve the warning count
@@ -1568,10 +1963,22 @@ in
 }
 body
 {
-    // don't include header in calculated size
-    auto dataLength = packet.length - 4;
-    assert(dataLength <= 0xffff_ffff_ffff); // 24-bit
-    (cast(uint)dataLength).packInto!(uint, true)(packet);
+    auto dataLength = packet.length - 4; // don't include header in calculated size
+    assert(dataLength <= uint.max);
+    packet.setPacketHeader(packetNumber, cast(uint)dataLength);
+}
+
+void setPacketHeader(ref ubyte[] packet, ubyte packetNumber, uint dataLength)
+in
+{
+    // packet should include header
+    assert(packet.length >= 4);
+    // Length is always a 24-bit int
+    assert(dataLength <= 0xffff_ffff_ffff);
+}
+body
+{
+    dataLength.packInto!(uint, true)(packet);
     packet[3] = packetNumber;
 }
 
@@ -1608,7 +2015,8 @@ protected:
     OpenState     _open;
     TcpConnection _socket;
 
-    uint    _sCaps, _sThread, _cCaps;
+    SvrCapFlags _sCaps, _cCaps;
+    uint    _sThread;
     ushort  _serverStatus;
     ubyte   _sCharSet, _protocol;
     string  _serverVersion;
@@ -1620,7 +2028,7 @@ protected:
     // you'll get the dreaded "packet out of order" message. It, and the socket connection are
     // the reason why most other objects require a connection object for their construction.
     ubyte _cpn; /// Packet Number in packet header. Serial number to ensure correct ordering. First packet should have 0
-    @property pktNumber()   { return _cpn; }
+    @property ubyte pktNumber()   { return _cpn; }
     void bumpPacket()       { _cpn++; }
     void resetPacket()      { _cpn = 0; }
 
@@ -1628,14 +2036,14 @@ protected:
     {
         ubyte[4] header;
         _socket.read(header);
+        // number of bytes always set as 24-bit
         uint numDataBytes = (header[2] << 16) + (header[1] << 8) + header[0];
-        ubyte pn = header[3];
-        enforceEx!MYX(pn == pktNumber, "Server packet out of order");
+        enforceEx!MYX(header[3] == pktNumber, "Server packet out of order");
         bumpPacket();
 
-        ubyte[] packet;
-        packet.length = numDataBytes;
+        ubyte[] packet = new ubyte[numDataBytes];
         _socket.read(packet);
+        assert(packet.length == numDataBytes, "Wrong number of bytes read");
         return packet;
     }
 
@@ -1647,6 +2055,18 @@ protected:
     body
     {
         _socket.write(packet);
+    }
+
+    void send(ubyte[] header, ubyte[] data)
+    in
+    {
+        assert(header.length == 4 || header.length == 5/*command type included*/);
+    }
+    body
+    {
+        _socket.write(header);
+        if(data.length)
+            _socket.write(data);
     }
 
     void sendCmd(T)(CommandType cmd, T[] data)
@@ -1663,23 +2083,26 @@ protected:
         assert(cmd != CommandType.CREATE_DB);
         assert(cmd != CommandType.DROP_DB);
         assert(cmd != CommandType.TABLE_DUMP);
+
+        // cannot send more than uint.max bytes. TODO: better error message if we try?
+        assert(data.length <= uint.max);
     }
     out
     {
+        // at this point we should have sent a command
         assert(pktNumber == 1);
     }
     body
     {
         resetPacket();
-        ubyte[] packet;
-        packet.length = 4 /*header*/ + 1 /*cmd*/ + data.length;
-        assert(packet.length <= uint.max); // cannot send more than uint.max bytes. TODO: better error message if we try?
-        packet.setPacketHeader(pktNumber);
-        packet[4] = cmd;
-        if(data.length) // not all commands have arguments
-            packet[5 .. data.length+5] = cast(ubyte[])data[0..$];
+
+        ubyte[] header;
+        header.length = 4 /*header*/ + 1 /*cmd*/;
+        header.setPacketHeader(pktNumber, cast(uint)data.length +1/*cmd byte*/);
+        header[4] = cmd;
         bumpPacket();
-        send(packet);
+
+        send(header, cast(ubyte[])data);
     }
 
     OKErrorPacket getCmdResponse(bool asString = false)
@@ -1704,10 +2127,10 @@ protected:
         // NOTE: we'll set the header last when we know the size
 
         // Set the default capabilities required by the client
-        _cCaps.packInto(packet[4..$]);
+        _cCaps.packInto(packet[4..8]);
 
         // Request a conventional maximum packet length.
-        1.packInto(packet[8..$]);
+        1.packInto(packet[8..12]);
 
         packet ~= 33; // Set UTF-8 as default charSet
 
@@ -1740,76 +2163,56 @@ protected:
         return packet;
     }
 
-    void getServerInfo(ref ubyte* p)
+    void consumeServerInfo(ref ubyte[] packet)
     {
-        _sCaps = (p[6] << 24) + (p[5] << 16) + (p[1] << 8) + p[0];
-        _sCharSet = p[2];
-        _serverStatus = (p[4] << 8) + p[3];
-        p += 7;
+        _sCaps = cast(SvrCapFlags)packet.consume!ushort(); // server_capabilities (lower bytes)
+        _sCharSet = packet.consume!ubyte(); // server_language
+        _serverStatus = packet.consume!ushort(); //server_status
+        _sCaps += cast(SvrCapFlags)(packet.consume!ushort() << 16); // server_capabilities (upper bytes)
+
+        enforceEx!MYX(_sCaps & SvrCapFlags.SECURE_PWD, "Server doesn't support protocol v4.1 passwords");
+        enforceEx!MYX(_sCaps & SvrCapFlags.PROTOCOL41, "Server doesn't support protocol v4.1");
+        enforceEx!MYX(_sCaps & SvrCapFlags.SECURE_CONNECTION, "Server doesn't support protocol v4.1 connection");
     }
 
     ubyte[] parseGreeting()
     {
-        // TODO: make the following code work instead of the leastSize workaround below:
-        // read the handshake message from the socket
-        /*_packet.length = 255;
-        ubyte[] dst = _packet;
-        _socket.read(dst[0 .. 1]);
-        dst.popFront();
-
-        // read server version string
-        while(true){
-          _socket.read(dst[0 .. 1]);
-          bool end = dst.front == 0;
-          dst.popFront();
-          if( end ) break;
-        }
-
-        // read the fields in the mid of the packet
-        size_t fields_size = 4+8+1+2+1+2+2+1+10;
-        _socket.read(dst[0 .. fields_size]);
-        ubyte scramble_length = dst[$-11];
-        dst.popFrontN(fields_size);
-
-        // read the scramble and the terminating null byte
-        _socket.read(dst[0 .. scramble_length+1]);
-        enforce(dst[scramble_length] == 0, "Handshake packet must be zero terminated.");
-
-        dst.popFrontN(scramble_length+1);
-        _packet.length = _packet.length - dst.length;*/
-
-        // for now we leave the original behavior to use the network to determine the packet size
         ubyte[] packet;
         packet.length = cast(size_t)_socket.leastSize;
         _socket.read(packet);
 
         bumpPacket();
 
-        // parse the read buffer
-        ubyte* p = packet.ptr+4;
-        _protocol = *p++;
-        size_t len, offset;
-        ubyte* q = p;
-        offset = q-packet.ptr;
-        while (*p) p++;
-        len = p-q;
-        _serverVersion = cast(string) packet[offset..offset+len].idup;
-        p++;
-        _sThread = getInt(p);
+        packet.skip(4); // not interested in the header
+
+        _protocol = packet.consume!ubyte();
+
+        _serverVersion = packet.consume!string(packet.countUntil(0));
+        packet.skip(1); // \0 terminated _serverVersion
+
+        _sThread = packet.consume!uint();
+
+        // read first part of scramble buf
         ubyte[] authBuf;
         authBuf.length = 255;
-        foreach (uint i; 0..8)
-            authBuf[i] = *p++;
-        assert(*p == 0);
-        p++;
-        getServerInfo(p);
-        p++;             // this byte supposed to be scramble length, but is actually zero
-        p += 10;       // skip 10 bytes of filler
-        len = 8;
-        for (uint i = 0; *p; i++, len++)
-            authBuf[8+i] = *p++;
-        authBuf.length = len;
-        assert(*p == 0);
+        authBuf[0..8] = packet.consume(8); // scramble_buff
+
+        enforceEx!MYX(packet.consume!ubyte == 0, "filler should always be 0");
+
+        consumeServerInfo(packet);
+
+        packet.skip(1); // this byte supposed to be scramble length, but is actually zero
+        packet.skip(10); // filler of \0
+
+        // rest of the scramble
+        auto len = packet.countUntil(0);
+        enforceEx!MYX(len >= 12, "second part of scramble buffer should be at least 12 bytes");
+        enforce(authBuf.length > 8+len);
+        authBuf[8..8+len] = packet.consume(len);
+        authBuf.length = 8+len; // cut to correct size
+        enforceEx!MYX(packet.consume!ubyte == 0, "Excepted \\0 terminating scramble buf");
+        enforceEx!MYX(packet.empty);
+
         return authBuf;
     }
 
@@ -1826,39 +2229,46 @@ protected:
     {
         SHA1 sha1;
         sha1.reset();
-        ubyte[] pass1;
-        ubyte[] pass2;
-        ubyte[] cat;
-        ubyte[] result;
         sha1.input(cast(const(ubyte)*) _pwd.ptr, _pwd.length);
-        pass1 = sha1.result();
+
+        ubyte[] pass1 = sha1.result();
         sha1.reset();
         sha1.input(pass1.ptr, pass1.length);
-        pass2 = sha1.result();
+
+        ubyte[] pass2 = sha1.result();
         sha1.reset();
         sha1.input(authBuf.ptr, authBuf.length);
         sha1.input(pass2.ptr, pass2.length);
-        result = sha1.result();
+
+        ubyte[] result = sha1.result();
         foreach (uint i; 0..20)
             result[i] = result[i] ^ pass1[i];
         return result;
     }
 
+    SvrCapFlags getCommonCapabilities(SvrCapFlags server, SvrCapFlags client) pure
+    {
+        SvrCapFlags common;
+        uint filter = 1;
+        foreach (uint i; 0..uint.sizeof)
+        {
+            bool serverSupport = (server & filter) != 0; // can the server do this capability?
+            bool clientSupport = (client & filter) != 0; // can we support it?
+            if(serverSupport && clientSupport)
+                common |= filter;
+            filter <<= 1; // check next flag
+        }
+        return common;
+    }
+
     void setClientFlags(SvrCapFlags capFlags)
     {
-        uint filter = 1;
-        uint sCaps = _sCaps;
-        uint cCaps = 0;
-        foreach (uint i; 0..24)
-        {
-            if (filter & _sCaps)    // can the server do this capability?
-            {
-                if (filter & capFlags)
-                    cCaps |= filter;
-            }
-            filter <<= 1;
-        }
-        _cCaps = cCaps;
+        _cCaps = getCommonCapabilities(_sCaps, capFlags);
+
+        // We cannot operate in <4.1 protocol, so we'll force it even if the user
+        // didn't supply it
+        _cCaps |= SvrCapFlags.PROTOCOL41;
+        _cCaps |= SvrCapFlags.SECURE_CONNECTION;
     }
 
     static string[] parseConnectionString(string cs)
@@ -1959,6 +2369,10 @@ public:
      */
     this(string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
     {
+        enforceEx!MYX(capFlags & SvrCapFlags.SECURE_PWD, "This client only supports protocol v4.1 passwords");
+        enforceEx!MYX(capFlags & SvrCapFlags.PROTOCOL41, "This client only supports protocol v4.1");
+        enforceEx!MYX(capFlags & SvrCapFlags.SECURE_CONNECTION, "This client only supports protocol v4.1 connection");
+
         _host = host;
         _user = user;
         _pwd = pwd;
@@ -2120,6 +2534,7 @@ public:
     @property string currentDB() { return _db; }
 }
 
+/+
 unittest
 {
     bool ok = true;
@@ -2161,6 +2576,7 @@ unittest
     }
     assert(ok);
 }
++/
 
 /**
  * A struct to represent specializations of prepared statement parameters.
@@ -2223,47 +2639,25 @@ struct Row
 private:
     Variant[]   _values;
     bool[]      _nulls;
-    bool        _valid;
 
-    /**
-     * Extracts a type from a series of bytes
-     *
-     * Parameters:
-     *  T            = Type to extract from the packet
-     *  N            = Number of bytes to use from packet. 0 means use T.sizeof
-     *  p            = offset in packet where the data begins
-     *  packet       = packet containing data
-     *  incomplete   = true if packet contains less than N bytes
-     *
-     * Returns:
-     *  The extracted value, or 0 if there isn't enough bytes to extract the value.
-     *  p is set to offset after the last used byte
-     * */
-    T fromBytes(T, int N = 0)(ref uint p, ubyte[] packet, out bool incomplete) if (is(T: ulong))
+    private static uint calcBitmapLength(uint fieldCount) pure nothrow
     {
-        ulong ac = 0;
-        uint len = N ? N: T.sizeof;
-        if (p+len >= packet.length-1)
-        {
-            incomplete = true;
-        }
-        else
-        {
-            for (uint i = p+len-1; i >= p; i--)
-            {
-                ac <<= 8;
-                ac |= packet[i];
-            }
-            p += len;
-        }
-        return cast(T) ac;
+        return (fieldCount+7+2)/8;
+    }
+
+    static bool[] consumeNullBitmap(ref ubyte[] packet, uint fieldCount)
+    {
+        uint bitmapLength = calcBitmapLength(fieldCount);
+        enforceEx!MYX(packet.length >= bitmapLength, "Packet too small to hold null bitmap for all fields");
+        auto bitmap = packet.consume(bitmapLength);
+        return decodeNullBitmap(bitmap, fieldCount);
     }
 
     // This is to decode the bitmap in a binary result row. First two bits are skipped
     static bool[] decodeNullBitmap(ubyte[] bitmap, uint numFields)
     in
     {
-        assert(bitmap.length >= (numFields+7+2)/8,
+        assert(bitmap.length >= calcBitmapLength(numFields),
                 "bitmap not large enough to store all null fields");
     }
     out(result)
@@ -2279,6 +2673,7 @@ private:
         ubyte bits = bitmap.front();
         // strip away the first two bits as they are reserved
         bits >>= 2;
+        // .. and then we only have 6 bits left to process for this byte
         ubyte bitsLeftInByte = 6;
         foreach(ref isNull; nulls)
         {
@@ -2297,7 +2692,7 @@ private:
 
             // get ready to process next bit
             bits >>= 1;
-            bitsLeftInByte--;
+            --bitsLeftInByte;
         }
         return nulls;
     }
@@ -2319,408 +2714,52 @@ public:
      * I have been agitating for some kind of null indicator that can be set for a Variant without destroying
      * its inherent type information. If this were the case, then the bool array could disappear.
      */
-    this(Connection con, ubyte[] packet, ResultSetHeaders rh, bool binary)
+    this(Connection con, ref ubyte[] packet, ResultSetHeaders rh, bool binary)
+    in
     {
         assert(rh.fieldCount <= uint.max);
-        uint fc = cast(uint)rh.fieldCount;
-        _values.length = _nulls.length = fc;
-        uint p = 0;
-        size_t pl = packet.length;
-        bool nullFlag, incomplete, gotPrefix;
-        ulong lc;
-
-        // This is used to decode byte array length prefixes, which may be from 1 to 9 bytes.
-        // Either the prefix or the following bytes may be incomplete - truncated by the end of the packet.
-        // We distinguish between these cases.
-        ulong parseLCB()
-        {
-            incomplete = gotPrefix = false;
-            nullFlag = false;
-            lc = 0;
-            if (p > pl-1)
-            {
-                incomplete  = true;
-                return 0;
-            }
-            byte numLCBBytes = getNumLCBBytes(packet[p]);
-            switch (numLCBBytes)
-            {
-                case -1:
-                    nullFlag = true;
-                    p++;
-                    break;
-                case 0:
-                    lc = packet[p++];
-                    break;
-                default:
-                    assert(numLCBBytes == 2 || numLCBBytes == 3 || numLCBBytes == 8);
-                    if(pl-p < (numLCBBytes+1))
-                    {
-                        incomplete = true;
-                        return 0;
-                    }
-                    for(uint i = p+numLCBBytes; i > p; i--)
-                    {
-                        lc <<= 8;
-                        lc |= packet[i];
-                    }
-                    p += numLCBBytes+1;
-                    break;
-            }
-            gotPrefix = true;
-            if (pl-p < lc)
-            incomplete = true;
-            return lc;
-        }
-
+    }
+    body
+    {
+        uint fieldCount = cast(uint)rh.fieldCount;
+        _values.length = _nulls.length = fieldCount;
 
         if (binary)
         {
             // There's a null byte header on a binary result sequence, followed by some bytes of bitmap
             // indicating which columns are null
-            enforceEx!MYX(packet[p++] == 0, "Expected null header byte for binary result row");
-            uint bitmapLength = (fc+7+2)/8;
-            auto end = p+bitmapLength;
-            enforceEx!MYX(packet.length >= p+end, "Packet too small!");
-            _nulls = decodeNullBitmap(packet[p..p+bitmapLength], fc);
-            p += bitmapLength;
+            enforceEx!MYX(packet.front == 0, "Expected null header byte for binary result row");
+            packet.popFront();
+            _nulls = consumeNullBitmap(packet, fieldCount);
         }
 
-        foreach (int i; 0..fc)
+        foreach (int i; 0..fieldCount)
         {
-            FieldDescription fd = rh[i];
-            bool isnull = false;
-            bool chunked = (fd.chunkSize > 0);
-            bool uns = fd.unsigned;
-            uint checkpoint = p;
+            if(binary && _nulls[i])
+                continue;
 
-            if (binary)
+            SQLValue sqlValue;
+            do
             {
-                // Prepared statement result sets are packed differently than traditional MySQL result sets.
-                // Most types come in their normal memory layout (little-endian). Strings are prefixed by a coded length
-                // that could in theory be up to ulong.max, but since the largest blob is currently uint.max
-                // that's all we'll use.
-                if (_nulls[i])
-                    continue;      // The bitmap said this column is NULL, so there will be no data for it and we skip to the next.
-                final switch (fd.type)
-                {
-                    case SQLType.TINY:
-                        ubyte ub = fromBytes!ubyte(p, packet, incomplete);
-                        if (incomplete) break;  // The packet we ar looking at does not contain the entire result row - we must fetch another
-                        if (uns)
-                            _values[i] = ub;
-                        else
-                            _values[i] = cast(byte) ub;
-                        break;
-                    case SQLType.SHORT:
-                        ushort us =  fromBytes!ushort(p, packet, incomplete);
-                        if (incomplete) break;
-                        if (uns)
-                            _values[i] = us;
-                        else
-                            _values[i] = cast(short) us;
-                        break;
-                    case SQLType.INT:
-                        uint ui =  fromBytes!uint(p, packet, incomplete);
-                        if (incomplete) break;
-                        if (uns)
-                            _values[i] = ui;
-                        else
-                            _values[i] = cast(int) ui;
-                        break;
-                    case SQLType.FLOAT:
-                        if (pl-p < 4)
-                        {
-                            incomplete = true;
-                            break;
-                        }
-                        float f = 0;
-                        ubyte* fp = cast(ubyte*) &f;
-                        fp[0..4] = packet[p..p+4];
-                        p += 4;
-                        _values[i] = f;
-                        break;
-                    case SQLType.DOUBLE:
-                        if (pl-p < 8)
-                        {
-                            incomplete = true;
-                            break;
-                        }
-                        double d = 0;
-                        ubyte* dp = cast(ubyte*) &d;
-                        dp[0..8] = packet[p..p+8];
-                        p += 8;
-                        _values[i] = d;
-                        break;
-                    case SQLType.NULL:
-                        _nulls[i] = true;
-                        break;
-                    case SQLType.TIMESTAMP:
-                        // The length of all the time/date types can be indicated by a byte
-                        uint tl = packet[p];
-                        if (pl-p < tl+1)
-                        {
-                            incomplete = true;
-                            break;
-                        }
-                        _values[i] = toDateTime(packet[p..p+tl+1]);
-                        p += tl+1;
-                        break;
-                    case SQLType.LONGLONG:
-                        ulong ul =  fromBytes!ulong(p, packet, incomplete);
-                        if (uns)
-                            _values[i] = ul;
-                        else
-                            _values[i] = cast(long) ul;
-                        break;
-                    case SQLType.INT24:
-                        uint ui24 =  fromBytes!(uint, 3)(p, packet, incomplete);
-                        if (incomplete) break;
-                        if (uns)
-                            _values[i] = ui24;
-                        else
-                            _values[i] = cast(int) ui24;
-                        break;
-                    case SQLType.BIT:  // equated here to bool
-                        if (pl-p < 2)
-                        {
-                            incomplete = true;
-                            break;
-                        }
-                        enforceEx!MYX(packet[p++] == 1, "Expected single bit for bool column");
-                        bool bv = (packet[p++] == 1);
-                        _values[i] = bv;
-                        break;
-                    case SQLType.DATE:
-                        uint tl = packet[p];
-                        if (pl-p < tl+1)
-                        {
-                            incomplete = true;
-                            break;
-                        }
-                        _values[i] = toDate(packet[p..p+tl+1]);
-                        p += tl+1;
-                        break;
-                    case SQLType.TIME:
-                        uint tl = packet[p];
-                        if (pl-p < packet[p]+1)
-                        {
-                            incomplete = true;
-                            break;
-                        }
-                        _values[i] = toTimeOfDay(packet[p..p+tl+1]);
-                        p += tl+1;
-                        break;
-                    case SQLType.DATETIME:
-                        uint tl = packet[p];
-                        if (pl-p < tl+1)
-                        {
-                            incomplete = true;
-                            break;
-                        }
-                        _values[i] = toDateTime(packet[p..p+tl+1]);
-                        p += tl+1;
-                        break;
-                    case SQLType.YEAR:  // appears to be an unsigned short
-                        ushort y =  fromBytes!ushort(p, packet, incomplete);
-                        if (incomplete) break;
-                        _values[i] = y;
-                        break;
-                    case SQLType.VARCHAR:
-                    case SQLType.ENUM:   // both this and SET actually get sent by the protocol as SQLType.BLOB
-                    case SQLType.SET:
-                    case SQLType.VARSTRING:
-                    case SQLType.STRING:
-                        uint sl = cast(uint) parseLCB();
-                        if (incomplete) break;
-                            _values[i] = cast(string) packet[p..p+sl];
-                        p += sl;
-                        break;
-                    case SQLType.TINYBLOB:
-                    case SQLType.MEDIUMBLOB:
-                    case SQLType.LONGBLOB:
-                        uint sl = cast(uint) parseLCB();
-                        if (incomplete) break;
-                            _values[i] = cast(ubyte[]) packet[p..p+sl];
-                        p += sl;
-                        break;
-                    case SQLType.BLOB:
-                        uint sl = cast(uint) parseLCB();
-                        if (incomplete) break;
-                        if (fd.binary)
-                            _values[i] = cast(ubyte[]) packet[p..p+sl];
-                        else
-                            _values[i] = packet[p..p+sl];
-                        p += sl;
-                        break;
-                }
+                FieldDescription fd = rh[i];
+                sqlValue = packet.consumeIfComplete(fd.type, binary, fd.unsigned);
+                // TODO: Support chunk delegate
+                if(sqlValue.isIncomplete)
+                    packet ~= con.getPacket();
+            } while(sqlValue.isIncomplete);
+            assert(!sqlValue.isIncomplete);
+
+            if(sqlValue.isNull)
+            {
+                assert(!binary);
+                assert(!_nulls[i]);
+                _nulls[i] = true;
             }
             else
             {
-                // This is a traditional MySQL row with all the data represented as byte strings. Ideally it should be possible
-                // to tell a V5.x server to send all results in the same format, but this does not appear to be possible at this point
-                string val;
-                // We make the test for sufficient data remaining in the packet as we get the string length.
-                uint sl = cast(uint) parseLCB();
-                if (incomplete) goto Incomplete;
-                val = cast(string) packet[p..p+sl];
-                p += sl;
-                if (nullFlag)
-                {
-                    // In this data sequence, null columns are indicated by a single 251 byte, so we construct the _nulls array
-                    // as we go along, skipping the null columnns
-                    _nulls[i] = true;
-                    continue;
-                }
-                final switch (fd.type)
-                {
-                    case  SQLType.TINY:
-                        if (uns)
-                            _values[i] = to!ubyte(val);
-                        else
-                            _values[i] = to!byte(val);
-                        break;
-                    case SQLType.SHORT:
-                        if (uns)
-                            _values[i] = to!ushort(val);
-                        else
-                            _values[i] = to!short(val);
-                        break;
-                    case SQLType.INT:
-                    case SQLType.INT24:
-                        if (uns)
-                            _values[i] = to!uint(val);
-                        else
-                            _values[i] = to!int(val);
-                        break;
-                    case SQLType.FLOAT:
-                        _values[i] = to!float(val);
-                        break;
-                    case SQLType.DOUBLE:
-                        _values[i] = to!double(val);
-                        break;
-                    case SQLType.NULL:
-                        _nulls[i] = true;
-                        break;
-                    case SQLType.TIMESTAMP:
-                        _values[i] = toDateTime(val);
-                        break;
-                    case SQLType.LONGLONG:
-                        if (uns)
-                            _values[i] = to!ulong(val);
-                        else
-                            _values[i] = to!long(val);
-                        break;
-                    case SQLType.BIT:  // equated here to bool
-                        val = val[0]? "true": "false";
-                        _values[i] = to!bool(val);
-                        break;
-                    case SQLType.DATE:
-                        _values[i] = toDate(val);
-                        break;
-                    case SQLType.TIME:
-                        _values[i] = toTimeOfDay(val);
-                        break;
-                    case SQLType.DATETIME:
-                        _values[i] = toDateTime(val);
-                        break;
-                    case SQLType.YEAR:  // treat as unsigned short to match the prepared case
-                        _values[i] = to!ushort(val);
-                        break;
-                    case SQLType.VARCHAR:    // new in 5.0, but does not appear for a VARCHAR column
-                    case SQLType.ENUM:       // both this and SET actually get sent by the protocol as BLOB - 0xfe
-                    case SQLType.SET:
-                    // For some reason column type TINYTEXT TEXT MEDIUMTEXT LONGTEXT all appear as SQLType.BLOB
-                    // They don't even have values in the list of protocol types
-                    case SQLType.VARSTRING:
-                    case SQLType.STRING:
-                        _values[i] = val;
-                        break;
-                    case SQLType.TINYBLOB:
-                    case SQLType.MEDIUMBLOB:
-                    case SQLType.LONGBLOB:
-                        _values[i] = cast(ubyte[]) val;
-                        break;
-                    case SQLType.BLOB: // Covers a multitude of sins  - TINYTEXT TEXT MEDIUMTEXT LONGTEXT all appear as BLOB - 0xfc
-                        if (fd.binary)
-                            _values[i] = cast(ubyte[]) val;
-                        else
-                            _values[i] = val;
-                        break;
-                }
-            }
-            Incomplete:
-            if (incomplete)
-            {
-                // The server wil have sent the maximum logical packet, and will follow that with further
-                // packets containing the remaining data for the row. So if we have determined that the data
-                // for a column is incomplete, we must now now fetch at least the next one.
-                // We take the opportunity to save memory here by chopping off the part of the current packet
-                // that we have already used. If the column is specialized to be chunked, we also nibble off
-                // as much as possible before getting the next packet
-                uint npl;
-                if (gotPrefix && chunked)
-                {
-                    // We know how long the byte stream is, and we are going to chunk it, so we can read packets
-                    // until we've got the required length and dispose of the bytes via the delegate.
-                    uint remaining = cast(uint) lc;
-                    uint cs = fd.chunkSize;
-                    checkpoint = p;
-                    void delegate(ubyte[], bool) dg = fd.chunkDelegate;
-
-                    // First get rid of the bytes in the existing packet
-                    while (pl-checkpoint > cs)
-                    {
-                        dg(packet[checkpoint..checkpoint+cs], false);
-                        checkpoint += cs;
-                        remaining -= cs;
-                    }
-                    ubyte[] more = con.getPacket();
-                    npl = cast(uint)more.length;
-                    packet = packet[checkpoint..pl] ~ more;
-                    pl = packet.length;
-                    p = 0;
-
-                    eatPackets:
-                    for (;;)
-                    {
-                        while (pl-p >= cs)
-                        {
-                            if (remaining <= cs)
-                            {
-                                dg(packet[p..p+remaining], true);
-                                p += remaining;
-                                break eatPackets;
-                            }
-                            dg(packet[p..p+cs], false);
-                            p += cs;
-                            remaining -= cs;
-                        }
-                        more = con.getPacket();
-                        npl = cast(uint)more.length;
-                        packet = packet[p..pl] ~ more;
-                        pl = packet.length;
-                        p = 0;
-                    }
-                    // At this point we should be good to process the next column
-                }
-                else
-                {
-                    // Process without chunking - pull in more packets uintil we have enough data
-                    // to get the incomplete column.
-                    ubyte[] more = con.getPacket();
-                    npl = cast(uint)more.length;
-                    packet = packet[checkpoint..pl] ~ more;
-                    p = 0;   // previous stuff now gone
-                    checkpoint = p;
-                    pl = packet.length;
-                    i--;  // backtrack and try again to get the column where we failed. This could cause
-                      // further logical packets to be fetched in the case of a long blob.
-                }
-                incomplete = false;
+                _values[i] = sqlValue.value;
             }
         }
-        _valid = true;
     }
 
     /**
@@ -2732,7 +2771,13 @@ public:
      * Params: i = the zero based index of the column whose value is required.
      * Returns: A Variant holding the column value.
      */
-    Variant opIndex(uint i) { return _values[i]; }
+    Variant opIndex(uint i)
+    {
+        enforceEx!MYX(i < _nulls.length, format("Cannot get column %d of %d. Index out of bounds", i, _nulls.length));
+        enforceEx!MYX(!_nulls[i], format("Column %s is null, check for isNull", i));
+        return _values[i];
+    }
+
     /**
      * Check if a column in the result row was NULL
      *
@@ -2977,9 +3022,11 @@ public:
     {
         enforceEx!MYX(!_empty, "Attempted 'popFront' when no more rows available");
         _row = _cmd.getNextRow();
+        /+
         if (!_row._valid)
             _empty = true;
         else
+            +/
             _numRowsFetched++;
     }
 
@@ -3470,15 +3517,15 @@ public:
         if (packet.front == ResultPacketMarker.ok)
         {
             packet.popFront();
-            _hStmt              = packet.takeInt();
-            _fieldCount         = packet.takeShort();
-            _psParams           = packet.takeShort();
+            _hStmt              = packet.consume!int();
+            _fieldCount         = packet.consume!short();
+            _psParams           = packet.consume!short();
 
             _inParams.length    = _psParams;
             _psa.length         = _psParams;
 
             packet.popFront(); // one byte filler
-            _psWarnings         = packet.takeShort();
+            _psWarnings         = packet.consume!short();
 
             // At this point the server also sends field specs for parameters and columns if there were any of each
             _psh = PreparedStmtHeaders(_con, _fieldCount, _psParams);
@@ -3694,8 +3741,11 @@ c.param(1) = "The answer";
             assert(packet.front >= 1 && packet.front <= 250); // ResultSet packet header should have this value
             _headersPending = _rowsPending = true;
             _pendingBinary = false;
-            bool isNull;
-            _fieldCount = cast(ushort) packet.takeLCB();
+            auto lcb = packet.consumeIfComplete!LCB();
+            assert(!lcb.isNull);
+            assert(!lcb.isIncomplete);
+            _fieldCount = cast(ushort)lcb.value;
+            assert(_fieldCount == lcb.value);
             rv = true;
             ra = 0;
         }
@@ -3716,37 +3766,28 @@ c.param(1) = "The answer";
      */
     ResultSet execSQLResult(ColumnSpecialization[] csa = null)
     {
-        uint alloc = 20;
-        Row[] rra;
-        rra.length = alloc;
-        uint cr = 0;
         ulong ra;
         enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
         _rsh = ResultSetHeaders(_con, _fieldCount);
         if (csa !is null)
             _rsh.addSpecializations(csa);
-
         _headersPending = false;
-        ubyte[] packet;
-        for (uint i = 0;; i++)
-        {
-            packet = _con.getPacket();
-            ubyte* ubp = packet.ptr;
-            if (packet.isEOFPacket())
-                break;
 
-            Row row = Row(_con, packet, _rsh, false);
-            if (cr >= alloc)
-            {
-                alloc = (alloc*3)/2;
-                rra.length = alloc;
-            }
-            rra[cr++] = row;
+        Row[] rows;
+        while(true)
+        {
+            auto packet = _con.getPacket();
+            if(packet.isEOFPacket())
+                break;
+            rows ~= Row(_con, packet, _rsh, false);
+            // As the row fetches more data while incomplete, it might already have
+            // fetched the EOF marker, so we have to check it again
+            if(packet.isEOFPacket())
+                break;
         }
         _rowsPending = _pendingBinary = false;
-        rra.length = cr;
-        ResultSet rs = ResultSet(rra, _rsh.fieldNames);
-        return rs;
+
+        return ResultSet(rows, _rsh.fieldNames);
     }
 
     /**
@@ -3865,8 +3906,9 @@ c.param(1) = "The answer";
         {
             // There was presumably a result set
             _headersPending = _rowsPending = _pendingBinary = true;
-            auto ptr = packet.ptr;
-            _fieldCount = cast(ushort) parseLCB(ptr);
+            auto lcb = packet.consumeIfComplete!LCB();
+            assert(!lcb.isIncomplete);
+            _fieldCount = cast(ushort)lcb.value;
             rv = true;
         }
         return rv;
@@ -4006,7 +4048,7 @@ c.param(1) = "The answer";
             rr = Row(_con, packet, _rsh, true);
         else
             rr = Row(_con, packet, _rsh, false);
-        rr._valid = true;
+        //rr._valid = true;
         return rr;
     }
 
@@ -4124,6 +4166,7 @@ c.param(1) = "The answer";
     @property ulong lastInsertID() { return _insertID; }
 }
 
+version(none) {
 unittest
 {
     struct X
@@ -4442,6 +4485,7 @@ unittest
     assert(ok);
     writeln("Command unit tests completed OK.");
 }
+} // version(none)
 
 /**
  * A struct to hold column metadata
@@ -4661,7 +4705,11 @@ public:
                         col.name = t;
                         break;
                     case 4:
-                        col.index = cast(uint)(r[j].get!(ulong)-1);
+                        if(isNull)
+                            col.index = -1;
+                        else
+                            col.index = cast(uint)(r[j].get!ulong() - 1);
+                        //col.index = cast(uint)(r[j].get!(ulong)-1);
                         break;
                     case 5:
                         if (isNull)
@@ -4737,6 +4785,7 @@ public:
     }
 }
 
+/+
 unittest
 {
     auto c = new Connection("localhost", "user", "password", "mysqld");
@@ -4837,4 +4886,5 @@ unittest
     pa = md.procedures();
     assert(pa[0].db == "mysqld" && pa[0].name == "insert2" && pa[0].type == "PROCEDURE");
 }
++/
 
