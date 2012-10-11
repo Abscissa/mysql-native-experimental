@@ -58,7 +58,8 @@ module mysql.connection;
 
 import mysql.sha1;
 
-import vibe.core.tcp;
+import vibe.core.net;
+import vibe.utils.string;
 
 import std.exception;
 import std.range;
@@ -1860,7 +1861,7 @@ public:
          p += bml;
       }
 
-      foreach (int i; 0..fc)
+      for (int i = 0; i < fc; i++)
       {
          FieldDescription fd = rh[i];
          bool isnull = false;
