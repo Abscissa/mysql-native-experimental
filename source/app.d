@@ -1,11 +1,21 @@
+import vibe.vibe;
 import mysql.db;
 import std.stdio;
 
-void main(string [] args)
+
+void main()
+{
+	try testMySql();
+	catch( Exception e ){
+		logError("Failed: %s", e.toString());
+	}
+}
+
+void testMySql()
 {
 	immutable uint myFlags = SvrCapFlags.SECURE_PWD | SvrCapFlags.ALL_COLUMN_FLAGS | SvrCapFlags.PROTOCOL41 | SvrCapFlags.SECURE_CONNECTION | SvrCapFlags.WITH_DB; // | SvrCapFlags.MULTI_STATEMENTS | SvrCapFlags.MULTI_RESULTS;
 
-	auto mdb = new MysqlDB("host", "user", "password", "database");
+	auto mdb = new MysqlDB("localhost", "user", "password", "database");
 
 	auto c = mdb.lockConnection();
 
@@ -63,4 +73,3 @@ void main(string [] args)
 		}
 	}
 }
-
