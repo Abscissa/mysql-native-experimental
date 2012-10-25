@@ -2207,7 +2207,6 @@ protected:
         // rest of the scramble
         auto authBufSecond = _socket.readUntil([0]);
         enforceEx!MYX(authBufSecond.length >= 12, "second part of scramble buffer should be at least 12 bytes");
-        enforceEx!MYX(_socket.consume!ubyte() == 0, "Excepted \\0 terminating scramble buf");
 
         bumpPacket();
 
