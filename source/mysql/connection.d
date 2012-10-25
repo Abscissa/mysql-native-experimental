@@ -669,6 +669,13 @@ enum CommandType : ubyte
     STMT_FETCH          = 0x1c,
 }
 
+T consume(T)(TcpConnection conn) {
+    ubyte[T.sizeof] buffer;
+    conn.read(buffer);
+    ubyte[] rng = buffer;
+    return consume!T(rng);
+}
+
 string consume(T:string, ubyte N=T.sizeof)(ref ubyte[] packet)
 {
     return packet.consume!string(N);
@@ -2165,12 +2172,12 @@ protected:
         return packet;
     }
 
-    void consumeServerInfo(ref ubyte[] packet)
+    void consumeServerInfo()
     {
-        _sCaps = cast(SvrCapFlags)packet.consume!ushort(); // server_capabilities (lower bytes)
-        _sCharSet = packet.consume!ubyte(); // server_language
-        _serverStatus = packet.consume!ushort(); //server_status
-        _sCaps += cast(SvrCapFlags)(packet.consume!ushort() << 16); // server_capabilities (upper bytes)
+        _sCaps = cast(SvrCapFlags)_socket.consume!ushort(); // server_capabilities (lower bytes)
+        _sCharSet = _socket.consume!ubyte(); // server_language
+        _serverStatus = _socket.consume!ushort(); //server_status
+        _sCaps += cast(SvrCapFlags)(_socket.consume!ushort() << 16); // server_capabilities (upper bytes)
 
         enforceEx!MYX(_sCaps & SvrCapFlags.SECURE_PWD, "Server doesn't support protocol v4.1 passwords");
         enforceEx!MYX(_sCaps & SvrCapFlags.PROTOCOL41, "Server doesn't support protocol v4.1");
@@ -2179,43 +2186,32 @@ protected:
 
     ubyte[] parseGreeting()
     {
-        ubyte[] packet;
-        packet.length = cast(size_t)_socket.leastSize;
-        _socket.read(packet);
+        ubyte[128] buffer;
+        // ignore header
+        _socket.read(buffer[0 .. 4]);
+        _protocol = _socket.consume!ubyte();
+        _serverVersion = cast(string)_socket.readUntil([0]);
+        _sThread = _socket.consume!uint();
+
+        // read first part of scramble buf
+        ubyte[8] authBufFirst;
+        _socket.read(authBufFirst); // scramble_buff
+        enforceEx!MYX(_socket.consume!ubyte() == 0, "filler should always be 0");
+
+        consumeServerInfo();
+
+        // this byte supposed to be scramble length, but is actually zero
+        _socket.read(buffer[0 .. 1]);
+        // filler of \0
+        _socket.read(buffer[0 .. 10]);
+        // rest of the scramble
+        auto authBufSecond = _socket.readUntil([0]);
+        enforceEx!MYX(authBufSecond.length >= 12, "second part of scramble buffer should be at least 12 bytes");
+        enforceEx!MYX(_socket.consume!ubyte() == 0, "Excepted \\0 terminating scramble buf");
 
         bumpPacket();
 
-        packet.skip(4); // not interested in the header
-
-        _protocol = packet.consume!ubyte();
-
-        _serverVersion = packet.consume!string(packet.countUntil(0));
-        packet.skip(1); // \0 terminated _serverVersion
-
-        _sThread = packet.consume!uint();
-
-        // read first part of scramble buf
-        ubyte[] authBuf;
-        authBuf.length = 255;
-        authBuf[0..8] = packet.consume(8); // scramble_buff
-
-        enforceEx!MYX(packet.consume!ubyte() == 0, "filler should always be 0");
-
-        consumeServerInfo(packet);
-
-        packet.skip(1); // this byte supposed to be scramble length, but is actually zero
-        packet.skip(10); // filler of \0
-
-        // rest of the scramble
-        auto len = packet.countUntil(0);
-        enforceEx!MYX(len >= 12, "second part of scramble buffer should be at least 12 bytes");
-        enforce(authBuf.length > 8+len);
-        authBuf[8..8+len] = packet.consume(len);
-        authBuf.length = 8+len; // cut to correct size
-        enforceEx!MYX(packet.consume!ubyte() == 0, "Excepted \\0 terminating scramble buf");
-        enforceEx!MYX(packet.empty);
-
-        return authBuf;
+        return authBufFirst ~ authBufSecond;
     }
 
     void init_connection()
