@@ -2214,7 +2214,6 @@ protected:
         authBuf[8..8+len] = packet.consume(len);
         authBuf.length = 8+len; // cut to correct size
         enforceEx!MYX(packet.consume!ubyte() == 0, "Excepted \\0 terminating scramble buf");
-        enforceEx!MYX(packet.empty);
 
         return authBuf;
     }
