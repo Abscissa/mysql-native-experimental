@@ -8,8 +8,7 @@
  * It has no dependecies on GPL header files or libraries, instead communicating directly with the server via the
  * published client/server protocol.
  *
- * $(LINK http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol)$(BR)
- * $(LINK http://forge.mysql.com/w/index.php?title=MySQL_Internals_ClientServer_Protocol&diff=5078&oldid=4374)
+ * $(LINK http://dev.mysql.com/doc/internals/en/client-server-protocol.html)$(BR)
  *
  * This version is not by any means comprehensive, and there is still a good deal of work to do. As a general design
  * position it avoids providing wrappers for operations that can be accomplished by simple SQL sommands, unless
