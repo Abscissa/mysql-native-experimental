@@ -36,12 +36,12 @@
  *    $(LI ResultSequence: $(UL $(LIAn input range of similar rows.)))
  * )
  *
- * It has currently only been compiled and unit tested on Ubuntu with D2.055 using a TCP loopback connection
- * to a server on the local machine.
- *
  * There are numerous examples of usage in the unittest sections.
  *
  * The file mysqld.sql, included with the module source code, can be used to generate the tables required by the unit tests.
+ *
+ * This requires a MySQL server v4.1.1 or later. Older versions of MySQL server
+ * are obsolete, use known-insecure authentication, and are not supported by this module.
  *
  * There is an outstanding issue with Connections. Normally MySQL clients sonnect to a server on the same machine
  * via a Unix socket on *nix systems, and through a named pipe on Windows. Neither of these conventions is
