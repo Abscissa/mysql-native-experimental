@@ -552,11 +552,11 @@ struct Timestamp
  * During the connection handshake process, the server sends a uint of flags describing its
  * capabilities
  *
- * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Handshake_Initialization_Packet
+ * See_Also: http://dev.mysql.com/doc/internals/en/connection-phase.html#capability-flags
  */
 enum SvrCapFlags: uint
 {
-    SECURE_PWD          =      1, /// Long passwords
+    OLD_LONG_PASSWORD   =      1, /// Long old-style passwords (Not 4.1+ passwords)
     FOUND_NOT_AFFECTED  =      2, /// Report rows found rather than rows affected
     ALL_COLUMN_FLAGS    =      4, /// Send all column flags
     WITH_DB             =      8, /// Can take database as part of login
@@ -577,7 +577,7 @@ enum SvrCapFlags: uint
 }
 // 000000001111011111111111
 immutable SvrCapFlags defaultClientFlags =
-        SvrCapFlags.SECURE_PWD | SvrCapFlags.ALL_COLUMN_FLAGS |
+        SvrCapFlags.OLD_LONG_PASSWORD | SvrCapFlags.ALL_COLUMN_FLAGS |
         SvrCapFlags.WITH_DB | SvrCapFlags.PROTOCOL41 |
         SvrCapFlags.SECURE_CONNECTION;// | SvrCapFlags.MULTI_STATEMENTS |
         //SvrCapFlags.MULTI_RESULTS;
@@ -2178,8 +2178,8 @@ protected:
         _sCharSet = packet.consume!ubyte(); // server_language
         _serverStatus = packet.consume!ushort(); //server_status
         _sCaps += cast(SvrCapFlags)(packet.consume!ushort() << 16); // server_capabilities (upper bytes)
+        _sCaps += SvrCapFlags.OLD_LONG_PASSWORD; // Assumed to be set since v4.1.1, according to spec
 
-        enforceEx!MYX(_sCaps & SvrCapFlags.SECURE_PWD, "Server doesn't support protocol v4.1 passwords");
         enforceEx!MYX(_sCaps & SvrCapFlags.PROTOCOL41, "Server doesn't support protocol v4.1");
         enforceEx!MYX(_sCaps & SvrCapFlags.SECURE_CONNECTION, "Server doesn't support protocol v4.1 connection");
     }
@@ -2371,7 +2371,6 @@ public:
      */
     this(string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
     {
-        enforceEx!MYX(capFlags & SvrCapFlags.SECURE_PWD, "This client only supports protocol v4.1 passwords");
         enforceEx!MYX(capFlags & SvrCapFlags.PROTOCOL41, "This client only supports protocol v4.1");
         enforceEx!MYX(capFlags & SvrCapFlags.SECURE_CONNECTION, "This client only supports protocol v4.1 connection");
 
