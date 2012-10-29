@@ -12,7 +12,7 @@ class MysqlDB {
       string m_password;
       string m_database;
       ushort m_port;
-	  SvrCapFlags m_capFlags;
+      SvrCapFlags m_capFlags;
       ConnectionPool!Connection m_pool;
    }
 
