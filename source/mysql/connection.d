@@ -60,7 +60,6 @@ import mysql.sha1;
 import vibe.core.net;
 import vibe.utils.string;
 
-import core.thread : Fiber;
 import std.algorithm;
 import std.conv;
 import std.datetime;
