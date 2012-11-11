@@ -944,7 +944,13 @@ SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, b
         case SQLType.MEDIUMBLOB:
         case SQLType.BLOB:
         case SQLType.LONGBLOB:
-            return packet.consumeIfComplete!(ubyte[])(binary, unsigned);
+            auto lcb = packet.consumeIfComplete!LCB();
+            assert(!lcb.isIncomplete);
+            SQLValue result;
+            result.isIncomplete = false;
+            result.isNull = false;
+            result.value = packet.consume(cast(size_t)lcb.value);
+            return result;
     }
 }
 
