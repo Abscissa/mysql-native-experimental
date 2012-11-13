@@ -2687,13 +2687,25 @@ public:
     {
         foreach (i, dummy; s.tupleof)
         {
-            if(_nulls[i])
-                s.tupleof[i] = typeof(s.tupleof[i]).init;
+            static if(__traits(hasMember, s.tupleof[i], "get")) // is Nullable!T?
+            {
+                if(!_nulls[i])
+                {
+                    enforceEx!MYX(_values[i].convertsTo!(typeof(s.tupleof[i].get))(),
+                        "At col "~to!string(i)~" the value is not implicitly convertible to the structure type");
+                    s.tupleof[i] = _values[i].get!(typeof(s.tupleof[i].get));
+                }
+            }
             else
             {
-                enforceEx!MYX(_values[i].convertsTo!(typeof(s.tupleof[i]))(),
-                    "At col "~to!string(i)~" the value is not implicitly convertible to the structure type");
-                s.tupleof[i] = _values[i].get!(typeof(s.tupleof[i]));
+                if(!_nulls[i])
+                {
+                    enforceEx!MYX(_values[i].convertsTo!(typeof(s.tupleof[i]))(),
+                        "At col "~to!string(i)~" the value is not implicitly convertible to the structure type");
+                    s.tupleof[i] = _values[i].get!(typeof(s.tupleof[i]));
+                }
+                else
+                    s.tupleof[i] = typeof(s.tupleof[i]).init;
             }
         }
     }
