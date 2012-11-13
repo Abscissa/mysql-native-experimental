@@ -2687,9 +2687,14 @@ public:
     {
         foreach (i, dummy; s.tupleof)
         {
-            enforceEx!MYX(_values[i].convertsTo!(typeof(s.tupleof[i]))(),
+            if(_nulls[i])
+                s.tupleof[i] = typeof(s.tupleof[i]).init;
+            else
+            {
+                enforceEx!MYX(_values[i].convertsTo!(typeof(s.tupleof[i]))(),
                     "At col "~to!string(i)~" the value is not implicitly convertible to the structure type");
-            s.tupleof[i] = _nulls[i]? typeof(s.tupleof[i]).init: _values[i].get!(typeof(s.tupleof[i]));
+                s.tupleof[i] = _values[i].get!(typeof(s.tupleof[i]));
+            }
         }
     }
 
