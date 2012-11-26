@@ -1989,6 +1989,12 @@ protected:
     }
     body
     {
+        if(!_socket.connected)
+        {
+            _open = OpenState.notConnected;
+            connect(_clientCapabilities);
+        }
+
         resetPacket();
 
         ubyte[] header;
@@ -2215,6 +2221,8 @@ protected:
         _open = OpenState.authenticated;
     }
 
+    SvrCapFlags _clientCapabilities;
+
     void connect(SvrCapFlags clientCapabilities)
     in
     {
@@ -2230,6 +2238,7 @@ protected:
         auto greeting = parseGreeting();
         _open = OpenState.connected;
 
+        _clientCapabilities = clientCapabilities;
         setClientFlags(clientCapabilities);
         authenticate(greeting);
     }
