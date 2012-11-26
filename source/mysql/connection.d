@@ -1888,8 +1888,8 @@ body
  * number. Connection deals with the headers and ensures that packet numbers are sequential.
  *
  * The initial packet is sent by the server - esentially a 'hello' packet inviting login. That packet
- * has a sequence number of zero. That sequence number is the incremented by cliemt and server
- * packets thruogh the handshake sequence.
+ * has a sequence number of zero. That sequence number is the incremented by client and server
+ * packets through the handshake sequence.
  *
  * After login all further sequences are initialized by the client sending a command packet with a
  * zero sequence number, to which the server replies with zero or more packets with sequential
@@ -2278,7 +2278,7 @@ public:
      * TBD The connection string needs work to allow for semicolons in its parts!
      *
      * Parameters:
-     *    cs = A connetion string of the form "host=localhost;user=user;pwd=password;db=mysqld"
+     *    cs = A connection string of the form "host=localhost;user=user;pwd=password;db=mysqld"
      *    capFlags = The set of flag bits from the server's capabilities that the client requires
      */
     this(string cs, SvrCapFlags capFlags = defaultClientFlags)
