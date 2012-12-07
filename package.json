@@ -7,14 +7,8 @@
 		"Steve Teale",
 		"James W. Oliphant",
 		"simendsjo",
-		"Sönke Ludwig"
+		"Sönke Ludwig",
+		"sshamov"
 	],
-	"version": "0.0.5",
-	"dependencies": {
-	},
-	"repository": {
-		"kind": "github",
-		"owner": "rejectedsoftware",
-		"project": "mysql-native"
-	}
+	"version": "0.0.6"
 }
