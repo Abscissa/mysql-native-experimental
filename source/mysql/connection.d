@@ -3413,7 +3413,7 @@ public:
      *
      * If there is an existing statement handle in the Command struct, that prepared statement is released.
      *
-     * Throws: MySQLEXception if there are pending result set items, or if the server has a problem.
+     * Throws: MySQLException if there are pending result set items, or if the server has a problem.
      */
     void prepare()
     {
