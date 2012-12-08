@@ -79,6 +79,36 @@ class MySQLException: Exception
 alias MySQLException MYX;
 
 /**
+ * The server sent back a MySQL error code and message. If the server is 4.1+,
+ * there should also be an ANSI/ODBC-standard SQLSTATE error code.
+ *
+ * See_Also: https://dev.mysql.com/doc/refman/5.5/en/error-messages-server.html
+ */
+class MySQLReceivedException: MySQLException
+{
+    ushort errorCode;
+    char[5] sqlState;
+
+    this(OKErrorPacket okp, string file, size_t line)
+    {
+        this(okp.message, okp.serverStatus, okp.sqlState, file, line);
+    }
+
+    this(string msg, ushort errorCode, char[5] sqlState, string file, size_t line)
+    {
+        this.errorCode = errorCode;
+        this.sqlState = sqlState;
+        super("MySQL error: " ~ msg, file, line);
+    }
+}
+alias MySQLReceivedException MYXReceived;
+
+private void enforcePacketOK(string file = __FILE__, size_t line = __LINE__)(OKErrorPacket okp)
+{
+    enforce(!okp.error, new MYXReceived(okp, file, line));
+}
+
+/**
  * A simple struct to represent time difference.
  *
  * D's std.datetime does not have a type that is closely compatible with the MySQL
@@ -2009,7 +2039,7 @@ protected:
     OKErrorPacket getCmdResponse(bool asString = false)
     {
         auto okp = OKErrorPacket(getPacket());
-        enforceEx!MYX(!okp.error, "MySQL error: " ~ cast(string) okp.message);
+        enforcePacketOK(okp);
         _serverStatus = okp.serverStatus;
         return okp;
     }
@@ -3445,7 +3475,8 @@ public:
         else if(packet.front == ResultPacketMarker.error)
         {
             auto error = OKErrorPacket(packet);
-            throw new MYX("MySQL Error: " ~ cast(string) error.message, __FILE__, __LINE__);
+            enforcePacketOK(error);
+            assert(0); // FIXME: what now?
         }
         else
             assert(0); // FIXME: what now?
@@ -3641,7 +3672,7 @@ public:
         {
             _con.resetPacket();
             auto okp = OKErrorPacket(packet);
-            enforceEx!MYX(!okp.error, "MySQL Error: " ~ cast(string) okp.message);
+            enforcePacketOK(okp);
             ra = okp.affected;
             _con._serverStatus = okp.serverStatus;
             _insertID = okp.insertID;
@@ -3808,7 +3839,7 @@ public:
         {
             _con.resetPacket();
             auto okp = OKErrorPacket(packet);
-            enforceEx!MYX(!okp.error, "MySQL Error: " ~ cast(string) okp.message);
+            enforcePacketOK(okp);
             ra = okp.affected;
             _con._serverStatus = okp.serverStatus;
             _insertID = okp.insertID;
