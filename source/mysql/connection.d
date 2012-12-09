@@ -1685,6 +1685,11 @@ public:
 }
 
 bool isEOFPacket(ubyte[] packet)
+in
+{
+    assert(!packet.empty);
+}
+body
 {
     return packet.front == ResultPacketMarker.eof && packet.length < 9;
 }
@@ -3734,7 +3739,7 @@ public:
             rows ~= Row(_con, packet, _rsh, false);
             // As the row fetches more data while incomplete, it might already have
             // fetched the EOF marker, so we have to check it again
-            if(packet.isEOFPacket())
+            if(!packet.empty && packet.isEOFPacket())
                 break;
         }
         _rowsPending = _pendingBinary = false;
