@@ -679,7 +679,7 @@ in
 }
 body
 {
-	return toDate(packet.consume(5));
+    return toDate(packet.consume(5));
 }
 
 DateTime consume(T:DateTime, ubyte N=T.sizeof)(ref ubyte[] packet)
