@@ -975,12 +975,24 @@ SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, b
         case SQLType.MEDIUMBLOB:
         case SQLType.BLOB:
         case SQLType.LONGBLOB:
+
+            // TODO: This line should work. Why doesn't it?
+            //return packet.consumeIfComplete!(ubyte[])(binary, unsigned);
+
             auto lcb = packet.consumeIfComplete!LCB();
             assert(!lcb.isIncomplete);
             SQLValue result;
             result.isIncomplete = false;
-            result.isNull = false;
-            result.value = packet.consume(cast(size_t)lcb.value);
+            result.isNull = lcb.isNull;
+            if(result.isNull)
+            {
+                // TODO: consumeIfComplete!LCB should be adjusted to do
+                //       this itself, but not until I'm certain that nothing
+                //       is reliant on the current behavior.
+                packet.popFront(); // LCB length
+            }
+            else
+                result.value = packet.consume(cast(size_t)lcb.value);
             return result;
     }
 }
