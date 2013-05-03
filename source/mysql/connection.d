@@ -1267,7 +1267,7 @@ body
  * value = The value to add to array
  * array = The array we should add the values for. It has to be large enough, and the values are packed starting index 0
  */
-void packInto(T, bool IsInt24 = false)(T value, ref ubyte[] array)
+void packInto(T, bool IsInt24 = false)(T value, ubyte[] array)
 in
 {
     static if(IsInt24)
@@ -1481,7 +1481,7 @@ struct OKErrorPacket
             {
                 packet.popFront(); // skip 4.1 marker
                 enforceEx!MYXProtocol(packet.length > 5, "Malformed Error packet - Missing SQL state");
-                sqlState[] = cast(char[]) packet[0..5];
+                sqlState[] = (cast(char[])packet[0 .. 5])[];
                 packet = packet[5..$];
             }
         }
@@ -2138,7 +2138,7 @@ protected:
         // read first part of scramble buf
         ubyte[] authBuf;
         authBuf.length = 255;
-        authBuf[0..8] = packet.consume(8); // scramble_buff
+        authBuf[0..8] = packet.consume(8)[]; // scramble_buff
 
         enforceEx!MYXProtocol(packet.consume!ubyte() == 0, "filler should always be 0");
 
@@ -2151,7 +2151,7 @@ protected:
         auto len = packet.countUntil(0);
         enforceEx!MYXProtocol(len >= 12, "second part of scramble buffer should be at least 12 bytes");
         enforce(authBuf.length > 8+len);
-        authBuf[8..8+len] = packet.consume(len);
+        authBuf[8..8+len] = packet.consume(len)[];
         authBuf.length = 8+len; // cut to correct size
         enforceEx!MYXProtocol(packet.consume!ubyte() == 0, "Excepted \\0 terminating scramble buf");
 
@@ -2352,6 +2352,7 @@ public:
    void acquire() { if( _socket ) _socket.acquire(); }
    void release() { if( _socket ) _socket.release(); }
    bool isOwner() { return _socket ? _socket.isOwner() : false; }
+   bool amOwner() { return _socket ? _socket.isOwner() : false; }
 
     /**
      * Explicitly close the connection.

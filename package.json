@@ -11,5 +11,17 @@
 		"sshamov"
 	],
 	"dependencies": {
-	}
+		"vibe-d": ">=0.7.13"
+	},
+	"configurations": [
+	 	{
+	 		"name": "application",
+	 		"targetType": "executable",
+	 		"versions": ["VibeCustomMain"]
+	 	},
+	 	{
+			"name": "library",
+			"excludedSourceFiles": ["source/app.d"]
+		}
+	]
 }
