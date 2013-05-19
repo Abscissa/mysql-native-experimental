@@ -3841,7 +3841,7 @@ public:
      * To bind to some D variable, we set the corrsponding variant with its address, so there is no
      * need to rebind between calls to execPreparedXXX.
      */
-    void bindParameter(T)(ref T val, uint pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null, true))
+    void bindParameter(T)(ref T val, uint pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
     {
         // Now in theory we should be able to check the parameter type here, since the protocol is supposed
         // to send us type information for the parameters, but this capability seems to be broken. This assertion
@@ -3854,11 +3854,8 @@ public:
         enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
         enforceEx!MYX(pIndex < _psParams, "Parameter number is out of range for the prepared statement.");
         _inParams[pIndex] = &val;
-        if (!psn.dummy)
-        {
-            psn.pIndex = pIndex;
-            _psa[pIndex] = psn;
-        }
+        psn.pIndex = pIndex;
+        _psa[pIndex] = psn;
     }
 
     /**
