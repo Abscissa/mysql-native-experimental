@@ -1043,7 +1043,6 @@ SQLValue consumeNonBinaryValueIfComplete(T)(ref ubyte[] packet, bool unsigned)
             }
             else
             {
-                assert(!unsigned);
                 static if(isArray!T)
                 {
                     // to!() crashes when trying to convert empty strings
