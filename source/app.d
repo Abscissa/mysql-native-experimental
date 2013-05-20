@@ -14,7 +14,7 @@ void testMySql()
     //import mysql.db;
     //auto mdb = new MysqlDB("localhost", "user", "password", "database");
     //auto c = mdb.lockConnection();
-    auto c = new Connection(MySQLSocketType.vibed, "localhost", "user", "password", "database");
+    auto c = new Connection("localhost", "user", "password", "database");
 
 //   writefln("You have connected to server version %s", c.serverVersion);
 //   writefln("With currents stats : %s", c.serverStats());

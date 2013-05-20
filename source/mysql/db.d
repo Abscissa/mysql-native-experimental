@@ -2,14 +2,7 @@ module mysql.db;
 
 public import mysql.connection;
 
-version(MySQLN_NoVibeD)
-{
-    static assert(false,
-        "The 'mysql.db.MysqlDB' connection pool requires Vibe.d and therefore "~
-        "doesn't work with -version=MySQLN_NoVibeD"
-    );
-}
-else
+version(Have_vibe_d)
 {
     import vibe.core.connectionpool;
 
@@ -42,4 +35,11 @@ else
           return new Connection(m_host, m_user, m_password, m_database, m_port, m_capFlags);
        }
     }
+}
+else
+{
+    static assert(false,
+        "The 'mysql.db.MysqlDB' connection pool requires Vibe.d and therefore "~
+        "must be used with -version=Have_vibe_d"
+    );
 }

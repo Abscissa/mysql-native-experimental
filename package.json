@@ -10,9 +10,6 @@
 		"Sönke Ludwig",
 		"sshamov"
 	],
-	"dependencies": {
-		"vibe-d": ">=0.7.13"
-	},
 	"configurations": [
 	 	{
 	 		"name": "application",

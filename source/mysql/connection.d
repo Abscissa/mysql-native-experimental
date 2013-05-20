@@ -38,9 +38,14 @@
  *
  * The file mysqld.sql, included with the module source code, can be used to generate the tables required by the unit tests.
  *
- * This module supports both Vibe.d sockets and Phobos sockets. If you don't intend
- * to use Vibe.d, you can eliminate this module's dependency on it by using:
- *   -version=MySQLN_NoVibeD
+ * This module supports both Phobos sockets and $(LINK http://vibed.org/, Vibe.d) sockets.
+ * Vibe.d support is disabled by default, to avoid unnecessary depencency on Vibe.d.
+ * To enable Vibe.d support, use:
+ *   -version=Have_vibe_d
+ *
+ * If you compile using $(LINK https://github.com/rejectedsoftware/dub, DUB),
+ * and your project uses Vibe.d, then the -version flag above will be included
+ * automatically.
  *
  * This requires a MySQL server v4.1.1 or later. Older versions of MySQL server
  * are obsolete, use known-insecure authentication, and are not supported by this module.
@@ -62,19 +67,12 @@ import mysql.sha1;
 
 import std.socket;
 
-version(MySQLN_NoVibeD) {} else
+version(Have_vibe_d)
 {
     static if(__traits(compiles, (){ import vibe.core.net; } ))
         import vibe.core.net;
     else
-    {
-        static assert(false,
-            "mysql-native can't find Vibe.d's 'vibe.core.net'. "~
-            "If you don't intend to use Vibe.d, "~
-            "then use -version=MySQLN_NoVibeD to eliminate "~
-            "mysql-native's dependency on Vibe.d."
-        );
-    }
+        static assert(false, "mysql-native can't find Vibe.d's 'vibe.core.net'.");
 }
 
 import std.algorithm;
@@ -135,18 +133,18 @@ private void enforcePacketOK(string file = __FILE__, size_t line = __LINE__)(OKE
     enforce(!okp.error, new MYXReceived(okp, file, line));
 }
 
-// Phobos/Vibe.D type aliases
+// Phobos/Vibe.d type aliases
 private alias std.socket.TcpSocket PlainPhobosSocket;
-version(MySQLN_NoVibeD)
+version(Have_vibe_d)
+{
+    private alias EventedObject MySQLEventedObject;
+    private alias vibe.core.net.TcpConnection PlainVibeDSocket;
+}
+else
 {
     // Dummy types
     private alias Object MySQLEventedObject;
     private alias Object PlainVibeDSocket;
-}
-else
-{
-    private alias EventedObject MySQLEventedObject;
-    private alias vibe.core.net.TcpConnection PlainVibeDSocket;
 }
 
 alias PlainPhobosSocket function(string,ushort) OpenSocketCallbackPhobos;
@@ -154,8 +152,8 @@ alias PlainVibeDSocket  function(string,ushort) OpenSocketCallbackVibeD;
 
 enum MySQLSocketType { phobos, vibed }
 
-// A minimal socket interface similar to Vibe.D's TcpConnection.
-// Used to wrap both Phobos and Vibe.D sockets with a common interface.
+// A minimal socket interface similar to Vibe.d's TcpConnection.
+// Used to wrap both Phobos and Vibe.d sockets with a common interface.
 private interface MySQLSocket
 {
     void close();
@@ -216,8 +214,8 @@ private class MySQLSocketPhobos : MySQLSocket
     bool amOwner() { return true; }
 }
 
-// Wraps a Vibe.D socket with the common interface
-version(MySQLN_NoVibeD) {} else
+// Wraps a Vibe.d socket with the common interface
+version(Have_vibe_d)
 private class MySQLSocketVibeD : MySQLSocket
 {
     private PlainVibeDSocket socket;
@@ -225,8 +223,8 @@ private class MySQLSocketVibeD : MySQLSocket
     // The socket should already be open
     this(PlainVibeDSocket socket)
     {
-        enforceEx!MYX(socket, "Tried to use a null Vibe.D socket - Maybe the 'openSocket' callback returned null?");
-        enforceEx!MYX(socket.connected, "Tried to use a closed Vibe.D socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
+        enforceEx!MYX(socket, "Tried to use a null Vibe.d socket - Maybe the 'openSocket' callback returned null?");
+        enforceEx!MYX(socket.connected, "Tried to use a closed Vibe.d socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
         this.socket = socket;
     }
 
@@ -2123,7 +2121,7 @@ protected:
     void bumpPacket()       { _cpn++; }
     void resetPacket()      { _cpn = 0; }
 
-    version(MySQLN_NoVibeD)
+    version(Have_vibe_d) {} else
     invariant()
     {
         assert(_socketType != MySQLSocketType.vibed);
@@ -2321,10 +2319,10 @@ protected:
     
     static PlainVibeDSocket defaultOpenSocketVibeD(string host, ushort port)
     {
-        version(MySQLN_NoVibeD)
-            assert(0);
-        else
+        version(Have_vibe_d)
             return vibe.core.net.connectTcp(host, port);
+        else
+            assert(0);
     }
 
     void initConnection()
@@ -2336,10 +2334,10 @@ protected:
                 break;
 
             case MySQLSocketType.vibed:
-                version(MySQLN_NoVibeD)
-                    assert(0);
-                else
+                version(Have_vibe_d)
                     _socket = new MySQLSocketVibeD(_openSocketVibeD(_host, _port));
+				else
+                    assert(0);
                 break;
         }
     }
@@ -2483,8 +2481,8 @@ public:
      * client preferences can be set, and authentication can then be attempted.
      *
      * Parameters:
-     *    socketType = Whether to use a Phobos or Vibe.D socket. Default is Vibe.D, unless -version=MySQLN_NoVibeD is used.
-     *    openSocket = Optional callback which should return a newly-opened Phobos or Vibe.D TCP socket. This allows custom sockets to be used, subclassed from Phobos's or Vibe.D's sockets.
+     *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos, unless -version=Have_vibe_d is used.
+     *    openSocket = Optional callback which should return a newly-opened Phobos or Vibe.d TCP socket. This allows custom sockets to be used, subclassed from Phobos's or Vibe.d's sockets.
      *    host = An IP address in numeric dotted form, or as a host  name.
      *    user = The user name to authenticate.
      *    password = Users password.
@@ -2493,10 +2491,10 @@ public:
      */
     this(string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
     {
-        version(MySQLN_NoVibeD)
-            enum defaultSocketType = MySQLSocketType.phobos;
-        else
+        version(Have_vibe_d)
             enum defaultSocketType = MySQLSocketType.vibed;
+        else
+            enum defaultSocketType = MySQLSocketType.phobos;
 
         this(defaultSocketType, host, user, pwd, db, port, capFlags);
     }
@@ -2504,8 +2502,8 @@ public:
     ///ditto
     this(MySQLSocketType socketType, string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
     {
-        version(MySQLN_NoVibeD)
-            enforceEx!MYX(socketType != MySQLSocketType.vibed, "Cannot use Vibe.D sockets with -version=MySQLN_NoVibeD");
+        version(Have_vibe_d) {} else
+            enforceEx!MYX(socketType != MySQLSocketType.vibed, "Cannot use Vibe.d sockets without -version=Have_vibe_d");
         
         this(socketType, &defaultOpenSocketPhobos, &defaultOpenSocketVibeD,
             host, user, pwd, db, port, capFlags);
@@ -2518,7 +2516,7 @@ public:
         this(MySQLSocketType.phobos, openSocket, null, host, user, pwd, db, port, capFlags);
     }
     
-    version(MySQLN_NoVibeD) {} else
+    version(Have_vibe_d)
     ///ditto
     this(OpenSocketCallbackVibeD openSocket,
         string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
@@ -2541,8 +2539,8 @@ public:
     {
         enforceEx!MYX(capFlags & SvrCapFlags.PROTOCOL41, "This client only supports protocol v4.1");
         enforceEx!MYX(capFlags & SvrCapFlags.SECURE_CONNECTION, "This client only supports protocol v4.1 connection");
-        version(MySQLN_NoVibeD)
-            enforceEx!MYX(socketType != MySQLSocketType.vibed, "Cannot use Vibe.D sockets with -version=MySQLN_NoVibeD");
+        version(Have_vibe_d) {} else
+            enforceEx!MYX(socketType != MySQLSocketType.vibed, "Cannot use Vibe.d sockets without -version=Have_vibe_d");
 
         _socketType = socketType;
         _host = host;
@@ -2566,8 +2564,8 @@ public:
      * TBD The connection string needs work to allow for semicolons in its parts!
      *
      * Parameters:
-     *    socketType = Whether to use a Phobos or Vibe.D socket. Default is Vibe.D, unless -version=MySQLN_NoVibeD is used.
-     *    openSocket = Optional callback which should return a newly-opened Phobos or Vibe.D TCP socket. This allows custom sockets to be used, subclassed from Phobos's or Vibe.D's sockets.
+     *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos, unless -version=Have_vibe_d is used.
+     *    openSocket = Optional callback which should return a newly-opened Phobos or Vibe.d TCP socket. This allows custom sockets to be used, subclassed from Phobos's or Vibe.d's sockets.
      *    cs = A connection string of the form "host=localhost;user=user;pwd=password;db=mysqld"
      *    capFlags = The set of flag bits from the server's capabilities that the client requires
      */
@@ -2591,7 +2589,7 @@ public:
         this(openSocket, a[0], a[1], a[2], a[3], to!ushort(a[4]), capFlags);
     }
 
-    version(MySQLN_NoVibeD) {} else
+    version(Have_vibe_d)
     ///ditto
     this(OpenSocketCallbackVibeD openSocket, string cs, SvrCapFlags capFlags = defaultClientFlags)
     {
@@ -2604,7 +2602,7 @@ public:
         return _open == OpenState.notConnected || !_socket.connected;
     }
 
-    version(MySQLN_NoVibeD)
+    version(Have_vibe_d)
     {
         void acquire() { if( _socket ) _socket.acquire(); }
         void release() { if( _socket ) _socket.release(); }
