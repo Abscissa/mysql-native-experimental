@@ -65,8 +65,6 @@ module mysql.connection;
 
 import mysql.sha1;
 
-import std.socket;
-
 version(Have_vibe_d)
 {
     static if(__traits(compiles, (){ import vibe.core.net; } ))
@@ -80,6 +78,7 @@ import std.conv;
 import std.datetime;
 import std.exception;
 import std.range;
+import std.socket;
 import std.stdio;
 import std.string;
 import std.traits;
@@ -1959,6 +1958,8 @@ public:
     @property ushort warnings() { return _warnings; }
     /// Get an array of strings representing the column names
     @property string[] fieldNames() { return _fieldNames; }
+    /// Get an array of the field descriptions
+    @property FieldDescription[] fieldDescriptions() { return _fieldDescriptions; }
 
     void show()
     {
@@ -2020,6 +2021,9 @@ public:
 
     ParamDescription param(size_t i) { return _paramDescriptions[i]; }
     FieldDescription col(size_t i) { return _colDescriptions[i]; }
+
+    ParamDescription[] paramDescriptions() { return _paramDescriptions; }
+    FieldDescription[] fieldDescriptions() { return _colDescriptions; }
 
     @property paramCount() { return _paramCount; }
     @property ushort warnings() { return _warnings; }
@@ -2336,7 +2340,7 @@ protected:
             case MySQLSocketType.vibed:
                 version(Have_vibe_d)
                     _socket = new MySQLSocketVibeD(_openSocketVibeD(_host, _port));
-				else
+                else
                     assert(0);
                 break;
         }
@@ -3067,9 +3071,10 @@ struct DBValue
 struct ResultSet
 {
 private:
-    Row[]       _rows;      // all rows in ResultSet, we store this to be able to revert() to it's original state
-    string[]    _colNames;
-    Row[]       _curRows;   // current rows in ResultSet
+    Row[]          _rows;      // all rows in ResultSet, we store this to be able to revert() to it's original state
+    string[]       _colNames;
+    Row[]          _curRows;   // current rows in ResultSet
+    size_t[string] _colNameIndicies;
 
     this (Row[] rows, string[] colNames)
     {
@@ -3184,6 +3189,21 @@ public:
         }
         return aa;
     }
+
+    /// Get the names of all the columns
+    @property const(string)[] colNames() { return _colNames; }
+
+    /// An AA to lookup a column's index by name
+    @property const(size_t[string]) colNameIndicies()
+    {
+        if(_colNameIndicies is null)
+        {
+            foreach(index, name; _colNames)
+                _colNameIndicies[name] = index;
+        }
+        
+        return _colNameIndicies;
+    }
 }
 
 /**
@@ -3206,8 +3226,8 @@ private:
 
     this (Command* cmd, string[] colNames)
     {
-        _cmd        = cmd;
-        _colNames   = colNames;
+        _cmd      = cmd;
+        _colNames = colNames;
         popFront();
     }
 
@@ -3290,7 +3310,7 @@ public:
      *
      * Note that this is not neccessarlly the same as the length of the range.
      */
-     @property ulong rowCount() { return _numRowsFetched; }
+    @property ulong rowCount() { return _numRowsFetched; }
 }
 
 /**
@@ -3619,8 +3639,10 @@ private:
                     vals[vcl..vcl+packed.length] = packed[];
                     vcl += packed.length;
                     break;
+                case "void":
+                    throw new MYX("Unbound parameter " ~ to!string(i), __FILE__, __LINE__);
                 default:
-                    throw new MYX("Unsupported parameter type", __FILE__, __LINE__);
+                    throw new MYX("Unsupported parameter type " ~ ts, __FILE__, __LINE__);
             }
         }
         vals.length = vcl;
@@ -3928,6 +3950,19 @@ public:
         enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
         enforceEx!MYX(index < _psParams, "Parameter index out of range.");
         return _inParams[index];
+    }
+
+    /**
+     * Sets a prepared statement parameter to NULL.
+     *
+     * Params: index = The zero based index
+     */
+    void setNullParam(size_t index)
+    {
+        enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
+        enforceEx!MYX(index < _psParams, "Parameter index out of range.");
+        _psa[index].isNull = true;
+        _inParams[index] = "";
     }
 
     /**
@@ -4385,9 +4420,22 @@ public:
         return execPrepared(ra);
     }
 
-    /// After a command that inserted a row into a table with an auto-increment  ID
-    /// column, this method allows you to retrieve the last insert ID.
+    /// After a command that inserted a row into a table with an auto-increment
+    /// ID column, this method allows you to retrieve the last insert ID.
     @property ulong lastInsertID() { return _insertID; }
+    
+    /// Gets the number of parameters in this Command
+    @property ushort numParams()
+    {
+        return _psParams;
+    }
+
+    /// Gets the result header's field descriptions.
+    @property FieldDescription[] resultFieldDescriptions() { return _rsh.fieldDescriptions; }
+    /// Gets the prepared header's field descriptions.
+    @property FieldDescription[] preparedFieldDescriptions() { return _psh.fieldDescriptions; }
+    /// Gets the prepared header's param descriptions.
+    @property ParamDescription[] preparedParamDescriptions() { return _psh.paramDescriptions; }
 }
 
 version(none) {
