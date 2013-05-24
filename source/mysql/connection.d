@@ -2195,6 +2195,9 @@ protected:
     {
         if(!_socket.connected)
         {
+            if(cmd == CommandType.QUIT)
+                return; // Don't bother reopening connection just to quit
+            
             _open = OpenState.notConnected;
             connect(_clientCapabilities);
         }
