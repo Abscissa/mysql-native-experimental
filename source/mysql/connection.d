@@ -59,7 +59,7 @@
  *
  * Copyright: Copyright 2011
  * License:   $(LINK www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
- * Author:   Steve Teale
+ * Authors:   Steve Teale, James W. Oliphant, simendsjo, Sönke Ludwig, sshamov, Nick Sabalausky
  */
 module mysql.connection;
 
