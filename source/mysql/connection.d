@@ -2473,12 +2473,6 @@ protected:
         authenticate(greeting);
     }
 
-    ~this()
-    {
-        if (_open != OpenState.notConnected)
-            close();
-    }
-
 public:
 
     /**
