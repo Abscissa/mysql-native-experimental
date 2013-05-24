@@ -47,23 +47,19 @@
  * and your project uses Vibe.d, then the -version flag above will be included
  * automatically.
  *
- * This requires a MySQL server v4.1.1 or later. Older versions of MySQL server
- * are obsolete, use known-insecure authentication, and are not supported by this module.
+ * This requires DMD v2.061 or later, and a MySQL server v4.1.1 or later. Older
+ * versions of MySQL server are obsolete, use known-insecure authentication,
+ * and are not supported by this module.
  *
  * There is an outstanding issue with Connections. Normally MySQL clients sonnect to a server on the same machine
  * via a Unix socket on *nix systems, and through a named pipe on Windows. Neither of these conventions is
  * currently supported. TCP must be used for all connections.
- *
- * Since there is currently no SHA1 support on Phobos, a simple translation of the NIST example C code for SHA1
- * is also included with this module.
  *
  * Copyright: Copyright 2011
  * License:   $(LINK www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Steve Teale, James W. Oliphant, simendsjo, Sönke Ludwig, sshamov, Nick Sabalausky
  */
 module mysql.connection;
-
-import mysql.sha1;
 
 version(Have_vibe_d)
 {
@@ -76,6 +72,7 @@ version(Have_vibe_d)
 import std.algorithm;
 import std.conv;
 import std.datetime;
+import std.digest.sha;
 import std.exception;
 import std.range;
 import std.socket;
@@ -2351,23 +2348,17 @@ protected:
 
     ubyte[] makeToken(ubyte[] authBuf)
     {
+        auto pass1 = sha1Of(cast(const(ubyte)[])_pwd);
+        auto pass2 = sha1Of(pass1);
+
         SHA1 sha1;
-        sha1.reset();
-        sha1.input(cast(const(ubyte)*) _pwd.ptr, _pwd.length);
-
-        ubyte[] pass1 = sha1.result();
-        sha1.reset();
-        sha1.input(pass1.ptr, pass1.length);
-
-        ubyte[] pass2 = sha1.result();
-        sha1.reset();
-        sha1.input(authBuf.ptr, authBuf.length);
-        sha1.input(pass2.ptr, pass2.length);
-
-        ubyte[] result = sha1.result();
+        sha1.start();
+        sha1.put(authBuf);
+        sha1.put(pass2);
+        auto result = sha1.finish();
         foreach (uint i; 0..20)
             result[i] = result[i] ^ pass1[i];
-        return result;
+        return result.dup;
     }
 
     SvrCapFlags getCommonCapabilities(SvrCapFlags server, SvrCapFlags client) pure
