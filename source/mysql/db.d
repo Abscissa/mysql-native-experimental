@@ -1,4 +1,4 @@
-module mysql.db;
+﻿module mysql.db;
 
 public import mysql.connection;
 

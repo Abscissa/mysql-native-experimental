@@ -1,4 +1,4 @@
-module mysql.sha1;
+﻿module mysql.sha1;
 
 import std.stdio;
 import std.conv;

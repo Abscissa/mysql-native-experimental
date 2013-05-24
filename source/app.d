@@ -1,4 +1,4 @@
-import mysql.connection;
+﻿import mysql.connection;
 import std.stdio;
 
 void main()
