@@ -1909,7 +1909,7 @@ public:
     this(Connection con, uint fieldCount)
     {
         _fieldNames.length = _fieldDescriptions.length = fieldCount;
-        foreach (uint i; 0 .. fieldCount)
+        foreach (size_t i; 0 .. fieldCount)
         {
             auto packet = con.getPacket();
             enforceEx!MYXProtocol(!packet.isEOFPacket(),
@@ -2003,13 +2003,13 @@ public:
         // The parameter specs are useless - they are all the same. This observation is coroborated
         // by the fact that the C API does not have any information about parameter types either.
         // WireShark gives up on these records also.
-        foreach (uint i; 0.._paramCount)
+        foreach (size_t i; 0.._paramCount)
             _con.getPacket();  // just eat them - they are not useful
 
         if (_paramCount)
             enforceEx!MYXProtocol(getEOFPacket(), "Expected EOF packet in result header sequence");
 
-        foreach(uint i; 0.._colCount)
+        foreach(size_t i; 0.._colCount)
            _colDescriptions[i] = FieldDescription(_con.getPacket());
 
         if (_colCount)
@@ -2356,7 +2356,7 @@ protected:
         sha1.put(authBuf);
         sha1.put(pass2);
         auto result = sha1.finish();
-        foreach (uint i; 0..20)
+        foreach (size_t i; 0..20)
             result[i] = result[i] ^ pass1[i];
         return result.dup;
     }
@@ -2365,7 +2365,7 @@ protected:
     {
         SvrCapFlags common;
         uint filter = 1;
-        foreach (uint i; 0..uint.sizeof)
+        foreach (size_t i; 0..uint.sizeof)
         {
             bool serverSupport = (server & filter) != 0; // can the server do this capability?
             bool clientSupport = (client & filter) != 0; // can we support it?
@@ -2794,7 +2794,7 @@ unittest
  */
 struct ParameterSpecialization
 {
-    uint pIndex;    //parameter number 0 - number of params-1
+    size_t pIndex;    //parameter number 0 - number of params-1
     bool isNull;
     SQLType type = SQLType.INFER_FROM_D_TYPE;
     uint chunkSize;
@@ -2819,7 +2819,7 @@ alias ParameterSpecialization PSN;
  */
 struct ColumnSpecialization
 {
-    uint    cIndex;    // parameter number 0 - number of params-1
+    size_t  cIndex;    // parameter number 0 - number of params-1
     ushort  type;
     uint    chunkSize;
     void delegate(ubyte[] chunk, bool finished) chunkDelegate;
@@ -2934,7 +2934,7 @@ public:
             _nulls = consumeNullBitmap(packet, fieldCount);
         }
 
-        foreach (int i; 0..fieldCount)
+        foreach (size_t i; 0..fieldCount)
         {
             if(binary && _nulls[i])
                 continue;
@@ -2972,7 +2972,7 @@ public:
      * Params: i = the zero based index of the column whose value is required.
      * Returns: A Variant holding the column value.
      */
-    Variant opIndex(uint i)
+    Variant opIndex(size_t i)
     {
         enforceEx!MYX(i < _nulls.length, format("Cannot get column %d of %d. Index out of bounds", i, _nulls.length));
         enforceEx!MYX(!_nulls[i], format("Column %s is null, check for isNull", i));
@@ -2984,7 +2984,7 @@ public:
      *
      * Params: i = The zero based column index.
      */
-    @property bool isNull(uint i) { return _nulls[i]; }
+    @property bool isNull(size_t i) { return _nulls[i]; }
 
     /**
      * Move the content of the row into a compatible struct
@@ -3168,7 +3168,7 @@ public:
     {
         enforceEx!MYX(_curRows.length, "Attempted use of empty ResultSet as an associative array.");
         DBValue[string] aa;
-        foreach (uint i, string s; _colNames)
+        foreach (size_t i, string s; _colNames)
         {
             DBValue value;
             value.value  = front._values[i];
@@ -3271,7 +3271,7 @@ public:
      {
         enforceEx!MYX(!_empty, "Attempted 'front' on exhausted result sequence.");
         DBValue[string] aa;
-        foreach (uint i, string s; _colNames)
+        foreach (size_t i, string s; _colNames)
         {
             DBValue value;
             value.value  = _row._values[i];
@@ -3338,12 +3338,12 @@ private:
         size_t bml = (psa.length+7)/8;
         ubyte[] bma;
         bma.length = bml;
-        foreach (uint i, PSN psn; psa)
+        foreach (size_t i, PSN psn; psa)
         {
             if (!psn.isNull)
                 continue;
-            uint bn = i/8;
-            uint bb = i%8;
+            size_t bn = i/8;
+            size_t bb = i%8;
             ubyte sr = 1;
             sr <<= bb;
             bma[bn] |= sr;
@@ -3813,7 +3813,7 @@ public:
         {
             if (_headersPending)
             {
-                for (uint i = 0;; i++)
+                for (size_t i = 0;; i++)
                 {
                     if (_con.getPacket().isEOFPacket())
                     {
@@ -3849,7 +3849,7 @@ public:
      * To bind to some D variable, we set the corrsponding variant with its address, so there is no
      * need to rebind between calls to execPreparedXXX.
      */
-    void bindParameter(T)(ref T val, uint pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
+    void bindParameter(T)(ref T val, size_t pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
     {
         // Now in theory we should be able to check the parameter type here, since the protocol is supposed
         // to send us type information for the parameters, but this capability seems to be broken. This assertion
@@ -3879,7 +3879,7 @@ public:
     {
         enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
         enforceEx!MYX(args.length == _psParams, "Argument list supplied does not match the number of parameters.");
-        foreach (uint i, dummy; args)
+        foreach (size_t i, dummy; args)
             _inParams[i] = &args[i];
     }
 
@@ -3933,7 +3933,7 @@ public:
      * ------------
      * Params: index = The zero based index
      */
-    ref Variant param(uint index)
+    ref Variant param(size_t index)
     {
         enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
         enforceEx!MYX(index < _psParams, "Parameter index out of range.");
@@ -4084,7 +4084,7 @@ public:
         if (!rr._valid)   // The result set was empty - not a crime.
             return;
         enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
-        foreach (uint i, dummy; args)
+        foreach (size_t i, dummy; args)
         {
             enforceEx!MYX(typeid(args[i]).toString() == rr._values[i].type.toString(),
                 "Tuple "~to!string(i)~" type and column type are not compatible.");
@@ -4186,7 +4186,7 @@ public:
             _rsh.addSpecializations(csa);
         _headersPending = false;
         ubyte[] packet;
-        for (uint i = 0;; i++)
+        for (size_t i = 0;; i++)
         {
             packet = _con.getPacket();
             if (packet.isEOFPacket())
@@ -4250,7 +4250,7 @@ public:
         Row rr = getNextRow();
         enforceEx!MYX(rr._valid, "The result set was empty.");
         enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
-        foreach (uint i, dummy; args)
+        foreach (size_t i, dummy; args)
         {
             enforceEx!MYX(typeid(args[i]).toString() == rr._values[i].type.toString(),
                 "Tuple "~to!string(i)~" type and column type are not compatible.");
@@ -4645,23 +4645,23 @@ unittest
         c1.sql = "insert into tblob values(321, NULL, 22.4, NULL, '2011-11-05 11:52:00')";
         c1.execSQL(ra);
 
-        uint delegate(ubyte[]) foo()
+        size_t delegate(ubyte[]) foo()
         {
-            uint n = 20000000;
+            size_t n = 20000000;
             uint cp = 0;
 
-            void fill(ubyte[] a, uint m)
+            void fill(ubyte[] a, size_t m)
             {
-                foreach (uint i; 0..m)
+                foreach (size_t i; 0..m)
                 {
                     a[i] = cast(ubyte) (cp & 0xff);
                     cp++;
                 }
             }
 
-            uint dg(ubyte[] dest)
+            size_t dg(ubyte[] dest)
             {
-                uint len = dest.length;
+                size_t len = dest.length;
                 if (n >= len)
                 {
                     fill(dest, len);
@@ -4709,7 +4709,7 @@ unittest
 
           void dg(ubyte[] ba, bool finished)
           {
-             foreach (uint i; 0..ba.length)
+             foreach (size_t i; 0..ba.length)
              {
                 if (verified && ba[i] != ((got+i) & 0xff))
                    verified = false;
@@ -4759,7 +4759,7 @@ struct ColumnInfo
     /// The name of the column.
     string name;
     /// Zero based index of the column within a table row.
-    uint index;
+    size_t index;
     /// Is the default value NULL?
     bool defaultNull;
     /// The default value as a string if not NULL
@@ -4968,8 +4968,8 @@ public:
                         if(isNull)
                             col.index = -1;
                         else
-                            col.index = cast(uint)(r[j].get!ulong() - 1);
-                        //col.index = cast(uint)(r[j].get!(ulong)-1);
+                            col.index = cast(size_t)(r[j].get!ulong() - 1);
+                        //col.index = cast(size_t)(r[j].get!(ulong)-1);
                         break;
                     case 5:
                         if (isNull)
