@@ -2389,7 +2389,7 @@ protected:
     static string[] parseConnectionString(string cs)
     {
         string[] rv;
-        rv.length = 4;
+        rv.length = 5;
         string[] a = split(cs, ";");
         foreach (s; a)
         {
