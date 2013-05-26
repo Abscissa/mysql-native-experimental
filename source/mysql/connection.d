@@ -2390,6 +2390,7 @@ protected:
     {
         string[] rv;
         rv.length = 5;
+		rv[4] = "3306"; // Default port
         string[] a = split(cs, ";");
         foreach (s; a)
         {
