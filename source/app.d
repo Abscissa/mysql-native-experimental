@@ -1,21 +1,47 @@
-﻿import mysql.connection;
+﻿/++
+Usage: app [connection string]
+
+If connection string isn't provided, the following default connection string will be used:
+   host=localhost;port=3306;user=testuser;pwd=testpassword;db=testdb
+
+(optional) -version=Have_vibe_d:
+    Link with Vibe.d, and run test using use Vibe.d sockets instead of Phobos sockets.
+
+(optional) -version=UseConnPool:
+    Run test using use Vibe.d conenction pool. Requires -version=Have_vibe_d
++/
+
+import mysql.connection;
 import std.stdio;
 
-void main()
+void main(string[] args)
 {
-    try testMySql();
+    string connStr = "host=localhost;port=3306;user=testuser;pwd=testpassword;db=testdb";
+    if(args.length > 1)
+        connStr = args[1];
+    else
+        writeln("No connection string provided on cmdline, using default:\n", connStr);
+    
+    try testMySql(connStr);
     catch( Exception e ){
         writeln("Failed: ", e.toString());
     }
 }
 
-void testMySql()
+void testMySql(string connStr)
 {
-    //import mysql.db;
-    //auto mdb = new MysqlDB("localhost", "user", "password", "database");
-    //auto c = mdb.lockConnection();
-    auto c = new Connection("localhost", "user", "password", "database");
-    scope(exit) c.close();
+    version(UseConnPool)
+    {
+        import mysql.db;
+        auto mdb = new MysqlDB(connStr);
+        auto c = mdb.lockConnection();
+        scope(exit) c.close();
+    }
+    else
+    {
+        auto c = new Connection(connStr);
+        scope(exit) c.close();
+    }
 
 //   writefln("You have connected to server version %s", c.serverVersion);
 //   writefln("With currents stats : %s", c.serverStats());
