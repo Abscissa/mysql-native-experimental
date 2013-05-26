@@ -1,6 +1,7 @@
 ﻿module mysql.db;
 
 public import mysql.connection;
+import std.conv;
 
 version(Have_vibe_d)
 {
@@ -26,6 +27,12 @@ version(Have_vibe_d)
           m_port = port;
           m_capFlags = capFlags;
           m_pool = new ConnectionPool!Connection(&createConnection);
+       }
+
+       this(string connStr, SvrCapFlags capFlags = defaultClientFlags)
+       {
+          auto parts = Connection.parseConnectionString(connStr);
+		  this(parts[0], parts[1], parts[2], parts[3], to!ushort(parts[4]), capFlags);
        }
 
        auto lockConnection() { return m_pool.lockConnection(); }

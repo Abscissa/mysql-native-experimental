@@ -2386,42 +2386,6 @@ protected:
         _cCaps |= SvrCapFlags.SECURE_CONNECTION;
     }
 
-    static string[] parseConnectionString(string cs)
-    {
-        string[] rv;
-        rv.length = 5;
-		rv[4] = "3306"; // Default port
-        string[] a = split(cs, ";");
-        foreach (s; a)
-        {
-            string[] a2 = split(s, "=");
-            enforceEx!MYX(a2.length == 2, "Bad connection string: " ~ cs);
-            string name = strip(a2[0]);
-            string val = strip(a2[1]);
-            switch (name)
-            {
-                case "host":
-                    rv[0] = val;
-                    break;
-                case "user":
-                    rv[1] = val;
-                    break;
-                case "pwd":
-                    rv[2] = val;
-                    break;
-                case "db":
-                    rv[3] = val;
-                    break;
-                case "port":
-                    rv[4] = val;
-                    break;
-                default:
-                    throw new MYX("Bad connection string: " ~ cs, __FILE__, __LINE__);
-            }
-        }
-        return rv;
-    }
-
     void authenticate(ubyte[] greeting)
     in
     {
@@ -2650,6 +2614,42 @@ public:
         sendCmd(CommandType.QUIT, []);
         // No response is sent for a quit packet
         _open = OpenState.connected;
+    }
+
+    static string[] parseConnectionString(string cs)
+    {
+        string[] rv;
+        rv.length = 5;
+        rv[4] = "3306"; // Default port
+        string[] a = split(cs, ";");
+        foreach (s; a)
+        {
+            string[] a2 = split(s, "=");
+            enforceEx!MYX(a2.length == 2, "Bad connection string: " ~ cs);
+            string name = strip(a2[0]);
+            string val = strip(a2[1]);
+            switch (name)
+            {
+                case "host":
+                    rv[0] = val;
+                    break;
+                case "user":
+                    rv[1] = val;
+                    break;
+                case "pwd":
+                    rv[2] = val;
+                    break;
+                case "db":
+                    rv[3] = val;
+                    break;
+                case "port":
+                    rv[4] = val;
+                    break;
+                default:
+                    throw new MYX("Bad connection string: " ~ cs, __FILE__, __LINE__);
+            }
+        }
+        return rv;
     }
 
     /**
