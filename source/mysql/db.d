@@ -32,7 +32,7 @@ version(Have_vibe_d)
        this(string connStr, SvrCapFlags capFlags = defaultClientFlags)
        {
           auto parts = Connection.parseConnectionString(connStr);
-		  this(parts[0], parts[1], parts[2], parts[3], to!ushort(parts[4]), capFlags);
+          this(parts[0], parts[1], parts[2], parts[3], to!ushort(parts[4]), capFlags);
        }
 
        auto lockConnection() { return m_pool.lockConnection(); }
@@ -41,5 +41,14 @@ version(Have_vibe_d)
        {
           return new Connection(m_host, m_user, m_password, m_database, m_port, m_capFlags);
        }
+    }
+}
+else
+{
+    class MysqlDB() {
+        static assert(false,
+            "The 'mysql.db.MysqlDB' connection pool requires Vibe.d and therefore "~
+            "must be used with -version=Have_vibe_d"
+        );
     }
 }
