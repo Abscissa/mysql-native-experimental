@@ -211,48 +211,56 @@ private class MySQLSocketPhobos : MySQLSocket
 }
 
 // Wraps a Vibe.d socket with the common interface
-version(Have_vibe_d)
-private class MySQLSocketVibeD : MySQLSocket
-{
-    private PlainVibeDSocket socket;
+version(Have_vibe_d) {
+    private class MySQLSocketVibeD : MySQLSocket
+    {
+        private PlainVibeDSocket socket;
 
-    // The socket should already be open
-    this(PlainVibeDSocket socket)
-    {
-        enforceEx!MYX(socket, "Tried to use a null Vibe.d socket - Maybe the 'openSocket' callback returned null?");
-        enforceEx!MYX(socket.connected, "Tried to use a closed Vibe.d socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
-        this.socket = socket;
-    }
+        // The socket should already be open
+        this(PlainVibeDSocket socket)
+        {
+            enforceEx!MYX(socket, "Tried to use a null Vibe.d socket - Maybe the 'openSocket' callback returned null?");
+            enforceEx!MYX(socket.connected, "Tried to use a closed Vibe.d socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
+            this.socket = socket;
+        }
 
-    invariant()
-    {
-        assert(!!socket);
-    }
+        invariant()
+        {
+            assert(!!socket);
+        }
 
-    void close()
-    {
-        socket.close();
-    }
-    
-    @property bool connected() const
-    {
-        return socket.connected;
-    }
-    
-    void read(ubyte[] dst)
-    {
-        socket.read(dst);
-    }
-    
-    void write(in ubyte[] bytes)
-    {
-        socket.write(bytes);
-    }
+        void close()
+        {
+            socket.close();
+        }
+        
+        @property bool connected() const
+        {
+            return socket.connected;
+        }
+        
+        void read(ubyte[] dst)
+        {
+            socket.read(dst);
+        }
+        
+        void write(in ubyte[] bytes)
+        {
+            socket.write(bytes);
+        }
 
-    void acquire() { socket.acquire(); }
-    void release() { socket.release(); }
-    bool isOwner() { return socket.isOwner(); }
-    bool amOwner() { return socket.isOwner(); }
+        static if (is(typeof(&TCPConnection.isOwner))) {
+            void acquire() { socket.acquire(); }
+            void release() { socket.release(); }
+            bool isOwner() { return socket.isOwner(); }
+            bool amOwner() { return socket.isOwner(); }
+        } else {
+            void acquire() { /+ Do nothing +/ }
+            void release() { /+ Do nothing +/ }
+            bool isOwner() { return true; }
+            bool amOwner() { return true; }
+        }
+    }
 }
 
 /**
