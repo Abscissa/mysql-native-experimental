@@ -43,10 +43,3 @@ version(Have_vibe_d)
        }
     }
 }
-else
-{
-    static assert(false,
-        "The 'mysql.db.MysqlDB' connection pool requires Vibe.d and therefore "~
-        "must be used with -version=Have_vibe_d"
-    );
-}
