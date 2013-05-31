@@ -2027,8 +2027,8 @@ public:
     ParamDescription param(size_t i) { return _paramDescriptions[i]; }
     FieldDescription col(size_t i) { return _colDescriptions[i]; }
 
-    ParamDescription[] paramDescriptions() { return _paramDescriptions; }
-    FieldDescription[] fieldDescriptions() { return _colDescriptions; }
+    @property ParamDescription[] paramDescriptions() { return _paramDescriptions; }
+    @property FieldDescription[] fieldDescriptions() { return _colDescriptions; }
 
     @property paramCount() { return _paramCount; }
     @property ushort warnings() { return _warnings; }
@@ -2346,11 +2346,10 @@ protected:
                 break;
 
             case MySQLSocketType.vibed:
-                version(Have_vibe_d)
+                version(Have_vibe_d) {
                     _socket = new MySQLSocketVibeD(_openSocketVibeD(_host, _port));
-                else
-                    assert(0);
-                break;
+                    break;
+                } else assert(0, "Unsupported socket type. Need version Have_vibe_d.");
         }
     }
 
