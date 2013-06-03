@@ -621,24 +621,24 @@ struct Timestamp
  */
 enum SvrCapFlags: uint
 {
-    OLD_LONG_PASSWORD   =      1, /// Long old-style passwords (Not 4.1+ passwords)
-    FOUND_NOT_AFFECTED  =      2, /// Report rows found rather than rows affected
-    ALL_COLUMN_FLAGS    =      4, /// Send all column flags
-    WITH_DB             =      8, /// Can take database as part of login
-    NO_SCHEMA           =     16, /// Can disallow database name as part of column name database.table.column
-    CAN_COMPRESS        =     32, /// Can compress packets
-    ODBC                =     64, /// Can handle ODBC
-    LOCAL_FILES         =    128, /// Can use LOAD DATA LOCAL
-    IGNORE_SPACE        =    256, /// Can ignore spaces before '$(LPAREN)'
-    PROTOCOL41          =    512, /// Can use 4.1+ protocol
-    INTERACTIVE         =   1024, /// Interactive client?
-    SSL                 =   2048, /// Can switch to SSL after handshake
-    IGNORE_SIGPIPE      =   4096, /// Ignore sigpipes?
-    TRANSACTIONS        =   8192, /// Transaction support
-    RESERVED            =  16384, //  Old flag for 4.1 protocol
-    SECURE_CONNECTION   =  32768, /// 4.1+ authentication
-    MULTI_STATEMENTS    =  65536, /// Multiple statement support
-    MULTI_RESULTS       = 131072  /// Multiple result set support
+    OLD_LONG_PASSWORD   = 0x0_0001, /// Long old-style passwords (Not 4.1+ passwords)
+    FOUND_NOT_AFFECTED  = 0x0_0002, /// Report rows found rather than rows affected
+    ALL_COLUMN_FLAGS    = 0x0_0004, /// Send all column flags
+    WITH_DB             = 0x0_0008, /// Can take database as part of login
+    NO_SCHEMA           = 0x0_0010, /// Can disallow database name as part of column name database.table.column
+    CAN_COMPRESS        = 0x0_0020, /// Can compress packets
+    ODBC                = 0x0_0040, /// Can handle ODBC
+    LOCAL_FILES         = 0x0_0080, /// Can use LOAD DATA LOCAL
+    IGNORE_SPACE        = 0x0_0100, /// Can ignore spaces before '$(LPAREN)'
+    PROTOCOL41          = 0x0_0200, /// Can use 4.1+ protocol
+    INTERACTIVE         = 0x0_0400, /// Interactive client?
+    SSL                 = 0x0_0800, /// Can switch to SSL after handshake
+    IGNORE_SIGPIPE      = 0x0_1000, /// Ignore sigpipes?
+    TRANSACTIONS        = 0x0_2000, /// Transaction support
+    RESERVED            = 0x0_4000, //  Old flag for 4.1 protocol
+    SECURE_CONNECTION   = 0x0_8000, /// 4.1+ authentication
+    MULTI_STATEMENTS    = 0x1_0000, /// Multiple statement support
+    MULTI_RESULTS       = 0x2_0000, /// Multiple result set support
 }
 // 000000001111011111111111
 immutable SvrCapFlags defaultClientFlags =
