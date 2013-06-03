@@ -629,7 +629,7 @@ enum SvrCapFlags: uint
     CAN_COMPRESS        =     32, /// Can compress packets
     ODBC                =     64, /// Can handle ODBC
     LOCAL_FILES         =    128, /// Can use LOAD DATA LOCAL
-    IGNORE_SPACE        =    256, /// Can ignore spaces before '('
+    IGNORE_SPACE        =    256, /// Can ignore spaces before '$(LPAREN)'
     PROTOCOL41          =    512, /// Can use 4.1+ protocol
     INTERACTIVE         =   1024, /// Interactive client?
     SSL                 =   2048, /// Can switch to SSL after handshake
