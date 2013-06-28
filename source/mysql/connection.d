@@ -2611,6 +2611,26 @@ public:
         resetPacket();
     }
 
+    void reconnect()
+    {
+        reconnect(_clientCapabilities);
+    }
+
+    void reconnect(SvrCapFlags clientCapabilities)
+    {
+        bool sameCaps = clientCapabilities == _clientCapabilities;
+        if(!closed)
+        {
+            // Same caps as before?
+            if(clientCapabilities == _clientCapabilities)
+                return; // Nothing to do, just keep current connection
+
+            close();
+        }
+        
+        connect(clientCapabilities);
+    }
+
     private void quit()
     in
     {
