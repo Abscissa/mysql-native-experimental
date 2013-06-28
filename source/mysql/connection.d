@@ -2339,6 +2339,7 @@ protected:
 
     void initConnection()
     {
+        resetPacket();
         final switch(_socketType)
         {
             case MySQLSocketType.phobos:
@@ -2419,7 +2420,7 @@ protected:
     void connect(SvrCapFlags clientCapabilities)
     in
     {
-        assert(_open == OpenState.notConnected);
+        assert(closed);
     }
     out
     {
