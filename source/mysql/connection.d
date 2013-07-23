@@ -3746,9 +3746,12 @@ public:
         */
         string sql(string sql)
         {
-            purgeResult();
-            releaseStatement();
-            _con.resetPacket();
+            if (_hStmt)
+            {
+                purgeResult();
+                releaseStatement();
+                _con.resetPacket();
+            }
             return _sql = sql;
         }
     }
