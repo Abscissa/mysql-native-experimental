@@ -948,7 +948,7 @@ in
 body
 {
     T result = 0;
-    (cast(ubyte*)result)[0..T.sizeof] = packet[0..T.sizeof];
+    (cast(ubyte*)&result)[0..T.sizeof] = packet[0..T.sizeof];
     return result;
 }
 
