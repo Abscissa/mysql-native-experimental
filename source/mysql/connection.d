@@ -1010,7 +1010,6 @@ SQLValue consumeBinaryValueIfComplete(T, int N=T.sizeof)(ref ubyte[] packet, boo
         }
         else
         {
-            assert(!unsigned);
             // TODO: DateTime values etc might be incomplete!
             result.value = packet.consume!(T, N)();
         }
