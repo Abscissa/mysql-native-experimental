@@ -4279,7 +4279,7 @@ public:
         ulong ra;
         enforceEx!MYX(execPrepared(ra), "The executed query did not produce a result set.");
         Row rr = getNextRow();
-        enforceEx!MYX(rr._valid, "The result set was empty.");
+        // enforceEx!MYX(rr._valid, "The result set was empty.");
         enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
         foreach (size_t i, dummy; args)
         {
