@@ -4229,6 +4229,8 @@ public:
                 rra.length = alloc;
             }
             rra[cr++] = row;
+            if (!packet.empty && packet.isEOFPacket())
+                break;
         }
         _rowsPending = _pendingBinary = false;
         rra.length = cr;
