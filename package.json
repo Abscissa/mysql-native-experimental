@@ -2,6 +2,7 @@
 	"name": "mysql-native",
 	"description": "A native MySQL driver implementation based on Steve Teale's original",
 	"homepage": "https://github.com/rejectedsoftware/mysql-native",
+	"license": "BSL-1.0",
 	"copyright": "Copyright (c) 2011 Steve Teale",
 	"authors": [
 		"Steve Teale",
