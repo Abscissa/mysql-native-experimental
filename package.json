@@ -12,6 +12,9 @@
 		"sshamov",
 		"Nick Sabalausky"
 	],
+	"dependencies": {
+		"vibe-d": {"version": ">=0.7.17", "optional": true}
+	},
 	"configurations": [
 	 	{
 	 		"name": "application",
