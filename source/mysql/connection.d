@@ -139,13 +139,11 @@ private void enforcePacketOK(string file = __FILE__, size_t line = __LINE__)(OKE
 private alias std.socket.TcpSocket PlainPhobosSocket;
 version(Have_vibe_d)
 {
-    private alias EventedObject MySQLEventedObject;
     private alias vibe.core.net.TcpConnection PlainVibeDSocket;
 }
 else
 {
     // Dummy types
-    private alias Object MySQLEventedObject;
     private alias Object PlainVibeDSocket;
 }
 
@@ -2103,7 +2101,7 @@ body
  * zero sequence number, to which the server replies with zero or more packets with sequential
  * sequence numbers.
  */
-class Connection : MySQLEventedObject
+class Connection
 {
 protected:
     enum OpenState
