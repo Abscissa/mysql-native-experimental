@@ -330,8 +330,8 @@ TimeDiff toTimeDiff(string s)
         td.negative = true;
         t = -t;
     }
-    td.hours    = t%24;
-    td.days     = t/24;
+    td.hours    = cast(ubyte) t%24;
+    td.days     = cast(ubyte) t/24;
     munch(s, ":");
     td.minutes  = parse!ubyte(s);
     munch(s, ":");
