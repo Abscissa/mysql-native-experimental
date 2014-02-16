@@ -1,4 +1,10 @@
-﻿module mysql.db;
+﻿/**
+ * A lightweight interface to a MySQL database using vibe.d's connectionpool.
+ *
+ * You have to include vibe.d in your project to be able to use this class.
+ * If you don't want to, refer to mysql.connection.
+ */
+module mysql.db;
 
 public import mysql.connection;
 import std.conv;
@@ -41,14 +47,5 @@ version(Have_vibe_d)
        {
           return new Connection(m_host, m_user, m_password, m_database, m_port, m_capFlags);
        }
-    }
-}
-else
-{
-    class MysqlDB() {
-        static assert(false,
-            "The 'mysql.db.MysqlDB' connection pool requires Vibe.d and therefore "~
-            "must be used with -version=Have_vibe_d"
-        );
     }
 }
