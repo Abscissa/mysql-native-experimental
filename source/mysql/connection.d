@@ -198,6 +198,12 @@ private class MySQLSocketPhobos : MySQLSocket
 
     void read(ubyte[] dst)
     {
+        // Note: I'm a little uncomfortable with this line as it doesn't
+        // (and can't) update Connection._open. Not sure what can be done,
+        // but perhaps Connection._open should be eliminated in favor of
+        // querying the socket's opened/closed state directly.
+        scope(failure) socket.close();
+
         auto bytesRead = socket.receive(dst);
         enforceEx!MYX(bytesRead == dst.length, "Wrong number of bytes read");
         enforceEx!MYX(bytesRead != socket.ERROR, "Received std.socket.Socket.ERROR");
@@ -1924,6 +1930,8 @@ public:
      */
     this(Connection con, uint fieldCount)
     {
+        scope(failure) con.kill();
+
         _fieldNames.length = _fieldDescriptions.length = fieldCount;
         foreach (size_t i; 0 .. fieldCount)
         {
@@ -2009,6 +2017,8 @@ private:
 public:
     this(Connection con, ushort cols, ushort params)
     {
+        scope(failure) con.kill();
+
         _con = con;
         _colCount = cols;
         _paramCount = params;
@@ -2146,6 +2156,8 @@ protected:
 
     ubyte[] getPacket()
     {
+        scope(failure) kill();
+
         ubyte[4] header;
         _socket.read(header);
         // number of bytes always set as 24-bit
@@ -2286,6 +2298,8 @@ protected:
 
     void consumeServerInfo(ref ubyte[] packet)
     {
+        scope(failure) kill();
+
         _sCaps = cast(SvrCapFlags)packet.consume!ushort(); // server_capabilities (lower bytes)
         _sCharSet = packet.consume!ubyte(); // server_language
         _serverStatus = packet.consume!ushort(); //server_status
@@ -2298,6 +2312,8 @@ protected:
 
     ubyte[] parseGreeting()
     {
+        scope(failure) kill();
+
         ubyte[] packet = getPacket();
 
         _protocol = packet.consume!ubyte();
@@ -2444,7 +2460,16 @@ protected:
         setClientFlags(clientCapabilities);
         authenticate(greeting);
     }
-
+    
+    // Forcefully close the socket without sending the quit command.
+    // Needed in case an error leaves communatations in an undefined or non-recoverable state.
+    void kill()
+    {
+        if(_socket.connected)
+            _socket.close();
+        _open = OpenState.notConnected;
+    }
+    
 public:
 
     /**
@@ -2612,11 +2637,7 @@ public:
             quit();
 
         if (_open == OpenState.connected)
-        {
-            if(_socket.connected)
-                _socket.close();
-            _open = OpenState.notConnected;
-        }
+            kill();
         resetPacket();
     }
 
@@ -2745,6 +2766,8 @@ public:
      */
     void enableMultiStatements(bool on)
     {
+        scope(failure) kill();
+
         ubyte[] t;
         t.length = 2;
         t[0] = on ? 0 : 1;
@@ -2959,6 +2982,8 @@ public:
     }
     body
     {
+        scope(failure) con.kill();
+
         uint fieldCount = cast(uint)rh.fieldCount;
         _values.length = _nulls.length = fieldCount;
 
@@ -3367,6 +3392,7 @@ private:
         enforceEx!MYX(!(_headersPending || _rowsPending),
             "There are result set elements pending - purgeResult() required.");
 
+        scope(failure) _con.kill();
         _con.sendCmd(cmd, _sql);
         return true;
     }
@@ -3785,6 +3811,8 @@ public:
         enforceEx!MYX(!(_headersPending || _rowsPending),
             "There are result set elements pending - purgeResult() required.");
 
+        scope(failure) _con.kill();
+
         if (_hStmt)
             releaseStatement();
         _con.sendCmd(CommandType.STMT_PREPARE, _sql);
@@ -3826,6 +3854,8 @@ public:
      */
     void releaseStatement()
     {
+        scope(failure) _con.kill();
+
         ubyte[] packet;
         packet.length = 9;
         packet.setPacketHeader(0/*packet number*/);
@@ -3849,6 +3879,8 @@ public:
      */
     ulong purgeResult()
     {
+        scope(failure) _con.kill();
+
         ulong rows = 0;
         if (_fieldCount)
         {
@@ -4009,6 +4041,8 @@ public:
      */
     bool execSQL(out ulong ra)
     {
+        scope(failure) _con.kill();
+
         _con.sendCmd(CommandType.QUERY, _sql);
         _fieldCount = 0;
         ubyte[] packet = _con.getPacket();
@@ -4056,6 +4090,7 @@ public:
     {
         ulong ra;
         enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
+
         _rsh = ResultSetHeaders(_con, _fieldCount);
         if (csa !is null)
             _rsh.addSpecializations(csa);
@@ -4153,6 +4188,8 @@ public:
     bool execPrepared(out ulong ra)
     {
         enforceEx!MYX(_hStmt, "The statement has not been prepared.");
+        scope(failure) _con.kill();
+
         ubyte[] packet;
         _con.resetPacket();
 
@@ -4321,6 +4358,8 @@ public:
      */
     Row getNextRow()
     {
+        scope(failure) _con.kill();
+
         if (_headersPending)
         {
             _rsh = ResultSetHeaders(_con, _fieldCount);
