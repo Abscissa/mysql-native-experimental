@@ -139,7 +139,7 @@ private void enforcePacketOK(string file = __FILE__, size_t line = __LINE__)(OKE
 private alias std.socket.TcpSocket PlainPhobosSocket;
 version(Have_vibe_d)
 {
-    private alias vibe.core.net.TcpConnection PlainVibeDSocket;
+    private alias vibe.core.net.TCPConnection PlainVibeDSocket;
 }
 else
 {
@@ -152,7 +152,7 @@ alias PlainVibeDSocket  function(string,ushort) OpenSocketCallbackVibeD;
 
 enum MySQLSocketType { phobos, vibed }
 
-// A minimal socket interface similar to Vibe.d's TcpConnection.
+// A minimal socket interface similar to Vibe.d's TCPConnection.
 // Used to wrap both Phobos and Vibe.d sockets with a common interface.
 private interface MySQLSocket
 {
@@ -2356,7 +2356,7 @@ protected:
     static PlainVibeDSocket defaultOpenSocketVibeD(string host, ushort port)
     {
         version(Have_vibe_d)
-            return vibe.core.net.connectTcp(host, port);
+            return vibe.core.net.connectTCP(host, port);
         else
             assert(0);
     }
