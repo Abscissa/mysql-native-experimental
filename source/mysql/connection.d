@@ -3064,7 +3064,8 @@ public:
     {
         foreach (i, dummy; s.tupleof)
         {
-            static if(__traits(hasMember, s.tupleof[i], "get")) // is Nullable!T?
+            static if(__traits(hasMember, s.tupleof[i], "nullify") &&
+                      is(typeof(s.tupleof[i].nullify())) && is(typeof(s.tupleof[i].get)))
             {
                 if(!_nulls[i])
                 {
@@ -3072,6 +3073,8 @@ public:
                         "At col "~to!string(i)~" the value is not implicitly convertible to the structure type");
                     s.tupleof[i] = _values[i].get!(typeof(s.tupleof[i].get));
                 }
+                else
+                    s.tupleof[i].nullify();
             }
             else
             {
