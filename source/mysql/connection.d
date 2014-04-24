@@ -3272,6 +3272,7 @@ private:
     Command*    _cmd;
     Row         _row; // current row
     string[]    _colNames;
+    size_t[string] _colNameIndicies;
     ulong       _numRowsFetched;
     bool        _empty;
 
@@ -3344,7 +3345,22 @@ public:
         return aa;
      }
 
-    /**
+    /// Get the names of all the columns
+    @property const(string)[] colNames() const pure nothrow { return _colNames; }
+
+    /// An AA to lookup a column's index by name
+    @property const(size_t[string]) colNameIndicies() pure nothrow
+    {
+        if(_colNameIndicies is null)
+        {
+            foreach(index, name; _colNames)
+                _colNameIndicies[name] = index;
+        }
+
+        return _colNameIndicies;
+    }
+
+  /**
      * Explicitly clean up the MySQL resources and cancel pending results
      *
      */
