@@ -3277,18 +3277,12 @@ private:
     string[]    _colNames;
     size_t[string] _colNameIndicies;
     ulong       _numRowsFetched;
-    bool        _empty;
 
     this (Command* cmd, string[] colNames)
     {
         _cmd      = cmd;
         _colNames = colNames;
         popFront();
-    }
-
-    pure const nothrow invariant()
-    {
-        assert(!_empty && _cmd); // command must exist while not empty
     }
 
 public:
@@ -3301,7 +3295,7 @@ public:
      * Make the ResultSequence behave as an input range - empty
      *
      */
-    @property bool empty() const pure nothrow { return _empty; }
+    @property bool empty() const pure nothrow { return _cmd is null || !_cmd._rowsPending; }
 
     /**
      * Make the ResultSequence behave as an input range - front
@@ -3310,7 +3304,7 @@ public:
      */
     @property inout(Row) front() pure inout
     {
-        enforceEx!MYX(!_empty, "Attempted 'front' on exhausted result sequence.");
+        enforceEx!MYX(!empty, "Attempted 'front' on exhausted result sequence.");
         return _row;
     }
 
@@ -3321,14 +3315,9 @@ public:
      */
     void popFront()
     {
-        enforceEx!MYX(!_empty, "Attempted 'popFront' when no more rows available");
+        enforceEx!MYX(!empty, "Attempted 'popFront' when no more rows available");
         _row = _cmd.getNextRow();
-        /+
-        if (!_row._valid)
-            _empty = true;
-        else
-            +/
-            _numRowsFetched++;
+        _numRowsFetched++;
     }
 
     /**
@@ -3336,7 +3325,7 @@ public:
      */
      DBValue[string] asAA()
      {
-        enforceEx!MYX(!_empty, "Attempted 'front' on exhausted result sequence.");
+        enforceEx!MYX(!empty, "Attempted 'front' on exhausted result sequence.");
         DBValue[string] aa;
         foreach (size_t i, string s; _colNames)
         {
@@ -3371,7 +3360,6 @@ public:
     {
         if(_cmd)
             _cmd.purgeResult();
-        _empty = true; // small hack to throw an exception rather than using a closed command
         _cmd = null;
     }
 
