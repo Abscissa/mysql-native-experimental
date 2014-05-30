@@ -1,19 +1,21 @@
 ﻿/**
  * A native D driver for the MySQL database system. Source file mysql.d.
  *
- * This module attempts to provide composite objects and methods that will allow a wide range of common database
- * operations, but be relatively easy to use. The design is a first attempt to illustrate the structure of a set of modules
- * to cover popular database systems and ODBC.
+ * This module attempts to provide composite objects and methods that will
+ * allow a wide range of common database operations, but be relatively easy to
+ * use. The design is a first attempt to illustrate the structure of a set of
+ * modules to cover popular database systems and ODBC.
  *
- * It has no dependecies on GPL header files or libraries, instead communicating directly with the server via the
- * published client/server protocol.
+ * It has no dependecies on GPL header files or libraries, instead communicating
+ * directly with the server via the published client/server protocol.
  *
  * $(LINK http://dev.mysql.com/doc/internals/en/client-server-protocol.html)$(BR)
  *
- * This version is not by any means comprehensive, and there is still a good deal of work to do. As a general design
- * position it avoids providing wrappers for operations that can be accomplished by simple SQL sommands, unless
- * the command produces a result set. There are some instances of the latter category to provide simple meta-data
- * for the database,
+ * This version is not by any means comprehensive, and there is still a good
+ * deal of work to do. As a general design position it avoids providing
+ * wrappers for operations that can be accomplished by simple SQL sommands,
+ * unless the command produces a result set. There are some instances of the
+ * latter category to provide simple meta-data for the database,
  *
  * Its primary objects are:
  * $(UL
@@ -36,11 +38,12 @@
  *
  * There are numerous examples of usage in the unittest sections.
  *
- * The file mysqld.sql, included with the module source code, can be used to generate the tables required by the unit tests.
+ * The file mysqld.sql, included with the module source code, can be used to
+ * generate the tables required by the unit tests.
  *
- * This module supports both Phobos sockets and $(LINK http://vibed.org/, Vibe.d) sockets.
- * Vibe.d support is disabled by default, to avoid unnecessary depencency on Vibe.d.
- * To enable Vibe.d support, use:
+ * This module supports both Phobos sockets and $(LINK http://vibed.org/, Vibe.d)
+ * sockets. Vibe.d support is disabled by default, to avoid unnecessary
+ * depencency on Vibe.d. To enable Vibe.d support, use:
  *   -version=Have_vibe_d
  *
  * If you compile using $(LINK https://github.com/rejectedsoftware/dub, DUB),
@@ -51,8 +54,9 @@
  * versions of MySQL server are obsolete, use known-insecure authentication,
  * and are not supported by this module.
  *
- * There is an outstanding issue with Connections. Normally MySQL clients sonnect to a server on the same machine
- * via a Unix socket on *nix systems, and through a named pipe on Windows. Neither of these conventions is
+ * There is an outstanding issue with Connections. Normally MySQL clients
+ * connect to a server on the same machine via a Unix socket on *nix systems,
+ * and through a named pipe on Windows. Neither of these conventions is
  * currently supported. TCP must be used for all connections.
  *
  * Copyright: Copyright 2011
@@ -351,7 +355,8 @@ TimeDiff toTimeDiff(string s)
  * Time/date structures are packed by the server into a byte sub-packet
  * with a leading length byte, and a minimal number of bytes to embody the data.
  *
- * Params: a = slice of a protocol packet beginning at the length byte for a chunk of time data
+ * Params: a = slice of a protocol packet beginning at the length byte for a
+ *             chunk of time data.
  * Returns: A populated or default initialized std.datetime.TimeOfDay struct.
  */
 TimeOfDay toTimeOfDay(in ubyte[] a) pure
@@ -391,8 +396,8 @@ TimeOfDay toTimeOfDay(string s)
 /**
  * Function to pack a TimeOfDay into a binary encoding for transmission to the server.
  *
- * Time/date structures are packed into a string of bytes with a leading length byte,
- * and a minimal number of bytes to embody the data.
+ * Time/date structures are packed into a string of bytes with a leading length
+ * byte, and a minimal number of bytes to embody the data.
  *
  * Params: tod = TimeOfDay struct.
  * Returns: Packed ubyte[].
@@ -422,7 +427,8 @@ ubyte[] pack(in TimeOfDay tod) pure nothrow
  * Time/date structures are packed by the server into a byte sub-packet
  * with a leading length byte, and a minimal number of bytes to embody the data.
  *
- * Params: a = slice of a protocol packet beginning at the length byte for a chunk of Date data
+ * Params: a = slice of a protocol packet beginning at the length byte for a
+ *             chunk of Date data.
  * Returns: A populated or default initialized std.datetime.Date struct.
  */
 Date toDate(in ubyte[] a) pure
@@ -459,8 +465,8 @@ Date toDate(string s)
 /**
  * Function to pack a Date into a binary encoding for transmission to the server.
  *
- * Time/date structures are packed into a string of bytes with a leading length byte,
- * and a minimal number of bytes to embody the data.
+ * Time/date structures are packed into a string of bytes with a leading length
+ * byte, and a minimal number of bytes to embody the data.
  *
  * Params: dt = std.datetime.Date struct.
  * Returns: Packed ubyte[].
@@ -491,8 +497,8 @@ ubyte[] pack(in Date dt) pure nothrow
  * Time/date structures are packed by the server into a byte sub-packet
  * with a leading length byte, and a minimal number of bytes to embody the data.
  *
- * Params: a = slice of a protocol packet beginning at the length byte for a chunk of
- *                       DateTime data
+ * Params: a = slice of a protocol packet beginning at the length byte for a
+ *             chunk of DateTime data
  * Returns: A populated or default initialized std.datetime.DateTime struct.
  */
 DateTime toDateTime(in ubyte[] a) pure
@@ -624,8 +630,8 @@ struct Timestamp
 /**
  * Server capability flags.
  *
- * During the connection handshake process, the server sends a uint of flags describing its
- * capabilities
+ * During the connection handshake process, the server sends a uint of flags
+ * describing its capabilities.
  *
  * See_Also: http://dev.mysql.com/doc/internals/en/connection-phase.html#capability-flags
  */
@@ -1010,8 +1016,8 @@ SQLValue consumeBinaryValueIfComplete(T, int N=T.sizeof)(ref ubyte[] packet, boo
 {
     SQLValue result;
     result.isIncomplete = packet.length < N;
-    // isNull should have been handled by the caller as the binary format uses a null bitmap,
-    // and we don't have access to that information at this point
+    // isNull should have been handled by the caller as the binary format uses a
+    // null bitmap, and we don't have access to that information at this point
     assert(!result.isNull);
     if(!result.isIncomplete)
     {
@@ -1280,7 +1286,8 @@ body
     }
 
     assert(!lcb.isNull);
-    lcb.isIncomplete = (lcb.numBytes > 1) && (packet.length-1 < lcb.numBytes); // -1 for LCB length as we haven't popped it off yet
+    // -1 for LCB length as we haven't popped it off yet
+    lcb.isIncomplete = (lcb.numBytes > 1) && (packet.length-1 < lcb.numBytes);
     if(lcb.isIncomplete)
     {
         // Not enough bytes to store data. We don't remove any data, and expect
@@ -1356,7 +1363,9 @@ body
 }
 
 
-/** Skips over n items, advances the array, and return the newly advanced array to allow method chaining
+/**
+ * Skips over n items, advances the array, and return the newly advanced array
+ * to allow method chaining.
  * */
 T[] skip(T)(ref T[] array, size_t n) pure nothrow
 in
@@ -1375,7 +1384,8 @@ body
  * Parameters:
  * IsInt24 = If only the most significant 3 bytes from the value should be used
  * value = The value to add to array
- * array = The array we should add the values for. It has to be large enough, and the values are packed starting index 0
+ * array = The array we should add the values for. It has to be large enough,
+ *         and the values are packed starting index 0
  */
 void packInto(T, bool IsInt24 = false)(T value, ubyte[] array) pure nothrow
 in
@@ -1734,7 +1744,8 @@ public:
     /// The 'length' of the column as defined at table creation
     @property uint length() pure const nothrow { return _length; }
 
-    /// The type of the column hopefully (but not always) corresponding to enum SQLType. Only the low byte currently used
+    /// The type of the column hopefully (but not always) corresponding to enum SQLType.
+    /// Only the low byte currently used.
     @property SQLType type() pure const nothrow { return _type; }
 
     /// Column flags - unsigned, binary, null and so on
@@ -1767,11 +1778,11 @@ public:
 /**
  * A struct representing a prepared statement parameter description packet
  *
- * These packets, one for each parameter are sent in response to the prepare command,
- * followed by an EOF packet.
+ * These packets, one for each parameter are sent in response to the prepare
+ * command, followed by an EOF packet.
  *
- * Sadly it seems that this facility is only a stub. The correct number of packets is sent,
- * but they contain no useful information and are all the same.
+ * Sadly it seems that this facility is only a stub. The correct number of
+ * packets is sent, but they contain no useful information and are all the same.
  */
 struct ParamDescription
 {
@@ -1860,8 +1871,9 @@ public:
 /**
  * A struct representing the collation of a sequence of FieldDescription packets.
  *
- * This data gets filled in after a query (prepared or otherwise) that creates a result set completes.
- * All the FD packets, and an EOF packet must be eaten before the row data packets can be read.
+ * This data gets filled in after a query (prepared or otherwise) that creates
+ * a result set completes. All the FD packets, and an EOF packet must be eaten
+ * before the row data packets can be read.
  */
 struct ResultSetHeaders
 {
@@ -1873,7 +1885,8 @@ private:
 public:
 
     /**
-     * Construct a ResultSetHeaders struct from a sequence of FieldDescription packets and an EOF packet.
+     * Construct a ResultSetHeaders struct from a sequence of FieldDescription
+     * packets and an EOF packet.
      *
      * Parameters:
      *    con = A Connection via which the packets are read
@@ -1976,9 +1989,10 @@ public:
         _colDescriptions.length = cols;
         _paramDescriptions.length = params;
 
-        // The order in which fields are sent is params first, followed by EOF, then cols followed by EOF
-        // The parameter specs are useless - they are all the same. This observation is coroborated
-        // by the fact that the C API does not have any information about parameter types either.
+        // The order in which fields are sent is params first, followed by EOF,
+        // then cols followed by EOF The parameter specs are useless - they are
+        // all the same. This observation is coroborated by the fact that the
+        // C API does not have any information about parameter types either.
         // WireShark gives up on these records also.
         foreach (size_t i; 0.._paramCount)
             _con.getPacket();  // just eat them - they are not useful
@@ -2047,31 +2061,37 @@ body
 /**
  * A struct representing a database connection.
  *
- * The Connection is responsible for handshaking with the server to establish authentication.
- * It then passes client preferences to the server, and subsequently is the channel for all
- * command packets that are sent, and all response packets received.
+ * The Connection is responsible for handshaking with the server to establish
+ * authentication. It then passes client preferences to the server, and
+ * subsequently is the channel for all command packets that are sent, and all
+ * response packets received.
  *
- * Uncompressed packets consist of a 4 byte header - 3 bytes of length, and one byte as a packet
- * number. Connection deals with the headers and ensures that packet numbers are sequential.
+ * Uncompressed packets consist of a 4 byte header - 3 bytes of length, and one
+ * byte as a packet number. Connection deals with the headers and ensures that
+ * packet numbers are sequential.
  *
- * The initial packet is sent by the server - esentially a 'hello' packet inviting login. That packet
- * has a sequence number of zero. That sequence number is the incremented by client and server
- * packets through the handshake sequence.
+ * The initial packet is sent by the server - esentially a 'hello' packet
+ * inviting login. That packet has a sequence number of zero. That sequence
+ * number is the incremented by client and server packets through the handshake
+ * sequence.
  *
- * After login all further sequences are initialized by the client sending a command packet with a
- * zero sequence number, to which the server replies with zero or more packets with sequential
- * sequence numbers.
+ * After login all further sequences are initialized by the client sending a
+ * command packet with a zero sequence number, to which the server replies with
+ * zero or more packets with sequential sequence numbers.
  */
 class Connection
 {
 protected:
     enum OpenState
     {
-        /// We have not yet connected to the server, or have sent QUIT to the server and closed the connection
+        /// We have not yet connected to the server, or have sent QUIT to the
+        /// server and closed the connection
         notConnected,
-        /// We have connected to the server and parsed the greeting, but not yet authenticated
+        /// We have connected to the server and parsed the greeting, but not
+        /// yet authenticated
         connected,
-        /// We have successfully authenticated against the server, and need to send QUIT to the server when closing the connection
+        /// We have successfully authenticated against the server, and need to
+        /// send QUIT to the server when closing the connection
         authenticated
     }
     OpenState   _open;
@@ -2094,7 +2114,8 @@ protected:
     // This tiny thing here is pretty critical. Pay great attention to it's maintenance, otherwise
     // you'll get the dreaded "packet out of order" message. It, and the socket connection are
     // the reason why most other objects require a connection object for their construction.
-    ubyte _cpn; /// Packet Number in packet header. Serial number to ensure correct ordering. First packet should have 0
+    ubyte _cpn; /// Packet Number in packet header. Serial number to ensure correct
+                /// ordering. First packet should have 0
     @property ubyte pktNumber()   { return _cpn; }
     void bumpPacket()       { _cpn++; }
     void resetPacket()      { _cpn = 0; }
@@ -2430,8 +2451,11 @@ public:
      * client preferences can be set, and authentication can then be attempted.
      *
      * Parameters:
-     *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos, unless -version=Have_vibe_d is used.
-     *    openSocket = Optional callback which should return a newly-opened Phobos or Vibe.d TCP socket. This allows custom sockets to be used, subclassed from Phobos's or Vibe.d's sockets.
+     *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos,
+     *                 unless -version=Have_vibe_d is used.
+     *    openSocket = Optional callback which should return a newly-opened Phobos
+     *                 or Vibe.d TCP socket. This allows custom sockets to be used,
+     *                 subclassed from Phobos's or Vibe.d's sockets.
      *    host = An IP address in numeric dotted form, or as a host  name.
      *    user = The user name to authenticate.
      *    password = Users password.
@@ -2507,14 +2531,17 @@ public:
     /**
      * Construct opened connection.
      *
-     * After the connection is created, and the initial invitation is received from the server
-     * client preferences are set, and authentication can then be attempted.
+     * After the connection is created, and the initial invitation is received from
+     * the server client preferences are set, and authentication can then be attempted.
      *
      * TBD The connection string needs work to allow for semicolons in its parts!
      *
      * Parameters:
-     *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos, unless -version=Have_vibe_d is used.
-     *    openSocket = Optional callback which should return a newly-opened Phobos or Vibe.d TCP socket. This allows custom sockets to be used, subclassed from Phobos's or Vibe.d's sockets.
+     *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos
+     *                 unless -version=Have_vibe_d is used.
+     *    openSocket = Optional callback which should return a newly-opened Phobos
+     *                 or Vibe.d TCP socket. This allows custom sockets to be used,
+     *                 subclassed from Phobos's or Vibe.d's sockets.
      *    cs = A connection string of the form "host=localhost;user=user;pwd=password;db=mysqld"
      *    capFlags = The set of flag bits from the server's capabilities that the client requires
      */
@@ -2569,8 +2596,8 @@ public:
     /**
      * Explicitly close the connection.
      *
-     * This is a two-stage process. First tell the server we are quitting this connection, and
-     * then close the socket.
+     * This is a two-stage process. First tell the server we are quitting this
+     * connection, and then close the socket.
      *
      * Idiomatic use as follows is suggested:
      * ------------------
@@ -2840,11 +2867,13 @@ alias ColumnSpecialization CSN;
 /**
  * A struct to represent a single row of a result set.
  *
- * The row struct is used for both 'traditional' and 'prepared' result sets. It consists of parallel arrays
- * of Variant and bool, with the bool array indicating which of the result set columns are NULL.
+ * The row struct is used for both 'traditional' and 'prepared' result sets.
+ * It consists of parallel arrays of Variant and bool, with the bool array
+ * indicating which of the result set columns are NULL.
  *
- * I have been agitating for some kind of null indicator that can be set for a Variant without destroying
- * its inherent type information. If this were the case, then the bool array could disappear.
+ * I have been agitating for some kind of null indicator that can be set for a
+ * Variant without destroying its inherent type information. If this were the
+ * case, then the bool array could disappear.
  */
 struct Row
 {
@@ -2979,8 +3008,8 @@ public:
     /**
      * Simplify retrieval of a column value by index.
      *
-     * If the table you are working with does not allow NULL columns, this may be all you need. Otherwise
-     * you will have to use isNull(i) as well.
+     * If the table you are working with does not allow NULL columns, this may
+     * be all you need. Otherwise you will have to use isNull(i) as well.
      *
      * Params: i = the zero based index of the column whose value is required.
      * Returns: A Variant holding the column value.
@@ -3003,11 +3032,11 @@ public:
     /**
      * Move the content of the row into a compatible struct
      *
-     * This method takes no account of NULL column values. If a column was NULL, the corresponding
-     * Variant value would be unchanged in those cases.
+     * This method takes no account of NULL column values. If a column was NULL,
+     * the corresponding Variant value would be unchanged in those cases.
      *
-     * The method will throw if the type of the Variant is not implicitly convertible to the corresponding
-     * struct member
+     * The method will throw if the type of the Variant is not implicitly
+     * convertible to the corresponding struct member.
      *
      * Params: S = a struct type.
      *                s = an ref instance of the type
@@ -3218,8 +3247,8 @@ public:
  * This is the entity that is returned by the Command methods execSQLSequence and
  * execPreparedSequence
  *
- * MySQL result sets can be up to 2^^64 rows. This interface allows for iteration through
- * a result set of that size.
+ * MySQL result sets can be up to 2^^64 rows. This interface allows for iteration
+ * through a result set of that size.
  */
 struct ResultSequence
 {
@@ -3728,13 +3757,14 @@ public:
         /**
         * Set a new SQL command.
         *
-        * This can have quite profound side effects. It resets the Command to an initial state.
-        * If a query has been issued on the Command that produced a result set, then all of the
-        * result set packets - field description sequence, EOF packet, result rows sequence, EOF packet
-        * must be flushed from the server before any further operation can be performed on
-        * the Connection. If you want to write speedy and efficient MySQL programs, you should
-        * bear this in mind when designing your queries so that you are not requesting many
-        * rows when one would do.
+        * This can have quite profound side effects. It resets the Command to
+        * an initial state. If a query has been issued on the Command that
+        * produced a result set, then all of the result set packets - field
+        * description sequence, EOF packet, result rows sequence, EOF packet
+        * must be flushed from the server before any further operation can be
+        * performed on the Connection. If you want to write speedy and efficient
+        * MySQL programs, you should bear this in mind when designing your
+        * queries so that you are not requesting many rows when one would do.
         *
         * Params: sql = SQL command string.
         */
@@ -3753,17 +3783,21 @@ public:
     /**
      * Submit an SQL command to the server to be compiled into a prepared statement.
      *
-     * The result of a successful outcome will be a statement handle - an ID - for the prepared statement,
-     * a count of the parameters required for excution of the statement, and a count of the columns
-     * that will be present in any result set that the command generates. Thes values will be stored in
-     * in the Command struct.
+     * The result of a successful outcome will be a statement handle - an ID -
+     * for the prepared statement, a count of the parameters required for
+     * excution of the statement, and a count of the columns that will be present
+     * in any result set that the command generates. Thes values will be stored
+     * in in the Command struct.
      *
-     * The server will then proceed to send prepared statement headers, including parameter descriptions,
-     * and result set field descriptions, followed by an EOF packet.
+     * The server will then proceed to send prepared statement headers,
+     * including parameter descriptions, and result set field descriptions,
+     * followed by an EOF packet.
      *
-     * If there is an existing statement handle in the Command struct, that prepared statement is released.
+     * If there is an existing statement handle in the Command struct, that
+     * prepared statement is released.
      *
-     * Throws: MySQLException if there are pending result set items, or if the server has a problem.
+     * Throws: MySQLException if there are pending result set items, or if the
+     * server has a problem.
      */
     void prepare()
     {
@@ -3791,7 +3825,8 @@ public:
             packet.popFront(); // one byte filler
             _psWarnings         = packet.consume!short();
 
-            // At this point the server also sends field specs for parameters and columns if there were any of each
+            // At this point the server also sends field specs for parameters
+            // and columns if there were any of each
             _psh = PreparedStmtHeaders(_con, _fieldCount, _psParams);
         }
         else if(packet.front == ResultPacketMarker.error)
@@ -3807,9 +3842,9 @@ public:
     /**
      * Release a prepared statement.
      *
-     * This method tells the server that it can dispose of the information it holds about the
-     * current prepared statement, and resets the Command object to an initial state in
-     * that respect.
+     * This method tells the server that it can dispose of the information it
+     * holds about the current prepared statement, and resets the Command
+     * object to an initial state in that respect.
      */
     void releaseStatement()
     {
@@ -3831,9 +3866,10 @@ public:
     /**
      * Flush any outstanding result set elements.
      *
-     * When the server responds to a command that produces a result set, it queues the whole set
-     * of corresponding packets over the current connection. Before that Connection can embark on
-     * any new command, it must receive all of those packets and junk them.
+     * When the server responds to a command that produces a result set, it
+     * queues the whole set of corresponding packets over the current connection.
+     * Before that Connection can embark on any new command, it must receive
+     * all of those packets and junk them.
      * http://www.mysqlperformanceblog.com/2007/07/08/mysql-net_write_timeout-vs-wait_timeout-and-protocol-notes/
      */
     ulong purgeResult()
@@ -3875,22 +3911,25 @@ public:
     /**
      * Bind a D variable to a prepared statement parameter.
      *
-     * In this implementation, binding comprises setting a value into the appropriate element of
-     * an array of Variants which represent the parameters, and setting any required specializations.
+     * In this implementation, binding comprises setting a value into the
+     * appropriate element of an array of Variants which represent the
+     * parameters, and setting any required specializations.
      *
-     * To bind to some D variable, we set the corrsponding variant with its address, so there is no
-     * need to rebind between calls to execPreparedXXX.
+     * To bind to some D variable, we set the corrsponding variant with its
+     * address, so there is no need to rebind between calls to execPreparedXXX.
      */
     void bindParameter(T)(ref T val, size_t pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
     {
-        // Now in theory we should be able to check the parameter type here, since the protocol is supposed
-        // to send us type information for the parameters, but this capability seems to be broken. This assertion
-        // is supported by the fact that the same information is not available via the MySQL C API either. It is up
-        // to the programmer to ensure that appropriate type information is embodied in the variant array, or
-        // provided explicitly. This sucks, but short of having a client side SQL parser I don't see what can be done.
+        // Now in theory we should be able to check the parameter type here, since the
+        // protocol is supposed to send us type information for the parameters, but this
+        // capability seems to be broken. This assertion is supported by the fact that
+        // the same information is not available via the MySQL C API either. It is up
+        // to the programmer to ensure that appropriate type information is embodied
+        // in the variant array, or provided explicitly. This sucks, but short of
+        // having a client side SQL parser I don't see what can be done.
         //
-        // We require that the statement be prepared at this point so we can at least check that the parameter
-        // number is within the required range
+        // We require that the statement be prepared at this point so we can at least
+        // check that the parameter number is within the required range
         enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
         enforceEx!MYX(pIndex < _psParams, "Parameter number is out of range for the prepared statement.");
         _inParams[pIndex] = &val;
@@ -3904,8 +3943,8 @@ public:
      * You can use this method to bind a set of variables if you don't need any specialization,
      * that is there will be no null values, and chunked transfer is not neccessary.
      *
-     * The tuple must match the required number of parameters, and it is the programmer's responsibility
-     * to ensure that they are of appropriate types.
+     * The tuple must match the required number of parameters, and it is the programmer's
+     * responsibility to ensure that they are of appropriate types.
      */
     void bindParameterTuple(T...)(ref T args)
     {
@@ -3918,10 +3957,11 @@ public:
     /**
      * Bind a Variant[] as the parameters of a prepared statement.
      *
-     * You can use this method to bind a set of variables in Variant form to the parameters of a prepared statement.
+     * You can use this method to bind a set of variables in Variant form to
+     * the parameters of a prepared statement.
      *
-     * Parameter specializations can be added if required. This method could be used to add records from a data
-     * entry form along the lines of
+     * Parameter specializations can be added if required. This method could be
+     * used to add records from a data entry form along the lines of
      * ------------
      * auto c = Command(con, "insert into table42 values(?, ?, ?)");
      * c.prepare();
@@ -3989,11 +4029,11 @@ public:
      * Execute a one-off SQL command.
      *
      * Use this method when you are not going to be using the same command repeatedly.
-     * It can be used with commands that don't produce a result set, or those that do. If there is a result
-     * set its existence will be indicated by the return value.
+     * It can be used with commands that don't produce a result set, or those that
+     * do. If there is a result set its existence will be indicated by the return value.
      *
-     * Any result set can be accessed vis getNextRow(), but you should really be using execSQLResult()
-     * or execSQLSequence() for such queries.
+     * Any result set can be accessed vis getNextRow(), but you should really be
+     * using execSQLResult() or execSQLSequence() for such queries.
      *
      * Params: ra = An out parameter to receive the number of rows affected.
      * Returns: true if there was a (possibly empty) result set.
@@ -4034,13 +4074,14 @@ public:
     }
 
     /**
-     * Execute a one-off SQL command for the case where you expect a result set, and want it all at once.
+     * Execute a one-off SQL command for the case where you expect a result set,
+     * and want it all at once.
      *
      * Use this method when you are not going to be using the same command repeatedly.
      * This method will throw if the SQL command does not produce a result set.
      *
-     * If there are long data items among the expected result columns you can specify that they are to be
-     * subject to chunked transfer via a delegate.
+     * If there are long data items among the expected result columns you can specify
+     * that they are to be subject to chunked transfer via a delegate.
      *
      * Params: csa = An optional array of ColumnSpecialization structs.
      * Returns: A (possibly empty) ResultSet.
@@ -4073,14 +4114,14 @@ public:
     }
 
     /**
-     * Execute a one-off SQL command for the case where you expect a result set, and want
-     * to deal with it a row at a time.
+     * Execute a one-off SQL command for the case where you expect a result set,
+     * and want to deal with it a row at a time.
      *
      * Use this method when you are not going to be using the same command repeatedly.
      * This method will throw if the SQL command does not produce a result set.
      *
-     * If there are long data items among the expected result columns you can specify that they are to be
-     * subject to chunked transfer via a delegate.
+     * If there are long data items among the expected result columns you can specify
+     * that they are to be subject to chunked transfer via a delegate.
      *
      * Params: csa = An optional array of ColumnSpecialization structs.
      * Returns: A (possibly empty) ResultSequence.
@@ -4105,8 +4146,8 @@ public:
      * Execute a one-off SQL command to place result values into a set of D variables.
      *
      * Use this method when you are not going to be using the same command repeatedly.
-     * It will throw if the specified command does not produce a result set, or if any column
-     * type is incompatible with the corresponding D variable
+     * It will throw if the specified command does not produce a result set, or if
+     * any column type is incompatible with the corresponding D variable.
      *
      * Params: args = A tuple of D variables to receive the results.
      * Returns: true if there was a (possibly empty) result set.
@@ -4135,11 +4176,11 @@ public:
      * Execute a prepared command.
      *
      * Use this method when you will use the same SQL command repeatedly.
-     * It can be used with commands that don't produce a result set, or those that do. If there is a result
-     * set its existence will be indicated by the return value.
+     * It can be used with commands that don't produce a result set, or those that
+     * do. If there is a result set its existence will be indicated by the return value.
      *
-     * Any result set can be accessed vis getNextRow(), but you should really be using execPreparedResult()
-     * or execPreparedSequence() for such queries.
+     * Any result set can be accessed vis getNextRow(), but you should really be
+     * using execPreparedResult() or execPreparedSequence() for such queries.
      *
      * Params: ra = An out parameter to receive the number of rows affected.
      * Returns: true if there was a (possibly empty) result set.
@@ -4199,13 +4240,14 @@ public:
     }
 
     /**
-     * Execute a prepared SQL command for the case where you expect a result set, and want it all at once.
+     * Execute a prepared SQL command for the case where you expect a result set,
+     * and want it all at once.
      *
      * Use this method when you will use the same command repeatedly.
      * This method will throw if the SQL command does not produce a result set.
      *
-     * If there are long data items among the expected result columns you can specify that they are to be
-     * subject to chunked transfer via a delegate.
+     * If there are long data items among the expected result columns you can specify
+     * that they are to be subject to chunked transfer via a delegate.
      *
      * Params: csa = An optional array of ColumnSpecialization structs.
      * Returns: A (possibly empty) ResultSet.
@@ -4245,14 +4287,14 @@ public:
     }
 
     /**
-     * Execute a prepared SQL command for the case where you expect a result set, and want
-     * to deal with it one row at a time.
+     * Execute a prepared SQL command for the case where you expect a result set,
+     * and want to deal with it one row at a time.
      *
      * Use this method when you will use the same command repeatedly.
      * This method will throw if the SQL command does not produce a result set.
      *
-     * If there are long data items among the expected result columns you can specify that they are to be
-     * subject to chunked transfer via a delegate.
+     * If there are long data items among the expected result columns you can
+     * specify that they are to be subject to chunked transfer via a delegate.
      *
      * Params: csa = An optional array of ColumnSpecialization structs.
      * Returns: A (possibly empty) ResultSequence.
@@ -4276,8 +4318,8 @@ public:
      * Execute a prepared SQL command to place result values into a set of D variables.
      *
      * Use this method when you will use the same command repeatedly.
-     * It will throw if the specified command does not produce a result set, or if any column
-     * type is incompatible with the corresponding D variable
+     * It will throw if the specified command does not produce a result set, or
+     * if any column type is incompatible with the corresponding D variable
      *
      * Params: args = A tuple of D variables to receive the results.
      * Returns: true if there was a (possibly empty) result set.
@@ -4310,8 +4352,8 @@ public:
      * Similar functionality is available via execSQLSequence() and execPreparedSequence() in
      * which case the interface is presented as a forward range of Rows.
      *
-     * This method allows you to deal with very large result sets either a row at a time, or by
-     * feeding the rows into some suitable container such as a linked list.
+     * This method allows you to deal with very large result sets either a row at a time,
+     * or by feeding the rows into some suitable container such as a linked list.
      *
      * Returns: A Row object.
      */
@@ -4341,19 +4383,23 @@ public:
     }
 
     /**
-     * Execute a stored function, with any required input variables, and store the return value into a D variable.
+     * Execute a stored function, with any required input variables, and store the
+     * return value into a D variable.
      *
-     * For this method, no query string is to be provided. The required one is of the form "select foo(?, ? ...)".
-     * The method generates it and the appropriate bindings - in, and out. Chunked transfers are not supported
-     * in either direction. If you need them, create the parameters separately, then use execPreparedResult()
-     * to get a one-row, one-column result set.
+     * For this method, no query string is to be provided. The required one is of
+     * the form "select foo(?, ? ...)". The method generates it and the appropriate
+     * bindings - in, and out. Chunked transfers are not supported in either
+     * direction. If you need them, create the parameters separately, then use
+     * execPreparedResult() to get a one-row, one-column result set.
      *
-     * If it is not possible to convert the column value to the type of target, then execFunction will throw.
-     * If the result is NULL, that is indicated by a false return value, and target is unchanged.
+     * If it is not possible to convert the column value to the type of target,
+     * then execFunction will throw. If the result is NULL, that is indicated
+     * by a false return value, and target is unchanged.
      *
-     * In the interest of performance, this method assumes that the user has the required information about
-     * the number and types of IN parameters and the type of the output variable. In the same interest, if the
-     * method is called repeatedly for the same stored function, prepare() is omitted after the first call.
+     * In the interest of performance, this method assumes that the user has the
+     * equired information about the number and types of IN parameters and the
+     * type of the output variable. In the same interest, if the method is called
+     * repeatedly for the same stored function, prepare() is omitted after the first call.
      *
      * Params:
      *    T = The type of the variable to receive the return result.
@@ -4405,16 +4451,20 @@ public:
     /**
      * Execute a stored procedure, with any required input variables.
      *
-     * For this method, no query string is to be provided. The required one is of the form "call proc(?, ? ...)".
-     * The method generates it and the appropriate in bindings. Chunked transfers are not supported.
-     * If you need them, create the parameters separately, then use execPrepared() or execPreparedResult().
+     * For this method, no query string is to be provided. The required one is
+     * of the form "call proc(?, ? ...)". The method generates it and the
+     * appropriate in bindings. Chunked transfers are not supported. If you
+     * need them, create the parameters separately, then use execPrepared() or
+     * execPreparedResult().
      *
-     * In the interest of performance, this method assumes that the user has the required information about
-     * the number and types of IN parameters. In the same interest, if the method is called repeatedly for the
-     * same stored function, prepare() and other redundant operations are omitted after the first call.
+     * In the interest of performance, this method assumes that the user has
+     * the required information about the number and types of IN parameters.
+     * In the same interest, if the method is called repeatedly for the same
+     * stored function, prepare() and other redundant operations are omitted
+     * after the first call.
      *
-     * OUT parameters are not currently supported. It should generally be possible with MySQL to present
-     * them as a result set.
+     * OUT parameters are not currently supported. It should generally be
+     * possible with MySQL to present them as a result set.
      *
      * Params:
      *    T = Type tuple
@@ -4935,8 +4985,8 @@ public:
     /**
      * List the available databases
      *
-     * Note that if you have connected using the credentials of a user with limited permissions
-     * you may not get many results.
+     * Note that if you have connected using the credentials of a user with
+     * limited permissions you may not get many results.
      *
      * Returns:
      *    An array of strings
