@@ -1182,65 +1182,6 @@ byte getNumLCBBytes(in ubyte lcbHeader) pure nothrow
     assert(0);
 }
 
-/** Parse Length Coded Binary
- *
- * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
- */
-ulong parseLCB(ref ubyte* ubp, out bool nullFlag) pure nothrow
-{
-    nullFlag = false;
-    ulong t;
-    byte numLCBBytes = getNumLCBBytes(*ubp);
-    switch (numLCBBytes)
-    {
-        case 0: // Null - only for Row Data Packet
-            nullFlag = true;
-            t = 0;
-            break;
-        case 8: // 64-bit
-            t |= ubp[8];
-            t <<= 8;
-            t |= ubp[7];
-            t <<= 8;
-            t |= ubp[6];
-            t <<= 8;
-            t |= ubp[5];
-            t <<= 8;
-            t |= ubp[4];
-            t <<= 8;
-            ubp += 5;
-            goto case;
-        case 3: // 24-bit
-            t |= ubp[3];
-            t <<= 8;
-            t |= ubp[2];
-            t <<= 8;
-            t |= ubp[1];
-            ubp += 3;
-            goto case;
-        case 2: // 16-bit
-            t |= ubp[2];
-            t <<= 8;
-            t |= ubp[1];
-            ubp += 2;
-            break;
-        case 1: // 8-bit
-            t = cast(ulong)*ubp;
-            break;
-        default:
-            assert(0);
-    }
-    ubp++;
-    return t;
-}
-
-/// ditto
-ulong parseLCB(ref ubyte* ubp) pure nothrow
-{
-    bool isNull;
-    return parseLCB(ubp, isNull);
-}
-
 /**
  * Length Coded Binary Value
  * */
