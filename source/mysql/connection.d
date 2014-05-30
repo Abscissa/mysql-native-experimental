@@ -1373,7 +1373,17 @@ body
     if(lcb.isNull || lcb.isIncomplete)
         return lcb;
     assert(packet.length >= lcb.totalBytes);
-    lcb.value = packet.decode!ulong(lcb.numBytes);
+
+    if(lcb.numBytes == 0)
+        lcb.value = 0;
+    else if(lcb.numBytes == 1)
+        lcb.value = packet.decode!ulong(lcb.numBytes);
+    else
+    {
+        // Skip the throwaway byte that indicated "at least 2 more bytes coming"
+        lcb.value = packet[1..$].decode!ulong(lcb.numBytes);
+    }
+
     return lcb;
 }
 
