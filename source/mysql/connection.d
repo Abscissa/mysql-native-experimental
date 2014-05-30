@@ -20,10 +20,10 @@
  *    $(LI Connection: $(UL $(LI Connection to the server, and querying and setting of server parameters.)))
  *    $(LI Command:  Handling of SQL requests/queries/commands, with principal methods:
  *       $(UL $(LI execSQL() - plain old SQL query.)
- *            $(LI execTuple() - get a set of values from a select or similar query into a matching tuple of D variables.)
+ *            $(LI execSQLTuple() - get a set of values from a select or similar query into a matching tuple of D variables.)
  *            $(LI execPrepared() - execute a prepared statement.)
- *            $(LI execResult() - execute a raw SQL statement and get a complete result set.)
- *            $(LI execSequence() - execute a raw SQL statement and handle the rows one at a time.)
+ *            $(LI execSQLResult() - execute a raw SQL statement and get a complete result set.)
+ *            $(LI execSQLSequence() - execute a raw SQL statement and handle the rows one at a time.)
  *            $(LI execPreparedResult() - execute a prepared statement and get a complete result set.)
  *            $(LI execPreparedSequence() - execute a prepared statement and handle the rows one at a time.)
  *            $(LI execFunction() - execute a stored function with D variables as input and output.)
