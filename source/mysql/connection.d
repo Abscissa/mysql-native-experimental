@@ -2987,7 +2987,8 @@ public:
      */
     inout(Variant) opIndex(size_t i) inout
     {
-        enforceEx!MYX(i < _nulls.length, format("Cannot get column %d of %d. Index out of bounds", i, _nulls.length));
+        enforceEx!MYX(_nulls.length > 0, format("Cannot get column index %d. There are no columns", i));
+        enforceEx!MYX(i < _nulls.length, format("Cannot get column index %d. The last available index is %d", i, _nulls.length-1));
         enforceEx!MYX(!_nulls[i], format("Column %s is null, check for isNull", i));
         return _values[i];
     }
