@@ -3001,49 +3001,38 @@ public:
     @property MySQLSocketType socketType() pure const nothrow { return _socketType; }
 }
 
-/+
+debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
-    bool ok = true;
-    try
-    {
-        auto c = new Connection("host=localhost;user=user;pwd=password;db=mysqld");
-        scope(exit) c.close();
-        // These may vary according to the server setup
-        assert(c.protocol == 10);
-        assert(c.serverVersion == "5.1.54-1ubuntu4");
-        assert(c.serverCapabilities == 0b1111011111111111);
-        assert(c.serverStatus == 2);
-        assert(c.charSet == 8);
-        try {
-            c.selectDB("rabbit");
-        }
-        catch (Exception x)
-        {
-            assert(x.msg.indexOf("Access denied") > 0);
-        }
-        auto okp = c.pingServer();
-        assert(okp.serverStatus == 2);
-        try {
-            okp = c.refreshServer(RefreshFlags.GRANT);
-        }
-        catch (Exception x)
-        {
-            assert(x.msg.indexOf("Access denied") > 0);
-        }
-        string stats = c.serverStats();
-        assert(stats.indexOf("Uptime") == 0);
-        c.enableMultiStatements(true);   // Need to be tested later with a prepared "CALL"
-        c.enableMultiStatements(false);
-    }
-    catch (Exception x)
-    {
-        writefln("(%s: %s) %s", x.file, x.line, x.msg);
-        ok = false;
-    }
-    assert(ok);
+    mixin(scopedCn);
+
+	// These may vary according to the server setup
+	//assert(cn.protocol == 10);
+	//assert(cn.serverVersion == "5.1.54-1ubuntu4");
+	//assert(cn.serverCapabilities == 0b1111011111111111);
+	//assert(cn.serverStatus == 2);
+	//assert(cn.charSet == 8);
+	try {
+		cn.selectDB("rabbit does not exist");
+	}
+	catch (Exception x)
+	{
+		assert(x.msg.indexOf("Access denied") > 0);
+	}
+	auto okp = cn.pingServer();
+	assert(okp.serverStatus == 2);
+	try {
+		okp = cn.refreshServer(RefreshFlags.GRANT);
+	}
+	catch (Exception x)
+	{
+		assert(x.msg.indexOf("Access denied") > 0);
+	}
+	string stats = cn.serverStats();
+	assert(stats.indexOf("Uptime") == 0);
+	cn.enableMultiStatements(true);   // Need to be tested later with a prepared "CALL"
+	cn.enableMultiStatements(false);
 }
-+/
 
 /**
  * A struct to represent specializations of prepared statement parameters.
