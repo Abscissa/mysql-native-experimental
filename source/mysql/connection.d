@@ -5059,7 +5059,7 @@ public:
                         if(isNull)
                             col.index = -1;
                         else
-                            col.index = cast(size_t)(r[j].get!ulong() - 1);
+                            col.index = cast(size_t)(r[j].coerce!ulong() - 1);
                         //col.index = cast(size_t)(r[j].get!(ulong)-1);
                         break;
                     case 5:
@@ -5076,16 +5076,16 @@ public:
                         col.type = t;
                         break;
                     case 8:
-                        col.charsMax = cast(long)(isNull? -1L: r[j].get!(ulong));
+                        col.charsMax = cast(long)(isNull? -1L: r[j].coerce!(ulong));
                         break;
                     case 9:
-                        col.octetsMax = cast(long)(isNull? -1L: r[j].get!(ulong));
+                        col.octetsMax = cast(long)(isNull? -1L: r[j].coerce!(ulong));
                         break;
                     case 10:
-                        col.numericPrecision = cast(short) (isNull? -1: r[j].get!(ulong));
+                        col.numericPrecision = cast(short) (isNull? -1: r[j].coerce!(ulong));
                         break;
                     case 11:
-                        col.numericScale = cast(short) (isNull? -1: r[j].get!(ulong));
+                        col.numericScale = cast(short) (isNull? -1: r[j].coerce!(ulong));
                         break;
                     case 12:
                         col.charSet = isNull? "<NULL>": t;
@@ -5094,7 +5094,7 @@ public:
                         col.collation = isNull? "<NULL>": t;
                         break;
                     case 14:
-                        col.colType = t;
+                        col.colType = cast(string) r[j].get!(ubyte[]);
                         break;
                     case 15:
                         col.key = t;
