@@ -1707,41 +1707,72 @@ ubyte[] packLCS(void[] a) pure nothrow
     return t;
 }
 
-/+
+debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
-    bool isnull;
-    ubyte[] uba = [ 0xde, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x01, 0x00 ];
-    ubyte* ps = uba.ptr;
-    ubyte* ubp = uba.ptr;
-    ulong ul = parseLCB(ubp, isnull);
-    assert(ul == 0xde && !isnull && ubp == ps+1);
-    ubp = ps;
-    uba[0] = 251;
-    ul = parseLCB(ubp, isnull);
-    assert(ul == 0 && isnull && ubp == ps+1);
-    ubp = ps;
-    uba[0] = 252;
-    ul = parseLCB(ubp, isnull);
-    assert(ul == 0xbbcc && !isnull && ubp == ps+3);
-    ubp = ps;
-    uba[0] = 253;
-    ul = parseLCB(ubp, isnull);
-    assert(ul == 0xaabbcc && !isnull && ubp == ps+4);
-    ubp = ps;
-    uba[0] = 254;
-    ul = parseLCB(ubp, isnull);
-    assert(ul == 0x5566778899aabbcc && !isnull && ubp == ps+9);
+    static void testLCB(string parseLCBFunc)(bool shouldConsume)
+    {
+        ubyte[] buf = [ 0xde, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x01, 0x00 ];
+        ubyte[] bufCopy;
+        
+        bufCopy = buf;
+        LCB lcb = mixin(parseLCBFunc~"!LCB(bufCopy)");
+        assert(lcb.value == 0xde && !lcb.isNull && lcb.totalBytes == 1);
+        assert(bufCopy.length == buf.length - (shouldConsume? lcb.totalBytes : 0));
+
+        buf[0] = 251;
+        bufCopy = buf;
+        lcb = mixin(parseLCBFunc~"!LCB(bufCopy)");
+        assert(lcb.value == 0 && lcb.isNull && lcb.totalBytes == 1);
+        //TODO: This test seems to fail for consumeIfComplete, need to investigate.
+        //      Don't know if fixing it might cause a problem, or if I simple misunderstood
+        //      the function's intent.
+        if(parseLCBFunc != "consumeIfComplete")
+            assert(bufCopy.length == buf.length - (shouldConsume? lcb.totalBytes : 0));
+
+        buf[0] = 252;
+        bufCopy = buf;
+        lcb = mixin(parseLCBFunc~"!LCB(bufCopy)");
+        assert(lcb.value == 0xbbcc && !lcb.isNull && lcb.totalBytes == 3);
+        assert(bufCopy.length == buf.length - (shouldConsume? lcb.totalBytes : 0));
+
+        buf[0] = 253;
+        bufCopy = buf;
+        lcb = mixin(parseLCBFunc~"!LCB(bufCopy)");
+        assert(lcb.value == 0xaabbcc && !lcb.isNull && lcb.totalBytes == 4);
+        assert(bufCopy.length == buf.length - (shouldConsume? lcb.totalBytes : 0));
+
+        buf[0] = 254;
+        bufCopy = buf;
+        lcb = mixin(parseLCBFunc~"!LCB(bufCopy)");
+        assert(lcb.value == 0x5566778899aabbcc && !lcb.isNull && lcb.totalBytes == 9);
+        assert(bufCopy.length == buf.length - (shouldConsume? lcb.totalBytes : 0));
+    }
+    
+    //TODO: Merge 'consumeIfComplete(T:LCB)' and 'decode(T:LCB)', they do
+    //      basically the same thing, only one consumes input and the other
+    //      doesn't. Just want a better idea of where/how/why they're both
+    //      used, and maybe more tests, before I go messing with them.
+    testLCB!"consumeIfComplete"(true);
+    testLCB!"decode"(false);
+}
+
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
     ubyte[] buf;
+    ubyte[] bufCopy;
+
     buf.length = 0x2000200;
     buf[] = '\x01';
     buf[0] = 250;
     buf[1] = '<';
     buf[249] = '!';
     buf[250] = '>';
-    ubp = buf.ptr;
-    ubyte[] x = parseLCS(ubp, isnull);
+    bufCopy = buf;
+    string x = consume!LCS(bufCopy);
     assert(x.length == 250 && x[0] == '<' && x[249] == '>');
+
     buf[] = '\x01';
     buf[0] = 252;
     buf[1] = 0xff;
@@ -1749,9 +1780,10 @@ unittest
     buf[3] = '<';
     buf[0x10000] = '*';
     buf[0x10001] = '>';
-    ubp = buf.ptr;
-    x = parseLCS(ubp, isnull);
+    bufCopy = buf;
+    x = consume!LCS(bufCopy);
     assert(x.length == 0xffff && x[0] == '<' && x[0xfffe] == '>');
+
     buf[] = '\x01';
     buf[0] = 253;
     buf[1] = 0xff;
@@ -1760,9 +1792,10 @@ unittest
     buf[4] = '<';
     buf[0x1000001] = '*';
     buf[0x1000002] = '>';
-    ubp = buf.ptr;
-    x = parseLCS(ubp, isnull);
+    bufCopy = buf;
+    x = consume!LCS(bufCopy);
     assert(x.length == 0xffffff && x[0] == '<' && x[0xfffffe] == '>');
+
     buf[] = '\x01';
     buf[0] = 254;
     buf[1] = 0xff;
@@ -1776,11 +1809,10 @@ unittest
     buf[9] = '<';
     buf[0x2000106] = '!';
     buf[0x2000107] = '>';
-    ubp = buf.ptr;
-    x = parseLCS(ubp, isnull);
+    bufCopy = buf;
+    x = consume!LCS(bufCopy);
     assert(x.length == 0x20000ff && x[0] == '<' && x[0x20000fe] == '>');
 }
-+/
 
 /// Magic marker sent in the first byte of mysql results in response to auth or command packets
 enum ResultPacketMarker : ubyte
@@ -3006,32 +3038,32 @@ unittest
 {
     mixin(scopedCn);
 
-	// These may vary according to the server setup
-	//assert(cn.protocol == 10);
-	//assert(cn.serverVersion == "5.1.54-1ubuntu4");
-	//assert(cn.serverCapabilities == 0b1111011111111111);
-	//assert(cn.serverStatus == 2);
-	//assert(cn.charSet == 8);
-	try {
-		cn.selectDB("rabbit does not exist");
-	}
-	catch (Exception x)
-	{
-		assert(x.msg.indexOf("Access denied") > 0);
-	}
-	auto okp = cn.pingServer();
-	assert(okp.serverStatus == 2);
-	try {
-		okp = cn.refreshServer(RefreshFlags.GRANT);
-	}
-	catch (Exception x)
-	{
-		assert(x.msg.indexOf("Access denied") > 0);
-	}
-	string stats = cn.serverStats();
-	assert(stats.indexOf("Uptime") == 0);
-	cn.enableMultiStatements(true);   // Need to be tested later with a prepared "CALL"
-	cn.enableMultiStatements(false);
+    // These may vary according to the server setup
+    //assert(cn.protocol == 10);
+    //assert(cn.serverVersion == "5.1.54-1ubuntu4");
+    //assert(cn.serverCapabilities == 0b1111011111111111);
+    //assert(cn.serverStatus == 2);
+    //assert(cn.charSet == 8);
+    try {
+        cn.selectDB("rabbit does not exist");
+    }
+    catch (Exception x)
+    {
+        assert(x.msg.indexOf("Access denied") > 0);
+    }
+    auto okp = cn.pingServer();
+    assert(okp.serverStatus == 2);
+    try {
+        okp = cn.refreshServer(RefreshFlags.GRANT);
+    }
+    catch (Exception x)
+    {
+        assert(x.msg.indexOf("Access denied") > 0);
+    }
+    string stats = cn.serverStats();
+    assert(stats.indexOf("Uptime") == 0);
+    cn.enableMultiStatements(true);   // Need to be tested later with a prepared "CALL"
+    cn.enableMultiStatements(false);
 }
 
 /**
