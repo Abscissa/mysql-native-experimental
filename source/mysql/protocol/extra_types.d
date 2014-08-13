@@ -378,7 +378,8 @@ public:
             " CHARACTER_OCTET_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE," ~
             " CHARACTER_SET_NAME, COLLATION_NAME, COLUMN_TYPE," ~
             " COLUMN_KEY, EXTRA, PRIVILEGES, COLUMN_COMMENT" ~
-            " FROM information_schema.COLUMNS WHERE table_name='" ~ table ~ "'";
+            " FROM information_schema.COLUMNS WHERE" ~
+            " table_schema='" ~ _con.currentDB ~ "' AND table_name='" ~ table ~ "'";
         auto cmd = Command(_con, query);
         auto rs = cmd.execSQLResult();
         ColumnInfo[] ca;
