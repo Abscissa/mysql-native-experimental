@@ -368,7 +368,17 @@ public:
      */
     ColumnInfo[] columns(string table)
     {
-        string query = "SELECT * FROM information_schema.COLUMNS WHERE table_name='" ~ table ~ "'";
+		// Manually specify all fields to avoid problems when newer versions of
+		// the server add or rearrange fields. (Issue #45)
+        string query =
+			"SELECT " ~
+			" TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME," ~
+			" COLUMN_NAME, ORDINAL_POSITION, COLUMN_DEFAULT," ~
+			" IS_NULLABLE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH," ~
+			" CHARACTER_OCTET_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE," ~
+			" CHARACTER_SET_NAME, COLLATION_NAME, COLUMN_TYPE," ~
+			" COLUMN_KEY, EXTRA, PRIVILEGES, COLUMN_COMMENT" ~
+			" FROM information_schema.COLUMNS WHERE table_name='" ~ table ~ "'";
         auto cmd = Command(_con, query);
         auto rs = cmd.execSQLResult();
         ColumnInfo[] ca;
