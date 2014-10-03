@@ -651,7 +651,7 @@ unittest
         cn.initDB("this cannot exist");
         assert(false);
     } catch(/+MySQLErrorPacketException+/MySQLReceivedException ex) {
-        assert(ex./+errorPacket.+/errorCode == 1044 ||
+        assert(ex./+errorPacket.+/errorCode == 1044 || // Access Denied
                 ex./+errorPacket.+/errorCode == 1049, // BAD_DB_ERROR
                 "Unexpected error code when connecting to non-existing schema");
     }
