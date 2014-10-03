@@ -40,7 +40,7 @@ unittest
     }
     catch (Exception x)
     {
-        assert(x.msg.indexOf("Access denied") > 0);
+        assert(x.msg.indexOf("Access denied") > 0 || x.msg.indexOf("Unknown database") > 0);
     }
     auto okp = cn.pingServer();
     assert(okp.serverStatus == 2);
@@ -651,7 +651,8 @@ unittest
         cn.initDB("this cannot exist");
         assert(false);
     } catch(/+MySQLErrorPacketException+/MySQLReceivedException ex) {
-        assert(ex./+errorPacket.+/errorCode == 1044, // Access denied
+        assert(ex./+errorPacket.+/errorCode == 1044 ||
+				ex./+errorPacket.+/errorCode == 1049, // BAD_DB_ERROR
                 "Unexpected error code when connecting to non-existing schema");
     }
 
