@@ -682,6 +682,7 @@ SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, b
         case SQLType.FLOAT:
             return packet.consumeIfComplete!float(binary, unsigned);
         case SQLType.DOUBLE:
+        case SQLType.NEWDECIMAL:
             return packet.consumeIfComplete!double(binary, unsigned);
         case SQLType.TIMESTAMP:
             return packet.consumeIfComplete!DateTime(binary, unsigned);

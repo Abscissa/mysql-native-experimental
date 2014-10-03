@@ -55,3 +55,15 @@ unittest
     cmd.sql = "SELECT * FROM `issue40`";
     cmd.execSQLResult();
 }
+
+// Issue #39
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
+    mixin(scopedCn);
+    auto cmd = Command(cn);
+    cmd.sql = "SELECT SUM(123.456)";
+    auto rows = cmd.execSQLResult();
+    assert(rows.length == 1);
+    assert(rows[0][0] == 123.456);
+}
