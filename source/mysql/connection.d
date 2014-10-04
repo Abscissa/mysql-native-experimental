@@ -11,9 +11,9 @@ public import mysql.protocol.packet_helpers;
 public import mysql.protocol.packets;
 debug(MYSQL_INTEGRATION_TESTS)
 {
-	public import mysql.test.common;
-	public import mysql.test.integration;
-	public import mysql.test.regression;
+    public import mysql.test.common;
+    public import mysql.test.integration;
+    public import mysql.test.regression;
 }
 
 version(Have_vibe_d)
@@ -234,9 +234,14 @@ package:
 
         // Add our calculated authentication token as a length prefixed string.
         assert(token.length <= ubyte.max);
-        packet ~= cast(ubyte)token.length;
-        foreach(i; 0 .. token.length)
-            packet ~= token[i];
+        if(_pwd.length == 0)  // Omit the token if the account has no password
+            packet ~= 0;
+        else
+        {
+            packet ~= cast(ubyte)token.length;
+            foreach(i; 0 .. token.length)
+                packet ~= token[i];
+        }
 
         if(_db.length)
         {
