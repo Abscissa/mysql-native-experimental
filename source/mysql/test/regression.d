@@ -89,6 +89,38 @@ unittest
     assert(results[1][1] == Date(1950, 4, 24));
 }
 
+// Issue #33: TINYTEXT, TEXT, MEDIUMTEXT, LONGTEXT types treated as ubyte[]
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
+    mixin(scopedCn);
+    auto cmd = Command(cn);
+    ulong rowsAffected;
+    cmd.sql = 
+        "DROP TABLE IF EXISTS `issue33`";
+    cmd.execSQL(rowsAffected);
+    cmd.sql = 
+        "CREATE TABLE `issue33` (
+        `text` TEXT,
+        `blob` BLOB
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
+    cmd.execSQL(rowsAffected);
+    
+    cmd.sql = "INSERT INTO `issue33` (`text`, `blob`) VALUES ('hello', 'world')";
+    cmd.execSQL(rowsAffected);
+
+    cmd = Command(cn, "SELECT `text`, `blob` FROM `issue33`");
+    cmd.prepare();
+    auto results = cmd.execPreparedResult();
+    assert(results.length == 1);
+    auto pText = results[0][0].peek!string();
+    auto pBlob = results[0][1].peek!(ubyte[])();
+    assert(pText);
+    assert(pBlob);
+    assert(*pText == "hello");
+    assert(*pBlob == cast(ubyte[])"world".dup);
+}
+
 // Issue #39: Unsupported SQL type NEWDECIMAL
 debug(MYSQL_INTEGRATION_TESTS)
 unittest

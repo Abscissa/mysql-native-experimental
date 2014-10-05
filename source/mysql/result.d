@@ -140,7 +140,7 @@ public:
             do
             {
                 FieldDescription fd = rh[i];
-                sqlValue = packet.consumeIfComplete(fd.type, binary, fd.unsigned);
+                sqlValue = packet.consumeIfComplete(fd.type, binary, fd.unsigned, fd.charSet);
                 // TODO: Support chunk delegate
                 if(sqlValue.isIncomplete)
                     packet ~= con.getPacket();

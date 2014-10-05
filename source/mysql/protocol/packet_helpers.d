@@ -651,7 +651,7 @@ SQLValue consumeIfComplete(T, int N=T.sizeof)(ref ubyte[] packet, bool binary, b
         : packet.consumeNonBinaryValueIfComplete!T(unsigned);
 }
 
-SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, bool unsigned)
+SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, bool unsigned, ushort charSet)
 {
     switch(sqlType)
     {
@@ -714,7 +714,13 @@ SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, b
                 packet.popFront(); // LCB length
             }
             else
-                result.value = packet.consume(cast(size_t)lcb.value);
+            {
+                auto data = packet.consume(cast(size_t)lcb.value);
+                if(charSet == 0x3F) // CharacterSet == binary
+                    result.value = data; // BLOB-ish
+                else
+                    result.value = cast(string)data; // TEXT-ish
+            }
             
             // Type BIT is treated as a length coded binary (like a BLOB or VARCHAR),
             // not like an integral type. So convert the binary data to a bool.

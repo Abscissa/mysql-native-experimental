@@ -858,10 +858,10 @@ unittest
     assertBasicTests!string("VARCHAR(10)", "", "aoeu");
     assertBasicTests!string("CHAR(10)", "", "aoeu");
 
-    assertBasicTests!(ubyte[])("TINYTEXT", "", "aoeu");
-    assertBasicTests!(ubyte[])("MEDIUMTEXT", "", "aoeu");
-    assertBasicTests!(ubyte[])("TEXT", "", "aoeu");
-    assertBasicTests!(ubyte[])("LONGTEXT", "", "aoeu");
+    assertBasicTests!string("TINYTEXT", "", "aoeu");
+    assertBasicTests!string("MEDIUMTEXT", "", "aoeu");
+    assertBasicTests!string("TEXT", "", "aoeu");
+    assertBasicTests!string("LONGTEXT", "", "aoeu");
 
     assertBasicTests!(ubyte[])("TINYBLOB", "", "aoeu");
     assertBasicTests!(ubyte[])("MEDIUMBLOB", "", "aoeu");

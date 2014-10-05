@@ -444,7 +444,7 @@ public:
                         col.collation = isNull? "<NULL>": t;
                         break;
                     case 14:
-                        col.colType = cast(string) r[j].get!(ubyte[]);
+                        col.colType = r[j].get!string();
                         break;
                     case 15:
                         col.key = t;
