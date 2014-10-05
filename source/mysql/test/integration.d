@@ -67,9 +67,8 @@ debug(MYSQL_INTEGRATION_TESTS)
             "DROP TABLE IF EXISTS `basetest`";
         cmd.execSQL(rowsAffected);
         cmd.sql = 
-            "CREATE TABLE `basetest` ("~
-            //"`boolcol` bit(1),"~ // TODO: Something's wrong with "bit(1)" (See also Issue #24)
-            "`boolcol` tinyint(1),
+            "CREATE TABLE `basetest` (
+            `boolcol` bit(1),
             `bytecol` tinyint(4),
             `ubytecol` tinyint(3) unsigned,
             `shortcol` smallint(6),
@@ -441,11 +440,10 @@ unittest
     assert(count == 2);
 
     ColumnInfo[] ca = md.columns("basetest");
-// TODO: Something's wrong with "bit(1)" (See also Issue #24)
-//    assert(ca[0].schema == schemaName && ca[0].table == "basetest" && ca[0].name == "boolcol" && ca[0].index == 0 &&
-//           ca[0].defaultNull && ca[0].nullable && ca[0].type == "bit" && ca[0].charsMax == -1 && ca[0].octetsMax == -1 &&
-//           ca[0].numericPrecision == 1 && ca[0].numericScale == -1 && ca[0].charSet == "<NULL>" && ca[0].collation == "<NULL>"  &&
-//           ca[0].colType == "bit(1)");
+    assert(ca[0].schema == schemaName && ca[0].table == "basetest" && ca[0].name == "boolcol" && ca[0].index == 0 &&
+           ca[0].defaultNull && ca[0].nullable && ca[0].type == "bit" && ca[0].charsMax == -1 && ca[0].octetsMax == -1 &&
+           ca[0].numericPrecision == 1 && ca[0].numericScale == -1 && ca[0].charSet == "<NULL>" && ca[0].collation == "<NULL>"  &&
+           ca[0].colType == "bit(1)");
     assert(ca[1].schema == schemaName && ca[1].table == "basetest" && ca[1].name == "bytecol" && ca[1].index == 1 &&
            ca[1].defaultNull && ca[1].nullable && ca[1].type == "tinyint" && ca[1].charsMax == -1 && ca[1].octetsMax == -1 &&
            ca[1].numericPrecision == 3 && ca[1].numericScale == 0 && ca[1].charSet == "<NULL>" && ca[1].collation == "<NULL>"  &&

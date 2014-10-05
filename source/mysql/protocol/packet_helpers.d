@@ -511,12 +511,6 @@ body
     return value;
 }
 
-bool consume(T:bool, ubyte N=T.sizeof)(ref ubyte[] packet) pure nothrow
-{
-    static assert(N == 1);
-    return packet.consume!ubyte() == 1;
-}
-
 T consume(T, ubyte N=T.sizeof)(ref ubyte[] packet) pure nothrow
 if(isIntegral!T)
 in
@@ -667,8 +661,6 @@ SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, b
             result.isIncomplete = false;
             result.isNull = true;
             return result;
-        case SQLType.BIT:
-            return packet.consumeIfComplete!bool(binary, unsigned);
         case SQLType.TINY:
             return packet.consumeIfComplete!byte(binary, unsigned);
         case SQLType.SHORT:
@@ -704,6 +696,7 @@ SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, b
         case SQLType.MEDIUMBLOB:
         case SQLType.BLOB:
         case SQLType.LONGBLOB:
+        case SQLType.BIT:  // Yes, BIT. See note below.
 
             // TODO: This line should work. Why doesn't it?
             //return packet.consumeIfComplete!(ubyte[])(binary, unsigned);
@@ -722,6 +715,18 @@ SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, b
             }
             else
                 result.value = packet.consume(cast(size_t)lcb.value);
+            
+            // Type BIT is treated as a length coded binary (like a BLOB or VARCHAR),
+            // not like an integral type. So convert the binary data to a bool.
+            // See: http://dev.mysql.com/doc/internals/en/binary-protocol-value.html
+            if(sqlType == SQLType.BIT)
+            {
+                enforceEx!MYXProtocol(result.value.length == 1,
+                    "Expected BIT to arrive as an LCB with length 1, but got length "~to!string(result.value.length));
+                
+                result.value = result.value[0] == 1;
+            }
+            
             return result;
     }
 }

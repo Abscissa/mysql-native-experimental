@@ -24,7 +24,8 @@ import mysql.connection;
 import mysql.result;
 import mysql.test.common;
 
-// Issue #40 (and likely #18)
+// Issue #40: Decoding LCB value for large feilds
+// And likely Issue #18: select varchar - thinks the package is incomplete while it's actually complete
 debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
@@ -56,7 +57,39 @@ unittest
     cmd.execSQLResult();
 }
 
-// Issue #39
+// Issue #24: Driver doesn't like BIT
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
+    mixin(scopedCn);
+    auto cmd = Command(cn);
+    ulong rowsAffected;
+    cmd.sql = 
+        "DROP TABLE IF EXISTS `issue24`";
+    cmd.execSQL(rowsAffected);
+    cmd.sql = 
+        "CREATE TABLE `issue24` (
+        `bit` BIT,
+        `date` DATE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
+    cmd.execSQL(rowsAffected);
+    
+    cmd.sql = "INSERT INTO `issue24` (`bit`, `date`) VALUES (1, '1970-01-01')";
+    cmd.execSQL(rowsAffected);
+    cmd.sql = "INSERT INTO `issue24` (`bit`, `date`) VALUES (0, '1950-04-24')";
+    cmd.execSQL(rowsAffected);
+
+    cmd = Command(cn, "SELECT `bit`, `date` FROM `issue24` ORDER BY `date` DESC");
+    cmd.prepare();
+    auto results = cmd.execPreparedResult();
+    assert(results.length == 2);
+    assert(results[0][0] == true);
+    assert(results[0][1] == Date(1970, 1, 1));
+    assert(results[1][0] == false);
+    assert(results[1][1] == Date(1950, 4, 24));
+}
+
+// Issue #39: Unsupported SQL type NEWDECIMAL
 debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
