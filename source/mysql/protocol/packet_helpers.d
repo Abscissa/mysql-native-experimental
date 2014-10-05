@@ -174,7 +174,7 @@ Date toDate(in ubyte[] a) pure
  *
  * Text representations of a Date are as in 2011-11-11
  *
- * Params: a = A string representation of the time difference.
+ * Params: s = A string representation of the time difference.
  * Returns: A populated or default initialized std.datetime.Date struct.
  */
 Date toDate(string s)
@@ -257,7 +257,7 @@ DateTime toDateTime(in ubyte[] a) pure
  *
  * Text representations of a DateTime are as in 2011-11-11 12:20:02
  *
- * Params: a = A string representation of the time difference.
+ * Params: s = A string representation of the time difference.
  * Returns: A populated or default initialized std.datetime.DateTime struct.
  */
 DateTime toDateTime(string s)
