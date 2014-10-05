@@ -100,7 +100,7 @@ debug(MYSQL_INTEGRATION_TESTS)
     // At the moment, the following functions are here just for the tests
     // borrowed from simendsjo's fork. I'm not quite ready to expose a public
     // interface just yet.
-    ulong exec(Connection cn, string sql)
+    ulong exec()(Connection cn, string sql)
     {
         auto cmd = Command(cn);
         cmd.sql = sql;
@@ -117,7 +117,7 @@ debug(MYSQL_INTEGRATION_TESTS)
         return cmd.exec();
     }
     
-    ResultSet query(Connection cn, string sql)
+    ResultSet query()(Connection cn, string sql)
     {
         auto cmd = Command(cn);
         cmd.sql = sql;
@@ -132,7 +132,7 @@ debug(MYSQL_INTEGRATION_TESTS)
         return cmd.query();
     }
 
-    Row querySingle(Connection cn, string sql)
+    Row querySingle()(Connection cn, string sql)
     {
         return cn.query(sql)[0];
     }
@@ -142,7 +142,7 @@ debug(MYSQL_INTEGRATION_TESTS)
         return cn.query(sql, params)[0];
     }
 
-    Variant queryScalar(Connection cn, string sql)
+    Variant queryScalar()(Connection cn, string sql)
     {
         return cn.query(sql)[0][0];
     }
@@ -160,19 +160,19 @@ debug(MYSQL_INTEGRATION_TESTS)
         return cmd;
     }
     
-    ulong exec(Command cmd)
+    ulong exec()(Command cmd)
     {
         ulong rowsAffected;
         cmd.execPrepared(rowsAffected);
         return rowsAffected;
     }
     
-    ResultSet query(Command cmd)
+    ResultSet query()(Command cmd)
     {
         return cmd.execPreparedResult();
     }
     
-    Row querySingle(Command cmd)
+    Row querySingle()(Command cmd)
     {
         return cmd.query()[0];
     }

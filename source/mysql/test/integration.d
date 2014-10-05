@@ -17,6 +17,8 @@ import mysql.connection;
 import mysql.result;
 import mysql.test.common;
 
+alias indexOf = std.string.indexOf; // Needed on DMD 2.064.2
+
 debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {

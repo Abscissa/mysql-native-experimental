@@ -50,7 +50,7 @@
  * and your project uses Vibe.d, then the -version flag above will be included
  * automatically.
  *
- * This requires DMD v2.061 or later, and a MySQL server v4.1.1 or later. Older
+ * This requires DMD v2.064.2 or later, and a MySQL server v4.1.1 or later. Older
  * versions of MySQL server are obsolete, use known-insecure authentication,
  * and are not supported by this module.
  *
