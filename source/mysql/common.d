@@ -113,9 +113,11 @@ package class MySQLSocketPhobos : MySQLSocket
         // querying the socket's opened/closed state directly.
         scope(failure) socket.close();
 
-        auto bytesRead = socket.receive(dst);
-        enforceEx!MYX(bytesRead == dst.length, "Wrong number of bytes read");
-        enforceEx!MYX(bytesRead != socket.ERROR, "Received std.socket.Socket.ERROR");
+        for (size_t off, len; off < dst.length; off += len) {
+            len = socket.receive(dst[off..$]);
+            enforceEx!MYX(len != 0, "Server closed the connection");
+            enforceEx!MYX(len != socket.ERROR, "Received std.socket.Socket.ERROR");
+        }
     }
 
     void write(in ubyte[] bytes)
