@@ -30,7 +30,7 @@ struct Command
 {
 package:
     Connection _con;
-    string _sql;
+    const(char)[] _sql;
     uint _hStmt;
     ulong _insertID;
     bool _rowsPending, _headersPending, _pendingBinary, _rebound;
@@ -409,7 +409,7 @@ public:
      * Params: con = A Connection object to communicate with the server
      *                sql = SQL command string.
      */
-    this(Connection con, string sql)
+    this(Connection con, const(char)[] sql)
     {
         _sql = sql;
         this(con);
@@ -418,7 +418,7 @@ public:
     @property
     {
         /// Get the current SQL for the Command
-        string sql() pure const nothrow { return _sql; }
+        const(char)[] sql() pure const nothrow { return _sql; }
 
         /**
         * Set a new SQL command.
@@ -434,7 +434,7 @@ public:
         *
         * Params: sql = SQL command string.
         */
-        string sql(string sql)
+        const(char)[] sql(const(char)[] sql)
         {
             if (_hStmt)
             {
@@ -442,7 +442,7 @@ public:
                 releaseStatement();
                 _con.resetPacket();
             }
-            return _sql = sql;
+            return this._sql = sql;
         }
     }
 
