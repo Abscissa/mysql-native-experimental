@@ -132,3 +132,38 @@ unittest
     assert(rows.length == 1);
     assert(rows[0][0] == 123.456);
 }
+
+// Issue #56: Result set quantity does not equal MySQL rows quantity
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
+    mixin(scopedCn);
+    auto cmd = Command(cn);
+    ulong rowsAffected;
+    cmd.sql = "DROP TABLE IF EXISTS `issue56`";
+    cmd.execSQL(rowsAffected);
+    cmd.sql = 
+        "CREATE TABLE `issue56` (a datetime DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8";
+    cmd.execSQL(rowsAffected);
+    
+    cmd.sql = "INSERT INTO `issue56` VALUES
+        ('2015-03-28 00:00:00')
+        ,('2015-03-29 00:00:00')
+        ,('2015-03-31 00:00:00')
+        ,('2015-03-31 00:00:00')
+        ,('2015-03-31 00:00:00')
+        ,('2015-03-31 00:00:00')
+        ,('2015-04-01 00:00:00')
+        ,('2015-04-02 00:00:00')
+        ,('2015-04-03 00:00:00')
+        ,('2015-04-04 00:00:00')";
+
+    cmd.execSQL(rowsAffected);
+
+    cmd = Command(cn);
+    cmd.sql = "SELECT a FROM `issue56`";
+    cmd.prepare();
+
+    auto res = cmd.execPreparedResult();
+    assert(res.length == 10);
+}

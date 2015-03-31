@@ -572,7 +572,13 @@ body
 SQLValue consumeBinaryValueIfComplete(T, int N=T.sizeof)(ref ubyte[] packet, bool unsigned)
 {
     SQLValue result;
-    result.isIncomplete = packet.length < N;
+    
+    // Length of DateTime packet is NOT DateTime.sizeof, it can be 1, 5 or 8 bytes
+    static if(is(T==DateTime))
+        result.isIncomplete = packet.length < 1;
+    else
+        result.isIncomplete = packet.length < N;
+
     // isNull should have been handled by the caller as the binary format uses a
     // null bitmap, and we don't have access to that information at this point
     assert(!result.isNull);
