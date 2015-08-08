@@ -739,6 +739,13 @@ public:
         return rv;
     }
 
+	///ditto
+    bool execSQL()
+    {
+		ulong ra;
+		return execSQL(ra);
+    }
+    
     /**
      * Execute a one-off SQL command for the case where you expect a result set,
      * and want it all at once.
