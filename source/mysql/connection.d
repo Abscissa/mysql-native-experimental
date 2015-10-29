@@ -54,7 +54,7 @@ immutable SvrCapFlags defaultClientFlags =
  * byte as a packet number. Connection deals with the headers and ensures that
  * packet numbers are sequential.
  *
- * The initial packet is sent by the server - esentially a 'hello' packet
+ * The initial packet is sent by the server - essentially a 'hello' packet
  * inviting login. That packet has a sequence number of zero. That sequence
  * number is the incremented by client and server packets through the handshake
  * sequence.
