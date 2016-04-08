@@ -167,3 +167,22 @@ unittest
     auto res = cmd.execPreparedResult();
     assert(res.length == 10);
 }
+
+// Issue #66: Can't connect when omitting default database
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
+    auto a = Connection.parseConnectionString(testConnectionStr);
+
+    {
+        // Sanity check:
+        auto cn = new Connection(a[0], a[1], a[2], a[3], to!ushort(a[4]));
+        scope(exit) cn.close();
+    }
+
+    {
+        // Ensure it works without a default database
+        auto cn = new Connection(a[0], a[1], a[2], "", to!ushort(a[4]));
+        scope(exit) cn.close();
+    }
+}

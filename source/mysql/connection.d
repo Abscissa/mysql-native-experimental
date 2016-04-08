@@ -243,12 +243,10 @@ package:
                 packet ~= token[i];
         }
 
-        if(_db.length)
-        {
-            foreach(i; 0 .. _db.length)
-                packet ~= _db[i];
-            packet ~= 0; // \0
-        }
+        // Add the default database as a null terminated string
+        foreach(i; 0 .. _db.length)
+            packet ~= _db[i];
+        packet ~= 0; // \0
 
         // The server sent us a greeting with packet number 0, so we send the auth packet
         // back with the next number.

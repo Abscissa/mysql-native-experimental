@@ -43,7 +43,7 @@ debug(MYSQL_INTEGRATION_TESTS)
         return cached;
     }
     
-    private @property string testConnectionStr()
+    @property string testConnectionStr()
     {
         import std.file, std.string;
 
