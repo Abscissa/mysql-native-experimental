@@ -4,6 +4,9 @@
 *.dll
 *.exe
 .dub
+/dub.selections.json
+/mysqln_tests
+/testConnectionStr.txt
 
 # Executable file name when 'dub' is run on linux
 mysql-native
