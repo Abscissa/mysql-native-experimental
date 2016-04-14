@@ -275,6 +275,12 @@ package:
 
         ubyte[] packet = getPacket();
 
+        if (packet.length > 0 && packet[0] == ResultPacketMarker.error)
+        {
+            auto okp = OKErrorPacket(packet);
+            enforceEx!MYX(!okp.error, "Connection failure: " ~ cast(string) okp.message);
+        }
+
         _protocol = packet.consume!ubyte();
 
         _serverVersion = packet.consume!string(packet.countUntil(0));
