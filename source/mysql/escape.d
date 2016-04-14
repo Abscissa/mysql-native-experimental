@@ -77,12 +77,14 @@ MysqlEscape!(T) mysqlEscape ( T ) ( T input )
 
 unittest
 {
-    auto buf = scopeBuffer!(char, 512);
+    import std.array : appender;
+
+    auto buf = appender!string();
 
     import std.format : formattedWrite;
 
-    formattedWrite(buf.share, "%s, %s, %s, mkay?", 1, 2,
+    formattedWrite(buf, "%s, %s, %s, mkay?", 1, 2,
             mysqlEscape("\0, \r, \n, \", \\"));
 
-    assert(buf[] == `1, 2, \0, \r, \n, \", \\, mkay?`);
+    assert(buf.data() == `1, 2, \0, \r, \n, \", \\, mkay?`);
 }
