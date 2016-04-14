@@ -633,7 +633,6 @@ public:
      * c.prepare();
      * Variant[] va;
      * va.length = 3;
-     * c.bindParameters(va);
      * DataRecord dr;    // Some data input facility
      * ulong ra;
      * do
@@ -642,6 +641,7 @@ public:
      *     va[0] = dr("Name");
      *     va[1] = dr("City");
      *     va[2] = dr("Whatever");
+     *     c.bindParameters(va);
      *     c.execPrepared(ra);
      * } while(tod < "17:30");
      * ------------
