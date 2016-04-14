@@ -149,7 +149,7 @@ struct ParameterSpecialization
     uint chunkSize;
     uint delegate(ubyte[]) chunkDelegate;
 }
-alias ParameterSpecialization PSN;
+alias PSN = ParameterSpecialization;
 
 /**
  * A struct to represent specializations of prepared statement parameters.
@@ -173,7 +173,7 @@ struct ColumnSpecialization
     uint    chunkSize;
     void delegate(ubyte[] chunk, bool finished) chunkDelegate;
 }
-alias ColumnSpecialization CSN;
+alias CSN = ColumnSpecialization;
 
 /**
  * A struct to hold column metadata

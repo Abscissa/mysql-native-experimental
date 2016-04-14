@@ -40,7 +40,7 @@ class MySQLReceivedException: MySQLException
         super("MySQL error: " ~ msg, file, line);
     }
 }
-alias MySQLReceivedException MYXReceived;
+alias MYXReceived = MySQLReceivedException;
 
 void enforcePacketOK(string file = __FILE__, size_t line = __LINE__)(OKErrorPacket okp)
 {

@@ -348,7 +348,7 @@ public:
      *
      */
     @property size_t length() pure const nothrow { return _curRows.length; }
-    alias length opDollar; ///ditto
+    alias opDollar = length; ///ditto
 
     /**
      * Restore the range to its original span.
