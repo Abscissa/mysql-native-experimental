@@ -6,6 +6,7 @@ before_script:
     - mysql -e 'CREATE DATABASE mysqln_testdb;'
     - echo 'host=127.0.0.1;port=3306;user=root;pwd=;db=mysqln_testdb' > testConnectionStr.txt
 
+install: ./travis-install-deps.sh
 script: ./run-tests
 
 matrix:
@@ -25,12 +26,12 @@ matrix:
         - d: dmd-2.070.2
           addons:
             mariadb: '5.5'
-          env: DB=mariadb_5.5
+          env: DB=mariadb-5.5
 
         - d: dmd-2.070.2
           services:
             - mysql
-          env: DB=mysql_default
+          env: DB=mysql-default
 
         - d: dmd-2.069.2
           addons:
