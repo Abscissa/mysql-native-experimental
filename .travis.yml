@@ -53,11 +53,7 @@ matrix:
           addons:
             mariadb: '10.1'
 
-        - d: dmd-2.065
-          addons:
-            mariadb: '10.1'
-
-        - d: dmd-2.064.2
+        - d: dmd-2.065.0
           addons:
             mariadb: '10.1'
 
