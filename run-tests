@@ -19,4 +19,4 @@ echo "  RDMD=$RDMD"
 echo "  DMD=$DMD"
 
 echo Compiling tests...
-$RDMD --compiler=$DMD --build-only -g -unittest -debug=MYSQL_INTEGRATION_TESTS -ofmysqln_tests -Isource -main source/mysql/connection.d && echo Running tests... && ./mysqln_tests
+$RDMD --compiler=$DMD --build-only -g -unittest -debug=MYSQL_INTEGRATION_TESTS -ofmysqln_tests -Isource source/mysql/connection.d && echo Running tests... && ./mysqln_tests
