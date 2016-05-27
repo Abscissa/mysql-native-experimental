@@ -2,8 +2,9 @@ language: d
 sudo: false
 
 before_script:
-    - echo 'host=127.0.0.1;port=3306;user=root;pwd=;db=mysqln_testdb' > testConnectionStr.txt
+    - mysql -e 'SHOW VARIABLES LIKE "%version%";'
     - mysql -e 'CREATE DATABASE mysqln_testdb;'
+    - echo 'host=127.0.0.1;port=3306;user=root;pwd=;db=mysqln_testdb' > testConnectionStr.txt
 
 script: ./run-tests
 
@@ -12,42 +13,57 @@ matrix:
         - d: dmd
           addons:
             mariadb: '10.1'
+
         - d: dmd-2.071.0
           addons:
             mariadb: '10.1'
+
         - d: dmd-2.070.2
           addons:
             mariadb: '10.1'
+
         - d: dmd-2.070.2
           addons:
             mariadb: '5.5'
+          env: DB=mariadb_5.5
+
         - d: dmd-2.070.2
           services:
             - mysql
+          env: DB=mysql_default
+
         - d: dmd-2.069.2
           addons:
             mariadb: '10.1'
+
         - d: dmd-2.068.2
           addons:
             mariadb: '10.1'
+
         - d: dmd-2.067.1
           addons:
             mariadb: '10.1'
+
         - d: ldc
           addons:
             mariadb: '10.1'
+
         - d: ldc-0.17.1
           addons:
             mariadb: '10.1'
+
         - d: ldc-0.17.0
           addons:
             mariadb: '10.1'
+
         - d: ldc-0.16.1
           addons:
             mariadb: '10.1'
+
         - d: gdc
           addons:
             mariadb: '10.1'
+
         - d: gdc-5.2.0
           addons:
             mariadb: '10.1'
