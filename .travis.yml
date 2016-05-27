@@ -1,0 +1,53 @@
+language: d
+sudo: false
+
+before_script:
+    - echo 'host=127.0.0.1;port=3306;user=root;pwd=;db=mysqln_testdb' > testConnectionStr.txt
+    - mysql -e 'CREATE DATABASE mysqln_testdb;'
+
+script: ./run-tests
+
+matrix:
+    include:
+        - d: dmd
+          addons:
+            mariadb: '10.1'
+        - d: dmd-2.071.0
+          addons:
+            mariadb: '10.1'
+        - d: dmd-2.070.2
+          addons:
+            mariadb: '10.1'
+        - d: dmd-2.070.2
+          addons:
+            mariadb: '5.5'
+        - d: dmd-2.070.2
+          services:
+            - mysql
+        - d: dmd-2.069.2
+          addons:
+            mariadb: '10.1'
+        - d: dmd-2.068.2
+          addons:
+            mariadb: '10.1'
+        - d: dmd-2.067.1
+          addons:
+            mariadb: '10.1'
+        - d: ldc
+          addons:
+            mariadb: '10.1'
+        - d: ldc-0.17.1
+          addons:
+            mariadb: '10.1'
+        - d: ldc-0.17.0
+          addons:
+            mariadb: '10.1'
+        - d: ldc-0.16.1
+          addons:
+            mariadb: '10.1'
+        - d: gdc
+          addons:
+            mariadb: '10.1'
+        - d: gdc-5.2.0
+          addons:
+            mariadb: '10.1'
