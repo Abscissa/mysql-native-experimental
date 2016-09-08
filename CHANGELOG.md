@@ -2,6 +2,7 @@ v0.1.6 - 2016-09-08
 =====================
 - **Change:** If not using dub, vibe.d support is now enabled with -version=Have_vibe_d_core, not -version=Have_vibe_d (@Abscissa)
 - **Fixed:** Linker error when using dub to import *just* vibe-d:core, but not all of vibe.d. (@Abscissa)
+- **Fixed:** Use 'dub.json', not outdated 'package.json' name. (@Abscissa)
 
 v0.1.5 - 2016-09-08
 =====================
