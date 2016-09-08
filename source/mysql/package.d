@@ -44,7 +44,7 @@
  * This module supports both Phobos sockets and $(LINK http://vibed.org/, Vibe.d)
  * sockets. Vibe.d support is disabled by default, to avoid unnecessary
  * depencency on Vibe.d. To enable Vibe.d support, use:
- *   -version=Have_vibe_d
+ *   -version=Have_vibe_d_core
  *
  * If you compile using $(LINK https://github.com/rejectedsoftware/dub, DUB),
  * and your project uses Vibe.d, then the -version flag above will be included

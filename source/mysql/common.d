@@ -12,7 +12,7 @@ import std.string;
 import std.traits;
 import std.variant;
 
-version(Have_vibe_d)
+version(Have_vibe_d_core)
 {
     static if(__traits(compiles, (){ import vibe.core.net; } ))
         import vibe.core.net;
@@ -46,7 +46,7 @@ alias MySQLProtocolException MYXProtocol;
 
 // Phobos/Vibe.d type aliases
 package alias std.socket.TcpSocket PlainPhobosSocket;
-version(Have_vibe_d)
+version(Have_vibe_d_core)
 {
     package alias vibe.core.net.TCPConnection PlainVibeDSocket;
 }
@@ -132,7 +132,7 @@ package class MySQLSocketPhobos : MySQLSocket
 }
 
 // Wraps a Vibe.d socket with the common interface
-version(Have_vibe_d) {
+version(Have_vibe_d_core) {
     package class MySQLSocketVibeD : MySQLSocket
     {
         private PlainVibeDSocket socket;

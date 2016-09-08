@@ -1,3 +1,8 @@
+v0.1.6 - 2016-09-08
+=====================
+- **Change:** If not using dub, vibe.d support is now enabled with -version=Have_vibe_d_core, not -version=Have_vibe_d (@Abscissa)
+- **Fixed:** Linker error when using dub to import *just* vibe-d:core, but not all of vibe.d. (@Abscissa)
+
 v0.1.5 - 2016-09-08
 =====================
 - **New:** [#73](https://github.com/mysql-d/mysql-native/issues/73): [Integration testing](https://travis-ci.org/mysql-d/mysql-native) via [travis-ci](https://travis-ci.org/). (@Abscissa)

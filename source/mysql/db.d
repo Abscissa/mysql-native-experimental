@@ -9,7 +9,7 @@ module mysql.db;
 public import mysql.connection;
 import std.conv;
 
-version(Have_vibe_d)
+version(Have_vibe_d_core)
 {
     import vibe.core.connectionpool;
 

@@ -4,11 +4,11 @@ Usage: app [connection string]
 If connection string isn't provided, the following default connection string will be used:
    host=localhost;port=3306;user=testuser;pwd=testpassword;db=testdb
 
-(optional) -version=Have_vibe_d:
+(optional) -version=Have_vibe_d_core:
     Link with Vibe.d, and run test using use Vibe.d sockets instead of Phobos sockets.
 
 (optional) -version=UseConnPool:
-    Run test using use Vibe.d conenction pool. Requires -version=Have_vibe_d
+    Run test using use Vibe.d conenction pool. Requires -version=Have_vibe_d_core
 +/
 
 import mysql.connection;

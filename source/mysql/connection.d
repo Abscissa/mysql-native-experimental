@@ -16,7 +16,7 @@ debug(MYSQL_INTEGRATION_TESTS)
     public import mysql.test.regression;
 }
 
-version(Have_vibe_d)
+version(Have_vibe_d_core)
 {
     static if(__traits(compiles, (){ import vibe.core.net; } ))
         import vibe.core.net;
@@ -104,7 +104,7 @@ package:
     void bumpPacket()       { _cpn++; }
     void resetPacket()      { _cpn = 0; }
 
-    version(Have_vibe_d) {} else
+    version(Have_vibe_d_core) {} else
     pure const nothrow invariant()
     {
         assert(_socketType != MySQLSocketType.vibed);
@@ -320,7 +320,7 @@ package:
 
     static PlainVibeDSocket defaultOpenSocketVibeD(string host, ushort port)
     {
-        version(Have_vibe_d)
+        version(Have_vibe_d_core)
             return vibe.core.net.connectTCP(host, port);
         else
             assert(0);
@@ -336,10 +336,10 @@ package:
                 break;
 
             case MySQLSocketType.vibed:
-                version(Have_vibe_d) {
+                version(Have_vibe_d_core) {
                     _socket = new MySQLSocketVibeD(_openSocketVibeD(_host, _port));
                     break;
-                } else assert(0, "Unsupported socket type. Need version Have_vibe_d.");
+                } else assert(0, "Unsupported socket type. Need version Have_vibe_d_core.");
         }
     }
 
@@ -445,7 +445,7 @@ public:
      *
      * Parameters:
      *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos,
-     *                 unless -version=Have_vibe_d is used.
+     *                 unless -version=Have_vibe_d_core is used.
      *    openSocket = Optional callback which should return a newly-opened Phobos
      *                 or Vibe.d TCP socket. This allows custom sockets to be used,
      *                 subclassed from Phobos's or Vibe.d's sockets.
@@ -457,7 +457,7 @@ public:
      */
     this(string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
     {
-        version(Have_vibe_d)
+        version(Have_vibe_d_core)
             enum defaultSocketType = MySQLSocketType.vibed;
         else
             enum defaultSocketType = MySQLSocketType.phobos;
@@ -468,8 +468,8 @@ public:
     ///ditto
     this(MySQLSocketType socketType, string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
     {
-        version(Have_vibe_d) {} else
-            enforceEx!MYX(socketType != MySQLSocketType.vibed, "Cannot use Vibe.d sockets without -version=Have_vibe_d");
+        version(Have_vibe_d_core) {} else
+            enforceEx!MYX(socketType != MySQLSocketType.vibed, "Cannot use Vibe.d sockets without -version=Have_vibe_d_core");
 
         this(socketType, &defaultOpenSocketPhobos, &defaultOpenSocketVibeD,
             host, user, pwd, db, port, capFlags);
@@ -482,7 +482,7 @@ public:
         this(MySQLSocketType.phobos, openSocket, null, host, user, pwd, db, port, capFlags);
     }
 
-    version(Have_vibe_d)
+    version(Have_vibe_d_core)
     ///ditto
     this(OpenSocketCallbackVibeD openSocket,
         string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
@@ -505,8 +505,8 @@ public:
     {
         enforceEx!MYX(capFlags & SvrCapFlags.PROTOCOL41, "This client only supports protocol v4.1");
         enforceEx!MYX(capFlags & SvrCapFlags.SECURE_CONNECTION, "This client only supports protocol v4.1 connection");
-        version(Have_vibe_d) {} else
-            enforceEx!MYX(socketType != MySQLSocketType.vibed, "Cannot use Vibe.d sockets without -version=Have_vibe_d");
+        version(Have_vibe_d_core) {} else
+            enforceEx!MYX(socketType != MySQLSocketType.vibed, "Cannot use Vibe.d sockets without -version=Have_vibe_d_core");
 
         _socketType = socketType;
         _host = host;
@@ -531,7 +531,7 @@ public:
      *
      * Parameters:
      *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos
-     *                 unless -version=Have_vibe_d is used.
+     *                 unless -version=Have_vibe_d_core is used.
      *    openSocket = Optional callback which should return a newly-opened Phobos
      *                 or Vibe.d TCP socket. This allows custom sockets to be used,
      *                 subclassed from Phobos's or Vibe.d's sockets.
@@ -558,7 +558,7 @@ public:
         this(openSocket, a[0], a[1], a[2], a[3], to!ushort(a[4]), capFlags);
     }
 
-    version(Have_vibe_d)
+    version(Have_vibe_d_core)
     ///ditto
     this(OpenSocketCallbackVibeD openSocket, string cs, SvrCapFlags capFlags = defaultClientFlags)
     {
@@ -571,7 +571,7 @@ public:
         return _open == OpenState.notConnected || !_socket.connected;
     }
 
-    version(Have_vibe_d)
+    version(Have_vibe_d_core)
     {
         void acquire() { if( _socket ) _socket.acquire(); }
         void release() { if( _socket ) _socket.release(); }
