@@ -12,7 +12,7 @@
 		"Nick Sabalausky"
 	],
 	"dependencies": {
-		"vibe-d": {"version": ">=0.7.17", "optional": true}
+		"vibe-d:core": {"version": "~>0.7.28", "optional": true}
 	},
 	"configurations": [
 	 	{
