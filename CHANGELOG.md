@@ -1,6 +1,6 @@
 v0.1.5 - 2016-09-08
 =====================
-- **New:** [#73](https://github.com/mysql-d/mysql-native/issues/73): [Integration testing](https://travis-ci.org/mysql-d/mysql-native) via [travis-ci](https://travis-ci.org/).
+- **New:** [#73](https://github.com/mysql-d/mysql-native/issues/73): [Integration testing](https://travis-ci.org/mysql-d/mysql-native) via [travis-ci](https://travis-ci.org/). (@Abscissa)
 - **New:** Started this changelog. (@Abscissa)
 - **Fixed:** [#20](https://github.com/mysql-d/mysql-native/issues/20): Contract failure in consume!string (@Marenz)
 - **Fixed:** [#50](https://github.com/mysql-d/mysql-native/issues/50): bindParameters example was wrong (@Abscissa)
