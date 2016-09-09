@@ -17,6 +17,7 @@ import mysql.connection;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
+import mysql.protocol.packet_helpers;
 
 /**
  * Encapsulation of an SQL command or query.
