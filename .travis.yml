@@ -7,7 +7,6 @@ before_script:
     - echo 'host=127.0.0.1;port=3306;user=root;pwd=;db=mysqln_testdb' > testConnectionStr.txt
 
 install: ./travis-install-deps.sh
-script: ./run-phobos-tests
 
 matrix:
     include:

@@ -4,7 +4,6 @@
 *.dll
 *.exe
 .dub
-/dub.selections.json
 /bin
 /testConnectionStr.txt
 

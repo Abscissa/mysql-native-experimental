@@ -61,10 +61,10 @@
  *
  * Developers - How to run the test suite:
  *
- * This package contains various unittests and integration tests. To run them
- * using phobos sockets, run 'run-phobos-tests'.
+ * This package contains various unittests and integration tests. To run them,
+ * run 'dub test'.
  * 
- * The first time you run 'run-phobos-tests', it will automatically create a
+ * The first time you run 'dub test', it will automatically create a
  * file 'testConnectionStr.txt' in project's base diretory and then exit.
  * This file is deliberately not contained in the source repository
  * because it's specific to your system.
@@ -77,8 +77,9 @@
  * but they will ONLY modify that one db schema. No other schema will be
  * modified in any way.
  * 
- * After you've configured the connection string, run 'run-phobos-tests' again
- * and their tests will be run.
+ * After you've configured the connection string, run 'dub test' again
+ * and their tests will be compiled and run, first using Phobos sockets,
+ * then using Vibe sockets.
  *
  * Copyright: Copyright 2011
  * License:   $(LINK www.boost.org/LICENSE_1_0.txt, Boost License 1.0).

@@ -4,7 +4,7 @@ license     "BSL-1.0"
 copyright   "Copyright (c) 2011 Steve Teale"
 authors     "Steve Teale" "James W. Oliphant" "simendsjo" "Sönke Ludwig" "sshamov" "Nick Sabalausky"
 
-dependency "vibe-d:core" version="~>0.7.28" optional=true
+dependency "vibe-d:core" version="~>0.7.29" optional=true
 
 sourcePaths "source/"
 importPaths "source/"
@@ -17,4 +17,26 @@ configuration "application" {
 configuration "library" {
 	targetType "library"
 	excludedSourceFiles "source/app.d"
+}
+
+configuration "unittest" {
+	targetType "executable"
+	targetPath "bin/"
+	targetName "mysqln-tests-vibe"
+	excludedSourceFiles "source/app.d"
+
+	preBuildCommands \
+		"run-phobos-tests" \
+		"echo Performing Vibe-socket tests..." \
+		platform="windows"
+
+	preBuildCommands \
+		"./run-phobos-tests" \
+		"echo Performing Vibe-socket tests..." \
+		platform="posix"
+
+	dependency "vibe-d:core" version="~>0.7.29" optional=false
+
+	mainSourceFile "source/mysql/connection.d"
+	debugVersions "MYSQL_INTEGRATION_TESTS"
 }
