@@ -48,14 +48,6 @@ matrix:
           addons:
             mariadb: '10.1'
 
-        - d: dmd-2.066.1
-          addons:
-            mariadb: '10.1'
-
-        - d: dmd-2.065.0
-          addons:
-            mariadb: '10.1'
-
         - d: ldc
           addons:
             mariadb: '10.1'
@@ -72,26 +64,12 @@ matrix:
           addons:
             mariadb: '10.1'
 
-        - d: ldc-0.15.1
-          addons:
-            mariadb: '10.1'
-
-        - d: ldc-0.14.0
-          addons:
-            mariadb: '10.1'
-
+        # Latest GDC (v5.2.0) uses a too-old DMDFE (2.066), so
+        # it won't work on current mysql-native. So it's set as
+        # an allowed failure for travis.
         - d: gdc
           addons:
             mariadb: '10.1'
 
-        - d: gdc-5.2.0
-          addons:
-            mariadb: '10.1'
-
-        - d: gdc-4.9.3
-          addons:
-            mariadb: '10.1'
-
-        - d: gdc-4.9.0
-          addons:
-            mariadb: '10.1'
+    allow_failures:
+        - d: gdc
