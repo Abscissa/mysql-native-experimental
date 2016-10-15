@@ -44,10 +44,6 @@ matrix:
           addons:
             mariadb: '10.1'
 
-        - d: dmd-2.067.1
-          addons:
-            mariadb: '10.1'
-
         - d: ldc
           addons:
             mariadb: '10.1'
