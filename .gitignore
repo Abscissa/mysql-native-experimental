@@ -5,7 +5,7 @@
 *.exe
 .dub
 /dub.selections.json
-/mysqln_tests
+/bin
 /testConnectionStr.txt
 
 # Executable file name when 'dub' is run on linux

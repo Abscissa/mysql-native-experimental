@@ -61,13 +61,12 @@
  *
  * Developers - How to run the test suite:
  *
- * This package contains various unittests and integration tests. To run them,
- * first compile mysql-native's connection.d with the following flags:
- *   -g -unittest -debug=MYSQL_INTEGRATION_TESTS -ofmysqln_tests
+ * This package contains various unittests and integration tests. To run them
+ * using phobos sockets, run 'run-phobos-tests'.
  * 
- * Then, running 'mysqln_tests' once will automatically create a file
- * 'testConnectionStr.txt' in the same directory as 'mysqln_tests' and then
- * exit. This file is deliberately not contained in the source repository
+ * The first time you run 'run-phobos-tests', it will automatically create a
+ * file 'testConnectionStr.txt' in project's base diretory and then exit.
+ * This file is deliberately not contained in the source repository
  * because it's specific to your system.
  * 
  * Open the 'testConnectionStr.txt' file and verify the connection settings
@@ -78,7 +77,7 @@
  * but they will ONLY modify that one db schema. No other schema will be
  * modified in any way.
  * 
- * After you've configured the connection string, run 'mysqln_tests' again
+ * After you've configured the connection string, run 'run-phobos-tests' again
  * and their tests will be run.
  *
  * Copyright: Copyright 2011

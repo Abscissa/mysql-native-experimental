@@ -40,7 +40,7 @@ debug(MYSQL_INTEGRATION_TESTS)
         
         static string cached;
         if(!cached)
-            cached = buildPath(thisExePath().dirName(), "testConnectionStr.txt");
+            cached = buildPath(thisExePath.dirName.dirName, "testConnectionStr.txt");
 
         return cached;
     }

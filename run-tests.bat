@@ -1,3 +1,0 @@
-@echo off
-echo Compiling tests...
-rdmd --build-only -g -unittest -debug=MYSQL_INTEGRATION_TESTS -ofmysqln_tests -Isource source/mysql/connection.d && echo Running tests... && mysqln_tests
