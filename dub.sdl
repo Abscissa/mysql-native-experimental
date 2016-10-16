@@ -19,21 +19,20 @@ configuration "library" {
 	excludedSourceFiles "source/app.d"
 }
 
+// Do not use this. Use "run-tests" insetad.
 configuration "unittest" {
+	preBuildCommands \
+		"echo \"ERROR: Don't use 'dub test' to test mysql-native. Use 'run-tests' instead.\"" \
+		"echo Bailing..." \
+		"mkdir" // Generate error to halt build
+}
+
+// Run with: dub test -c unittest-vibe
+configuration "unittest-vibe" {
 	targetType "executable"
 	targetPath "bin/"
 	targetName "mysqln-tests-vibe"
 	excludedSourceFiles "source/app.d"
-
-	preBuildCommands \
-		"run-phobos-tests" \
-		"echo Performing Vibe-socket tests..." \
-		platform="windows"
-
-	preBuildCommands \
-		"./run-phobos-tests" \
-		"echo Performing Vibe-socket tests..." \
-		platform="posix"
 
 	dependency "vibe-d:core" version="~>0.7.29" optional=false
 
