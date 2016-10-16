@@ -171,7 +171,7 @@ struct ColumnSpecialization
     size_t  cIndex;    // parameter number 0 - number of params-1
     ushort  type;
     uint    chunkSize;
-    void delegate(ubyte[] chunk, bool finished) chunkDelegate;
+    void delegate(const(ubyte)[] chunk, bool finished) chunkDelegate;
 }
 alias ColumnSpecialization CSN;
 

@@ -133,7 +133,7 @@ private:
     ubyte    _scale;
     ulong    _deflt;
     uint     chunkSize;
-    void delegate(ubyte[], bool) chunkDelegate;
+    void delegate(const(ubyte)[], bool) chunkDelegate;
 
 public:
     /**

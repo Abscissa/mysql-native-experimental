@@ -127,7 +127,7 @@ package:
         return packet;
     }
 
-    void send(ubyte[] packet)
+    void send(const(ubyte)[] packet)
     in
     {
         assert(packet.length > 4); // at least 1 byte more than header
@@ -137,7 +137,7 @@ package:
         _socket.write(packet);
     }
 
-    void send(ubyte[] header, ubyte[] data)
+    void send(const(ubyte)[] header, const(ubyte)[] data)
     in
     {
         assert(header.length == 4 || header.length == 5/*command type included*/);
@@ -149,7 +149,7 @@ package:
             _socket.write(data);
     }
 
-    void sendCmd(T)(CommandType cmd, T[] data)
+    void sendCmd(T)(CommandType cmd, const(T)[] data)
     in
     {
         // Internal thread states. Clients shouldn't use this
@@ -191,7 +191,7 @@ package:
         header[4] = cmd;
         bumpPacket();
 
-        send(header, cast(ubyte[])data);
+        send(header, cast(const(ubyte)[])data);
     }
 
     OKErrorPacket getCmdResponse(bool asString = false)
@@ -743,7 +743,7 @@ public:
         t.length = 2;
         t[0] = on ? 0 : 1;
         t[1] = 0;
-        sendCmd(CommandType.STMT_OPTION, cast(string) t);
+        sendCmd(CommandType.STMT_OPTION, t);
 
         // For some reason this command gets an EOF packet as response
         auto packet = getPacket();
