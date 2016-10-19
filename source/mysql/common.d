@@ -30,7 +30,7 @@ class MySQLException: Exception
         super(msg, file, line);
     }
 }
-alias MySQLException MYX;
+alias MYX = MySQLException;
 
 /**
  * Received invalid data from the server which violates the MySQL network protocol.
@@ -42,22 +42,22 @@ class MySQLProtocolException: MySQLException
         super(msg, file, line);
     }
 }
-alias MySQLProtocolException MYXProtocol;
+alias MYXProtocol = MySQLProtocolException;
 
 // Phobos/Vibe.d type aliases
-package alias std.socket.TcpSocket PlainPhobosSocket;
+package alias PlainPhobosSocket = std.socket.TcpSocket;
 version(Have_vibe_d_core)
 {
-    package alias vibe.core.net.TCPConnection PlainVibeDSocket;
+    package alias PlainVibeDSocket = vibe.core.net.TCPConnection;
 }
 else
 {
     // Dummy types
-    package alias Object PlainVibeDSocket;
+    package alias PlainVibeDSocket = Object;
 }
 
-alias PlainPhobosSocket function(string,ushort) OpenSocketCallbackPhobos;
-alias PlainVibeDSocket  function(string,ushort) OpenSocketCallbackVibeD;
+alias OpenSocketCallbackPhobos = PlainPhobosSocket function(string,ushort);
+alias OpenSocketCallbackVibeD = PlainVibeDSocket function(string,ushort);
 
 enum MySQLSocketType { phobos, vibed }
 
