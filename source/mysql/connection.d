@@ -42,27 +42,27 @@ immutable SvrCapFlags defaultClientFlags =
 		SvrCapFlags.SECURE_CONNECTION;// | SvrCapFlags.MULTI_STATEMENTS |
 		//SvrCapFlags.MULTI_RESULTS;
 
-/**
- * A struct representing a database connection.
- *
- * The Connection is responsible for handshaking with the server to establish
- * authentication. It then passes client preferences to the server, and
- * subsequently is the channel for all command packets that are sent, and all
- * response packets received.
- *
- * Uncompressed packets consist of a 4 byte header - 3 bytes of length, and one
- * byte as a packet number. Connection deals with the headers and ensures that
- * packet numbers are sequential.
- *
- * The initial packet is sent by the server - essentially a 'hello' packet
- * inviting login. That packet has a sequence number of zero. That sequence
- * number is the incremented by client and server packets through the handshake
- * sequence.
- *
- * After login all further sequences are initialized by the client sending a
- * command packet with a zero sequence number, to which the server replies with
- * zero or more packets with sequential sequence numbers.
- */
+/++
+A struct representing a database connection.
+
+The Connection is responsible for handshaking with the server to establish
+authentication. It then passes client preferences to the server, and
+subsequently is the channel for all command packets that are sent, and all
+response packets received.
+
+Uncompressed packets consist of a 4 byte header - 3 bytes of length, and one
+byte as a packet number. Connection deals with the headers and ensures that
+packet numbers are sequential.
+
+The initial packet is sent by the server - essentially a 'hello' packet
+inviting login. That packet has a sequence number of zero. That sequence
+number is the incremented by client and server packets through the handshake
+sequence.
+
+After login all further sequences are initialized by the client sending a
+command packet with a zero sequence number, to which the server replies with
+zero or more packets with sequential sequence numbers.
++/
 class Connection
 {
 package:
@@ -437,24 +437,24 @@ package:
 	
 public:
 
-	/**
-	 * Construct opened connection.
-	 *
-	 * After the connection is created, and the initial invitation is received from the server
-	 * client preferences can be set, and authentication can then be attempted.
-	 *
-	 * Parameters:
-	 *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos,
-	 *                 unless -version=Have_vibe_d_core is used.
-	 *    openSocket = Optional callback which should return a newly-opened Phobos
-	 *                 or Vibe.d TCP socket. This allows custom sockets to be used,
-	 *                 subclassed from Phobos's or Vibe.d's sockets.
-	 *    host = An IP address in numeric dotted form, or as a host  name.
-	 *    user = The user name to authenticate.
-	 *    password = Users password.
-	 *    db = Desired initial database.
-	 *    capFlags = The set of flag bits from the server's capabilities that the client requires
-	 */
+	/++
+	Construct opened connection.
+	
+	After the connection is created, and the initial invitation is received from the server
+	client preferences can be set, and authentication can then be attempted.
+	
+	Parameters:
+	   socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos,
+	                unless -version=Have_vibe_d_core is used.
+	   openSocket = Optional callback which should return a newly-opened Phobos
+	                or Vibe.d TCP socket. This allows custom sockets to be used,
+	                subclassed from Phobos's or Vibe.d's sockets.
+	   host = An IP address in numeric dotted form, or as a host  name.
+	   user = The user name to authenticate.
+	   password = Users password.
+	   db = Desired initial database.
+	   capFlags = The set of flag bits from the server's capabilities that the client requires
+	+/
 	this(string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
 	{
 		version(Have_vibe_d_core)
@@ -521,23 +521,23 @@ public:
 		connect(capFlags);
 	}
 
-	/**
-	 * Construct opened connection.
-	 *
-	 * After the connection is created, and the initial invitation is received from
-	 * the server client preferences are set, and authentication can then be attempted.
-	 *
-	 * TBD The connection string needs work to allow for semicolons in its parts!
-	 *
-	 * Parameters:
-	 *    socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos
-	 *                 unless -version=Have_vibe_d_core is used.
-	 *    openSocket = Optional callback which should return a newly-opened Phobos
-	 *                 or Vibe.d TCP socket. This allows custom sockets to be used,
-	 *                 subclassed from Phobos's or Vibe.d's sockets.
-	 *    cs = A connection string of the form "host=localhost;user=user;pwd=password;db=mysqld"
-	 *    capFlags = The set of flag bits from the server's capabilities that the client requires
-	 */
+	/++
+	Construct opened connection.
+	
+	After the connection is created, and the initial invitation is received from
+	the server client preferences are set, and authentication can then be attempted.
+	
+	TBD The connection string needs work to allow for semicolons in its parts!
+	
+	Parameters:
+	   socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos
+	                unless -version=Have_vibe_d_core is used.
+	   openSocket = Optional callback which should return a newly-opened Phobos
+	                or Vibe.d TCP socket. This allows custom sockets to be used,
+	                subclassed from Phobos's or Vibe.d's sockets.
+	   cs = A connection string of the form "host=localhost;user=user;pwd=password;db=mysqld"
+	   capFlags = The set of flag bits from the server's capabilities that the client requires
+	+/
 	this(string cs, SvrCapFlags capFlags = defaultClientFlags)
 	{
 		string[] a = parseConnectionString(cs);
@@ -586,22 +586,22 @@ public:
 		bool amOwner() { return !!_socket; }
 	}
 
-	/**
-	 * Explicitly close the connection.
-	 *
-	 * This is a two-stage process. First tell the server we are quitting this
-	 * connection, and then close the socket.
-	 *
-	 * Idiomatic use as follows is suggested:
-	 * ------------------
-	 * {
-	 *     auto con = Connection("localhost:user:password:mysqld");
-	 *     scope(exit) con.close();
-	 *     // Use the connection
-	 *     ...
-	 * }
-	 * ------------------
-	 */
+	/++
+	Explicitly close the connection.
+	
+	This is a two-stage process. First tell the server we are quitting this
+	connection, and then close the socket.
+	
+	Idiomatic use as follows is suggested:
+	------------------
+	{
+	    auto con = Connection("localhost:user:password:mysqld");
+	    scope(exit) con.close();
+	    // Use the connection
+	    ...
+	}
+	------------------
+	+/
 	void close()
 	{
 		if (_open == OpenState.authenticated && _socket.connected)
@@ -680,12 +680,12 @@ public:
 		return rv;
 	}
 
-	/**
-	 * Select a current database.
-	 *
-	 * Params: dbName = Name of the requested database
-	 * Throws: MySQLException
-	 */
+	/++
+	Select a current database.
+	
+	Params: dbName = Name of the requested database
+	Throws: MySQLException
+	+/
 	void selectDB(string dbName)
 	{
 		sendCmd(CommandType.INIT_DB, dbName);
@@ -693,48 +693,48 @@ public:
 		_db = dbName;
 	}
 
-	/**
-	 * Check the server status
-	 *
-	 * Returns: An OKErrorPacket from which server status can be determined
-	 * Throws: MySQLException
-	 */
+	/++
+	Check the server status
+	
+	Returns: An OKErrorPacket from which server status can be determined
+	Throws: MySQLException
+	+/
 	OKErrorPacket pingServer()
 	{
 		sendCmd(CommandType.PING, []);
 		return getCmdResponse();
 	}
 
-	/**
-	 * Refresh some feature(s) of the server.
-	 *
-	 * Returns: An OKErrorPacket from which server status can be determined
-	 * Throws: MySQLException
-	 */
+	/++
+	Refresh some feature(s) of the server.
+	
+	Returns: An OKErrorPacket from which server status can be determined
+	Throws: MySQLException
+	+/
 	OKErrorPacket refreshServer(RefreshFlags flags)
 	{
 		sendCmd(CommandType.REFRESH, [flags]);
 		return getCmdResponse();
 	}
 
-	/**
-	 * Get a textual report on the server status.
-	 *
-	 * (COM_STATISTICS)
-	 */
+	/++
+	Get a textual report on the server status.
+	
+	(COM_STATISTICS)
+	+/
 	string serverStats()
 	{
 		sendCmd(CommandType.STATISTICS, []);
 		return cast(string) getPacket();
 	}
 
-	/**
-	 * Enable multiple statement commands
-	 *
-	 * This can be used later if this feature was not requested in the client capability flags.
-	 *
-	 * Params: on = Boolean value to turn the capability on or off.
-	 */
+	/++
+	Enable multiple statement commands
+	
+	This can be used later if this feature was not requested in the client capability flags.
+	
+	Params: on = Boolean value to turn the capability on or off.
+	+/
 	void enableMultiStatements(bool on)
 	{
 		scope(failure) kill();

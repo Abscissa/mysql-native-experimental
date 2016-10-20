@@ -17,12 +17,12 @@ import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 public import mysql.protocol.packet_helpers;
 
-/**
- * The server sent back a MySQL error code and message. If the server is 4.1+,
- * there should also be an ANSI/ODBC-standard SQLSTATE error code.
- *
- * See_Also: https://dev.mysql.com/doc/refman/5.5/en/error-messages-server.html
- */
+/++
+The server sent back a MySQL error code and message. If the server is 4.1+,
+there should also be an ANSI/ODBC-standard SQLSTATE error code.
+
+See_Also: https://dev.mysql.com/doc/refman/5.5/en/error-messages-server.html
++/
 class MySQLReceivedException: MySQLException
 {
 	ushort errorCode;
@@ -47,11 +47,11 @@ void enforcePacketOK(string file = __FILE__, size_t line = __LINE__)(OKErrorPack
 	enforce(!okp.error, new MYXReceived(okp, file, line));
 }
 
-/**
- * A struct representing an OK or Error packet
- * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Types_Of_Result_Packets
- * OK packets begin with a zero byte - Error packets with 0xff
- */
+/++
+A struct representing an OK or Error packet
+See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Types_Of_Result_Packets
+OK packets begin with a zero byte - Error packets with 0xff
++/
 struct OKErrorPacket
 {
 	bool     error;
@@ -110,14 +110,14 @@ struct OKErrorPacket
 	}
 }
 
-/**
- * A struct representing a field (column) description packet
- *
- * These packets, one for each column are sent before the data of a result set,
- * followed by an EOF packet.
- *
- * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Field_Packet
- */
+/++
+A struct representing a field (column) description packet
+
+These packets, one for each column are sent before the data of a result set,
+followed by an EOF packet.
+
+See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Field_Packet
++/
 struct FieldDescription
 {
 private:
@@ -136,11 +136,11 @@ private:
 	void delegate(const(ubyte)[], bool) chunkDelegate;
 
 public:
-	/**
-	 * Construct a FieldDescription from the raw data packet
-	 *
-	 * Parameters: packet = The packet contents excluding the 4 byte packet header
-	 */
+	/++
+	Construct a FieldDescription from the raw data packet
+	
+	Parameters: packet = The packet contents excluding the 4 byte packet header
+	+/
 	this(ubyte[] packet)
 	in
 	{
@@ -230,15 +230,15 @@ public:
 	}
 }
 
-/**
- * A struct representing a prepared statement parameter description packet
- *
- * These packets, one for each parameter are sent in response to the prepare
- * command, followed by an EOF packet.
- *
- * Sadly it seems that this facility is only a stub. The correct number of
- * packets is sent, but they contain no useful information and are all the same.
- */
+/++
+A struct representing a prepared statement parameter description packet
+
+These packets, one for each parameter are sent in response to the prepare
+command, followed by an EOF packet.
+
+Sadly it seems that this facility is only a stub. The correct number of
+packets is sent, but they contain no useful information and are all the same.
++/
 struct ParamDescription
 {
 private:
@@ -274,18 +274,18 @@ body
 	return packet.front == ResultPacketMarker.eof && packet.length < 9;
 }
 
-/**
- * A struct representing an EOF packet from the server
- *
- * An EOF packet is sent from the server after each sequence of field
- * description and parameter description packets, and after a sequence of
- * result set row packets.
- * An EOF packet is also called "Last Data Packet" or "End Packet".
- *
- * These EOF packets contain a server status and a warning count.
- *
- * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#EOF_Packet
- */
+/++
+A struct representing an EOF packet from the server
+
+An EOF packet is sent from the server after each sequence of field
+description and parameter description packets, and after a sequence of
+result set row packets.
+An EOF packet is also called "Last Data Packet" or "End Packet".
+
+These EOF packets contain a server status and a warning count.
+
+See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#EOF_Packet
++/
 struct EOFPacket
 {
 private:
@@ -294,11 +294,11 @@ private:
 
 public:
 
-   /**
-	* Construct an EOFPacket struct from the raw data packet
-	*
-	* Parameters: packet = The packet contents excluding the 4 byte packet header
-	*/
+	/++
+	Construct an EOFPacket struct from the raw data packet
+	
+	Parameters: packet = The packet contents excluding the 4 byte packet header
+	+/
 	this(ubyte[] packet)
 	in
 	{
@@ -324,13 +324,13 @@ public:
 }
 
 
-/**
- * A struct representing the collation of a sequence of FieldDescription packets.
- *
- * This data gets filled in after a query (prepared or otherwise) that creates
- * a result set completes. All the FD packets, and an EOF packet must be eaten
- * before the row data packets can be read.
- */
+/++
+A struct representing the collation of a sequence of FieldDescription packets.
+
+This data gets filled in after a query (prepared or otherwise) that creates
+a result set completes. All the FD packets, and an EOF packet must be eaten
+before the row data packets can be read.
++/
 struct ResultSetHeaders
 {
 	import mysql.connection;
@@ -342,14 +342,14 @@ private:
 
 public:
 
-	/**
-	 * Construct a ResultSetHeaders struct from a sequence of FieldDescription
-	 * packets and an EOF packet.
-	 *
-	 * Parameters:
-	 *    con = A Connection via which the packets are read
-	 *    fieldCount = the number of fields/columns generated by the query
-	 */
+	/++
+	Construct a ResultSetHeaders struct from a sequence of FieldDescription
+	packets and an EOF packet.
+	
+	Parameters:
+		con = A Connection via which the packets are read
+		fieldCount = the number of fields/columns generated by the query
+	+/
 	this(Connection con, uint fieldCount)
 	{
 		scope(failure) con.kill();
@@ -372,16 +372,16 @@ public:
 		_warnings = eof._warnings;
 	}
 
-	/**
-	 * Add specialization information to one or more field descriptions.
-	 *
-	 * Currently the only specialization supported is the capability to deal with long data
-	 * e.g. BLOB or TEXT data in chunks by stipulating a chunkSize and a delegate to sink
-	 * the data.
-	 *
-	 * Parameters:
-	 *    csa = An array of ColumnSpecialization structs
-	 */
+	/++
+	Add specialization information to one or more field descriptions.
+	
+	Currently the only specialization supported is the capability to deal with long data
+	e.g. BLOB or TEXT data in chunks by stipulating a chunkSize and a delegate to sink
+	the data.
+	
+	Parameters:
+		csa = An array of ColumnSpecialization structs
+	+/
 	void addSpecializations(ColumnSpecialization[] csa)
 	{
 		foreach(CSN csn; csa)
@@ -411,11 +411,11 @@ public:
 	}
 }
 
-/**
- * A struct representing the collation of a prepared statement parameter description sequence
- *
- * As noted above - parameter descriptions are not fully implemented by MySQL.
- */
+/++
+A struct representing the collation of a prepared statement parameter description sequence
+
+As noted above - parameter descriptions are not fully implemented by MySQL.
++/
 struct PreparedStmtHeaders
 {
 	import mysql.connection;

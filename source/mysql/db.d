@@ -1,9 +1,9 @@
-﻿/**
- * A lightweight interface to a MySQL database using vibe.d's connectionpool.
- *
- * You have to include vibe.d in your project to be able to use this class.
- * If you don't want to, refer to mysql.connection.
- */
+﻿/++
+A lightweight interface to a MySQL database using vibe.d's connectionpool.
+
+You have to include vibe.d in your project to be able to use this class.
+If you don't want to, refer to mysql.connection.
++/
 module mysql.db;
 
 public import mysql.connection;

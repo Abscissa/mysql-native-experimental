@@ -16,16 +16,16 @@ import mysql.common;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 
-/**
- * Function to extract a time difference from a binary encoded row.
- *
- * Time/date structures are packed by the server into a byte sub-packet
- * with a leading length byte, and a minimal number of bytes to embody the data.
- *
- * Params: a = slice of a protocol packet beginning at the length byte for a chunk of time data
- *
- * Returns: A populated or default initialized TimeDiff struct.
- */
+/++
+Function to extract a time difference from a binary encoded row.
+
+Time/date structures are packed by the server into a byte sub-packet
+with a leading length byte, and a minimal number of bytes to embody the data.
+
+Params: a = slice of a protocol packet beginning at the length byte for a chunk of time data
+
+Returns: A populated or default initialized TimeDiff struct.
++/
 TimeDiff toTimeDiff(in ubyte[] a) pure
 {
 	enforceEx!MYXProtocol(a.length, "Supplied byte array is zero length");
@@ -47,15 +47,15 @@ TimeDiff toTimeDiff(in ubyte[] a) pure
 	return td;
 }
 
-/**
- * Function to extract a time difference from a text encoded column value.
- *
- * Text representations of a time difference are like -750:12:02 - 750 hours
- * 12 minutes and two seconds ago.
- *
- * Params: s = A string representation of the time difference.
- * Returns: A populated or default initialized TimeDiff struct.
- */
+/++
+Function to extract a time difference from a text encoded column value.
+
+Text representations of a time difference are like -750:12:02 - 750 hours
+12 minutes and two seconds ago.
+
+Params: s = A string representation of the time difference.
+Returns: A populated or default initialized TimeDiff struct.
++/
 TimeDiff toTimeDiff(string s)
 {
 	TimeDiff td;
@@ -74,16 +74,16 @@ TimeDiff toTimeDiff(string s)
 	return td;
 }
 
-/**
- * Function to extract a TimeOfDay from a binary encoded row.
- *
- * Time/date structures are packed by the server into a byte sub-packet
- * with a leading length byte, and a minimal number of bytes to embody the data.
- *
- * Params: a = slice of a protocol packet beginning at the length byte for a
- *             chunk of time data.
- * Returns: A populated or default initialized std.datetime.TimeOfDay struct.
- */
+/++
+Function to extract a TimeOfDay from a binary encoded row.
+
+Time/date structures are packed by the server into a byte sub-packet
+with a leading length byte, and a minimal number of bytes to embody the data.
+
+Params: a = slice of a protocol packet beginning at the length byte for a
+            chunk of time data.
+Returns: A populated or default initialized std.datetime.TimeOfDay struct.
++/
 TimeOfDay toTimeOfDay(in ubyte[] a) pure
 {
 	enforceEx!MYXProtocol(a.length, "Supplied byte array is zero length");
@@ -98,14 +98,14 @@ TimeOfDay toTimeOfDay(in ubyte[] a) pure
 	return tod;
 }
 
-/**
- * Function to extract a TimeOfDay from a text encoded column value.
- *
- * Text representations of a time of day are as in 14:22:02
- *
- * Params: s = A string representation of the time.
- * Returns: A populated or default initialized std.datetime.TimeOfDay struct.
- */
+/++
+Function to extract a TimeOfDay from a text encoded column value.
+
+Text representations of a time of day are as in 14:22:02
+
+Params: s = A string representation of the time.
+Returns: A populated or default initialized std.datetime.TimeOfDay struct.
++/
 TimeOfDay toTimeOfDay(string s)
 {
 	TimeOfDay tod;
@@ -118,15 +118,15 @@ TimeOfDay toTimeOfDay(string s)
 	return tod;
 }
 
-/**
- * Function to pack a TimeOfDay into a binary encoding for transmission to the server.
- *
- * Time/date structures are packed into a string of bytes with a leading length
- * byte, and a minimal number of bytes to embody the data.
- *
- * Params: tod = TimeOfDay struct.
- * Returns: Packed ubyte[].
- */
+/++
+Function to pack a TimeOfDay into a binary encoding for transmission to the server.
+
+Time/date structures are packed into a string of bytes with a leading length
+byte, and a minimal number of bytes to embody the data.
+
+Params: tod = TimeOfDay struct.
+Returns: Packed ubyte[].
++/
 ubyte[] pack(in TimeOfDay tod) pure nothrow
 {
 	ubyte[] rv;
@@ -146,16 +146,16 @@ ubyte[] pack(in TimeOfDay tod) pure nothrow
 	return rv;
 }
 
-/**
- * Function to extract a Date from a binary encoded row.
- *
- * Time/date structures are packed by the server into a byte sub-packet
- * with a leading length byte, and a minimal number of bytes to embody the data.
- *
- * Params: a = slice of a protocol packet beginning at the length byte for a
- *             chunk of Date data.
- * Returns: A populated or default initialized std.datetime.Date struct.
- */
+/++
+Function to extract a Date from a binary encoded row.
+
+Time/date structures are packed by the server into a byte sub-packet
+with a leading length byte, and a minimal number of bytes to embody the data.
+
+Params: a = slice of a protocol packet beginning at the length byte for a
+            chunk of Date data.
+Returns: A populated or default initialized std.datetime.Date struct.
++/
 Date toDate(in ubyte[] a) pure
 {
 	enforceEx!MYXProtocol(a.length, "Supplied byte array is zero length");
@@ -169,14 +169,14 @@ Date toDate(in ubyte[] a) pure
 	return Date(year, month, day);
 }
 
-/**
- * Function to extract a Date from a text encoded column value.
- *
- * Text representations of a Date are as in 2011-11-11
- *
- * Params: s = A string representation of the time difference.
- * Returns: A populated or default initialized std.datetime.Date struct.
- */
+/++
+Function to extract a Date from a text encoded column value.
+
+Text representations of a Date are as in 2011-11-11
+
+Params: s = A string representation of the time difference.
+Returns: A populated or default initialized std.datetime.Date struct.
++/
 Date toDate(string s)
 {
 	int year = parse!(ushort)(s);
@@ -187,15 +187,15 @@ Date toDate(string s)
 	return Date(year, month, day);
 }
 
-/**
- * Function to pack a Date into a binary encoding for transmission to the server.
- *
- * Time/date structures are packed into a string of bytes with a leading length
- * byte, and a minimal number of bytes to embody the data.
- *
- * Params: dt = std.datetime.Date struct.
- * Returns: Packed ubyte[].
- */
+/++
+Function to pack a Date into a binary encoding for transmission to the server.
+
+Time/date structures are packed into a string of bytes with a leading length
+byte, and a minimal number of bytes to embody the data.
+
+Params: dt = std.datetime.Date struct.
+Returns: Packed ubyte[].
++/
 ubyte[] pack(in Date dt) pure nothrow
 {
 	ubyte[] rv;
@@ -216,16 +216,16 @@ ubyte[] pack(in Date dt) pure nothrow
 	return rv;
 }
 
-/**
- * Function to extract a DateTime from a binary encoded row.
- *
- * Time/date structures are packed by the server into a byte sub-packet
- * with a leading length byte, and a minimal number of bytes to embody the data.
- *
- * Params: a = slice of a protocol packet beginning at the length byte for a
- *             chunk of DateTime data
- * Returns: A populated or default initialized std.datetime.DateTime struct.
- */
+/++
+Function to extract a DateTime from a binary encoded row.
+
+Time/date structures are packed by the server into a byte sub-packet
+with a leading length byte, and a minimal number of bytes to embody the data.
+
+Params: a = slice of a protocol packet beginning at the length byte for a
+            chunk of DateTime data
+Returns: A populated or default initialized std.datetime.DateTime struct.
++/
 DateTime toDateTime(in ubyte[] a) pure
 {
 	enforceEx!MYXProtocol(a.length, "Supplied byte array is zero length");
@@ -252,14 +252,14 @@ DateTime toDateTime(in ubyte[] a) pure
 	return dt;
 }
 
-/**
- * Function to extract a DateTime from a text encoded column value.
- *
- * Text representations of a DateTime are as in 2011-11-11 12:20:02
- *
- * Params: s = A string representation of the time difference.
- * Returns: A populated or default initialized std.datetime.DateTime struct.
- */
+/++
+Function to extract a DateTime from a text encoded column value.
+
+Text representations of a DateTime are as in 2011-11-11 12:20:02
+
+Params: s = A string representation of the time difference.
+Returns: A populated or default initialized std.datetime.DateTime struct.
++/
 DateTime toDateTime(string s)
 {
 	int year = parse!(ushort)(s);
@@ -276,14 +276,14 @@ DateTime toDateTime(string s)
 	return DateTime(year, month, day, hour, minute, second);
 }
 
-/**
- * Function to extract a DateTime from a ulong.
- *
- * This is used to support the TimeStamp  struct.
- *
- * Params: x = A ulong e.g. 20111111122002UL.
- * Returns: A populated std.datetime.DateTime struct.
- */
+/++
+Function to extract a DateTime from a ulong.
+
+This is used to support the TimeStamp  struct.
+
+Params: x = A ulong e.g. 20111111122002UL.
+Returns: A populated std.datetime.DateTime struct.
++/
 DateTime toDateTime(ulong x) pure
 {
 	int second = cast(int) x%100;
@@ -304,15 +304,15 @@ DateTime toDateTime(ulong x) pure
 	return DateTime(year, month, day, hour, minute, second);
 }
 
-/**
- * Function to pack a DateTime into a binary encoding for transmission to the server.
- *
- * Time/date structures are packed into a string of bytes with a leading length byte,
- * and a minimal number of bytes to embody the data.
- *
- * Params: dt = std.datetime.DateTime struct.
- * Returns: Packed ubyte[].
- */
+/++
+Function to pack a DateTime into a binary encoding for transmission to the server.
+
+Time/date structures are packed into a string of bytes with a leading length byte,
+and a minimal number of bytes to embody the data.
+
+Params: dt = std.datetime.DateTime struct.
+Returns: Packed ubyte[].
++/
 ubyte[] pack(in DateTime dt) pure nothrow
 {
 	uint len = 1;
@@ -743,15 +743,15 @@ SQLValue consumeIfComplete()(ref ubyte[] packet, SQLType sqlType, bool binary, b
 	}
 }
 
-/**
- * Extract number of bytes used for this LCB
- *
- * Returns the number of bytes required to store this LCB
- *
- * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
- *
- * Returns: 0 if it's a null value, or number of bytes in other cases
- * */
+/++
+Extract number of bytes used for this LCB
+
+Returns the number of bytes required to store this LCB
+
+See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
+
+Returns: 0 if it's a null value, or number of bytes in other cases
++/
 byte getNumLCBBytes(in ubyte lcbHeader) pure nothrow
 {
 	switch(lcbHeader)
@@ -770,17 +770,17 @@ byte getNumLCBBytes(in ubyte lcbHeader) pure nothrow
 }
 
 
-/**
- * Decodes a Length Coded Binary from a packet
- *
- * See_Also: struct LCB
- *
- * Parameters:
- *  packet = A packet that starts with a LCB. The bytes is popped off
- *           iff the packet is complete. See LCB.
- *
- * Returns: A decoded LCB value
- * */
+/++
+Decodes a Length Coded Binary from a packet
+
+See_Also: struct LCB
+
+Parameters:
+packet = A packet that starts with a LCB. The bytes is popped off
+         iff the packet is complete. See LCB.
+
+Returns: A decoded LCB value
++/
 T consumeIfComplete(T:LCB)(ref ubyte[] packet) pure nothrow
 in
 {
@@ -835,16 +835,16 @@ body
 	return lcb;
 }
 
-/**
- * Decodes a Length Coded Binary from a packet
- *
- * See_Also: struct LCB
- *
- * Parameters:
- *  packet = A packet that starts with a LCB. See LCB.
- *
- * Returns: A decoded LCB value
- * */
+/++
+Decodes a Length Coded Binary from a packet
+
+See_Also: struct LCB
+
+Parameters:
+ packet = A packet that starts with a LCB. See LCB.
+
+Returns: A decoded LCB value
++/
 LCB decode(T:LCB)(in ubyte[] packet) pure nothrow
 in
 {
@@ -870,10 +870,11 @@ body
 	return lcb;
 }
 
-/** Parse Length Coded String
- *
- * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
- * */
+/++
+Parse Length Coded String
+
+See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Elements
++/
 string consume(T:LCS)(ref ubyte[] packet) pure
 in
 {
@@ -889,10 +890,10 @@ body
 	return cast(string)packet.consume(cast(size_t)lcb.value).idup;
 }
 
-/**
- * Skips over n items, advances the array, and return the newly advanced array
- * to allow method chaining.
- * */
+/++
+Skips over n items, advances the array, and return the newly advanced array
+to allow method chaining.
++/
 T[] skip(T)(ref T[] array, size_t n) pure nothrow
 in
 {
@@ -904,15 +905,15 @@ body
 	return array;
 }
 
-/**
- * Converts a value into a sequence of bytes and fills the supplied array
- *
- * Parameters:
- * IsInt24 = If only the most significant 3 bytes from the value should be used
- * value = The value to add to array
- * array = The array we should add the values for. It has to be large enough,
- *         and the values are packed starting index 0
- */
+/++
+Converts a value into a sequence of bytes and fills the supplied array
+
+Parameters:
+IsInt24 = If only the most significant 3 bytes from the value should be used
+value = The value to add to array
+array = The array we should add the values for. It has to be large enough,
+        and the values are packed starting index 0
++/
 void packInto(T, bool IsInt24 = false)(T value, ubyte[] array) pure nothrow
 in
 {

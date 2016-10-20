@@ -1,13 +1,13 @@
 ﻿module mysql.protocol.constants;
 
-/**
- * Server capability flags.
- *
- * During the connection handshake process, the server sends a uint of flags
- * describing its capabilities.
- *
- * See_Also: http://dev.mysql.com/doc/internals/en/connection-phase.html#capability-flags
- */
+/++
+Server capability flags.
+
+During the connection handshake process, the server sends a uint of flags
+describing its capabilities.
+
+See_Also: http://dev.mysql.com/doc/internals/en/connection-phase.html#capability-flags
++/
 enum SvrCapFlags: uint
 {
 	OLD_LONG_PASSWORD   = 0x0_0001, /// Long old-style passwords (Not 4.1+ passwords)
@@ -30,9 +30,9 @@ enum SvrCapFlags: uint
 	MULTI_RESULTS       = 0x2_0000, /// Multiple result set support
 }
 
-/**
- * Column type codes
- */
+/++
+Column type codes
++/
 enum SQLType : short
 {
 	INFER_FROM_D_TYPE = -1,
@@ -65,9 +65,9 @@ enum SQLType : short
 	GEOMETRY     = 0xff
 }
 
-/**
- * Server refresh flags
- */
+/++
+Server refresh flags
++/
 enum RefreshFlags : ubyte
 {
 	GRANT    =   1,
@@ -80,10 +80,10 @@ enum RefreshFlags : ubyte
 	MASTER   = 128
 }
 
-/**
- * Type of Command Packet (COM_XXX)
- * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Command_Packet_.28Overview.29
- * */
+/++
+Type of Command Packet (COM_XXX)
+See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Command_Packet_.28Overview.29
++/
 enum CommandType : ubyte
 {
 	SLEEP               = 0x00,
@@ -120,25 +120,29 @@ enum CommandType : ubyte
 /// Magic marker sent in the first byte of mysql results in response to auth or command packets
 enum ResultPacketMarker : ubyte
 {
-	/** Server reports an error
-	 * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Error_Packet
-	 */
+	/++
+	Server reports an error
+	See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Error_Packet
+	+/
 	error   = 0xff,
 
-	/** No error, no result set.
-	 * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#OK_Packet
-	 */
+	/++
+	No error, no result set.
+	See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#OK_Packet
+	+/
 	ok      = 0x00,
 
-	/** Server reports end of data
-	 * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#EOF_Packet
-	 */
+	/++
+	Server reports end of data
+	See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#EOF_Packet
+	+/
 	eof     = 0xfe,
 }
 
-/** Field Flags
- * See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Field_Packet
- */
+/++
+Field Flags
+See_Also: http://forge.mysql.com/wiki/MySQL_Internals_ClientServer_Protocol#Field_Packet
++/
 enum FieldFlags : ushort
 {
 	NOT_NULL        = 0x0001,

@@ -20,9 +20,9 @@ version(Have_vibe_d_core)
 		static assert(false, "mysql-native can't find Vibe.d's 'vibe.core.net'.");
 }
 
-/**
- * An exception type to distinguish exceptions thrown by this module.
- */
+/++
+An exception type to distinguish exceptions thrown by this module.
++/
 class MySQLException: Exception
 {
 	this(string msg, string file = __FILE__, size_t line = __LINE__) pure
@@ -32,9 +32,9 @@ class MySQLException: Exception
 }
 alias MYX = MySQLException;
 
-/**
- * Received invalid data from the server which violates the MySQL network protocol.
- */
+/++
+Received invalid data from the server which violates the MySQL network protocol.
++/
 class MySQLProtocolException: MySQLException
 {
 	this(string msg, string file, size_t line) pure

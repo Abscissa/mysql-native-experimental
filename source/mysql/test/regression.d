@@ -1,10 +1,10 @@
-﻿/** 
- * This contains regression tests for the issues at:
- * https://github.com/rejectedsoftware/mysql-native/issues
- * 
- * Regression unittests, like other unittests, are located together with
- * the units they test.
- */
+﻿/++
+This contains regression tests for the issues at:
+https://github.com/rejectedsoftware/mysql-native/issues
+
+Regression unittests, like other unittests, are located together with
+the units they test.
++/
 module mysql.test.regression;
 
 import std.algorithm;

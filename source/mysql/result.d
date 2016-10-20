@@ -16,17 +16,17 @@ import mysql.common;
 import mysql.protocol.commands;
 import mysql.protocol.packets;
 
-/**
- * A struct to represent a single row of a result set.
- *
- * The row struct is used for both 'traditional' and 'prepared' result sets.
- * It consists of parallel arrays of Variant and bool, with the bool array
- * indicating which of the result set columns are NULL.
- *
- * I have been agitating for some kind of null indicator that can be set for a
- * Variant without destroying its inherent type information. If this were the
- * case, then the bool array could disappear.
- */
+/++
+A struct to represent a single row of a result set.
+
+The row struct is used for both 'traditional' and 'prepared' result sets.
+It consists of parallel arrays of Variant and bool, with the bool array
+indicating which of the result set columns are NULL.
+
+I have been agitating for some kind of null indicator that can be set for a
+Variant without destroying its inherent type information. If this were the
+case, then the bool array could disappear.
++/
 struct Row
 {
 	import mysql.connection;
@@ -95,21 +95,21 @@ private:
 
 public:
 
-	/**
-	 * A constructor to extract the column data from a row data packet.
-	 *
-	 * If the data for the row exceeds the server's maximum packet size, then several packets will be
-	 * sent for the row that taken together constitute a logical row data packet. The logic of the data
-	 * recovery for a Row attempts to minimize the quantity of data that is bufferred. Users can assist
-	 * in this by specifying chunked data transfer in cases where results sets can include long
-	 * column values.
-	 *
-	 * The row struct is used for both 'traditional' and 'prepared' result sets. It consists of parallel arrays
-	 * of Variant and bool, with the bool array indicating which of the result set columns are NULL.
-	 *
-	 * I have been agitating for some kind of null indicator that can be set for a Variant without destroying
-	 * its inherent type information. If this were the case, then the bool array could disappear.
-	 */
+	/++
+	A constructor to extract the column data from a row data packet.
+	
+	If the data for the row exceeds the server's maximum packet size, then several packets will be
+	sent for the row that taken together constitute a logical row data packet. The logic of the data
+	recovery for a Row attempts to minimize the quantity of data that is bufferred. Users can assist
+	in this by specifying chunked data transfer in cases where results sets can include long
+	column values.
+	
+	The row struct is used for both 'traditional' and 'prepared' result sets. It consists of parallel arrays
+	of Variant and bool, with the bool array indicating which of the result set columns are NULL.
+	
+	I have been agitating for some kind of null indicator that can be set for a Variant without destroying
+	its inherent type information. If this were the case, then the bool array could disappear.
+	+/
 	this(Connection con, ref ubyte[] packet, ResultSetHeaders rh, bool binary)
 	in
 	{
@@ -160,15 +160,15 @@ public:
 		}
 	}
 
-	/**
-	 * Simplify retrieval of a column value by index.
-	 *
-	 * If the table you are working with does not allow NULL columns, this may
-	 * be all you need. Otherwise you will have to use isNull(i) as well.
-	 *
-	 * Params: i = the zero based index of the column whose value is required.
-	 * Returns: A Variant holding the column value.
-	 */
+	/++
+	Simplify retrieval of a column value by index.
+	
+	If the table you are working with does not allow NULL columns, this may
+	be all you need. Otherwise you will have to use isNull(i) as well.
+	
+	Params: i = the zero based index of the column whose value is required.
+	Returns: A Variant holding the column value.
+	+/
 	inout(Variant) opIndex(size_t i) inout
 	{
 		enforceEx!MYX(_nulls.length > 0, format("Cannot get column index %d. There are no columns", i));
@@ -177,25 +177,25 @@ public:
 		return _values[i];
 	}
 
-	/**
-	 * Check if a column in the result row was NULL
-	 *
-	 * Params: i = The zero based column index.
-	 */
+	/++
+	Check if a column in the result row was NULL
+	
+	Params: i = The zero based column index.
+	+/
 	@property bool isNull(size_t i) const pure nothrow { return _nulls[i]; }
 
-	/**
-	 * Move the content of the row into a compatible struct
-	 *
-	 * This method takes no account of NULL column values. If a column was NULL,
-	 * the corresponding Variant value would be unchanged in those cases.
-	 *
-	 * The method will throw if the type of the Variant is not implicitly
-	 * convertible to the corresponding struct member.
-	 *
-	 * Params: S = a struct type.
-	 *                s = an ref instance of the type
-	 */
+	/++
+	Move the content of the row into a compatible struct
+	
+	This method takes no account of NULL column values. If a column was NULL,
+	the corresponding Variant value would be unchanged in those cases.
+	
+	The method will throw if the type of the Variant is not implicitly
+	convertible to the corresponding struct member.
+	
+	Params: S = a struct type.
+	               s = an ref instance of the type
+	+/
 	void toStruct(S)(ref S s) if (is(S == struct))
 	{
 		foreach (i, dummy; s.tupleof)
@@ -234,29 +234,29 @@ public:
 	}
 }
 
-/**
- * Composite representation of a column value
- *
- * Another case where a null flag on Variant would simplify matters.
- */
+/++
+Composite representation of a column value
+
+Another case where a null flag on Variant would simplify matters.
++/
 struct DBValue
 {
 	Variant value;
 	bool isNull;
 }
 
-/**
- * A Random access range of Rows.
- *
- * This is the entity that is returned by the Command methods execSQLResult and
- * execPreparedResult
- *
- * MySQL result sets can be up to 2^^64 rows, and the 32 bit implementation of the
- * MySQL C API accomodates such potential massive result sets by storing the rows in
- * a doubly linked list. I have taken the view that users who have a need for result sets
- * up to this size should be working with a 64 bit system, and as such the 32 bit
- * implementation will throw if the number of rows exceeds the 32 bit size_t.max.
- */
+/++
+A Random access range of Rows.
+
+This is the entity that is returned by the Command methods execSQLResult and
+execPreparedResult
+
+MySQL result sets can be up to 2^^64 rows, and the 32 bit implementation of the
+MySQL C API accomodates such potential massive result sets by storing the rows in
+a doubly linked list. I have taken the view that users who have a need for result sets
+up to this size should be working with a 64 bit system, and as such the 32 bit
+implementation will throw if the number of rows exceeds the 32 bit size_t.max.
++/
 struct ResultSet
 {
 private:
@@ -274,68 +274,68 @@ package:
 	}
 
 public:
-	/**
-	 * Make the ResultSet behave as a random access range - empty
-	 *
-	 */
+	/++
+	Make the ResultSet behave as a random access range - empty
+	
+	+/
 	@property bool empty() const pure nothrow { return _curRows.length == 0; }
 
-	/**
-	 * Make the ResultSet behave as a random access range - save
-	 *
-	 */
+	/++
+	Make the ResultSet behave as a random access range - save
+	
+	+/
 	@property ResultSet save() pure nothrow
 	{
 		return this;
 	}
 
-	/**
-	 * Make the ResultSet behave as a random access range - front
-	 *
-	 * Gets the first row in whatever remains of the Range.
-	 */
+	/++
+	Make the ResultSet behave as a random access range - front
+	
+	Gets the first row in whatever remains of the Range.
+	+/
 	@property inout(Row) front() pure inout
 	{
 		enforceEx!MYX(_curRows.length, "Attempted to get front of an empty ResultSet");
 		return _curRows[0];
 	}
 
-	/**
-	 * Make the ResultSet behave as a random access range - back
-	 *
-	 * Gets the last row in whatever remains of the Range.
-	 */
+	/++
+	Make the ResultSet behave as a random access range - back
+	
+	Gets the last row in whatever remains of the Range.
+	+/
 	@property inout(Row) back() pure inout
 	{
 		enforceEx!MYX(_curRows.length, "Attempted to get back on an empty ResultSet");
 		return _curRows[$-1];
 	}
 
-	/**
-	 * Make the ResultSet behave as a random access range - popFront()
-	 *
-	 */
+	/++
+	Make the ResultSet behave as a random access range - popFront()
+	
+	+/
 	void popFront() pure
 	{
 		enforceEx!MYX(_curRows.length, "Attempted to popFront() on an empty ResultSet");
 		_curRows = _curRows[1..$];
 	}
 
-	/**
-	 * Make the ResultSet behave as a random access range - popBack
-	 *
-	 */
+	/++
+	Make the ResultSet behave as a random access range - popBack
+	
+	+/
 	void popBack() pure
 	{
 		enforceEx!MYX(_curRows.length, "Attempted to popBack() on an empty ResultSet");
 		_curRows = _curRows[0 .. $-1];
 	}
 
-	/**
-	 * Make the ResultSet behave as a random access range - opIndex
-	 *
-	 * Gets the i'th row of whatever remains of the range
-	 */
+	/++
+	Make the ResultSet behave as a random access range - opIndex
+	
+	Gets the i'th row of whatever remains of the range
+	+/
 	Row opIndex(size_t i) pure
 	{
 		enforceEx!MYX(_curRows.length, "Attempted to index into an empty ResultSet range.");
@@ -343,30 +343,30 @@ public:
 		return _curRows[i];
 	}
 
-	/**
-	 * Make the ResultSet behave as a random access range - length
-	 *
-	 */
+	/++
+	Make the ResultSet behave as a random access range - length
+	
+	+/
 	@property size_t length() pure const nothrow { return _curRows.length; }
 	alias opDollar = length; ///ditto
 
-	/**
-	 * Restore the range to its original span.
-	 *
-	 * Since the range is just a view of the data, we can easily revert to the
-	 * initial state.
-	 */
+	/++
+	Restore the range to its original span.
+	
+	Since the range is just a view of the data, we can easily revert to the
+	initial state.
+	+/
 	void revert() pure nothrow
 	{
 		_curRows = _rows[];
 	}
 
-	/**
-	 * Get a row as an associative array by column name
-	 *
-	 * The row in question will be that which was the most recent subject of
-	 * front, back, or opIndex. If there have been no such references it will be front.
-	 */
+	/++
+	Get a row as an associative array by column name
+	
+	The row in question will be that which was the most recent subject of
+	front, back, or opIndex. If there have been no such references it will be front.
+	+/
 	DBValue[string] asAA()
 	{
 		enforceEx!MYX(_curRows.length, "Attempted use of empty ResultSet as an associative array.");
@@ -397,15 +397,15 @@ public:
 	}
 }
 
-/**
- * An input range of Rows.
- *
- * This is the entity that is returned by the Command methods execSQLSequence and
- * execPreparedSequence
- *
- * MySQL result sets can be up to 2^^64 rows. This interface allows for iteration
- * through a result set of that size.
- */
+/++
+An input range of Rows.
+
+This is the entity that is returned by the Command methods execSQLSequence and
+execPreparedSequence
+
+MySQL result sets can be up to 2^^64 rows. This interface allows for iteration
+through a result set of that size.
++/
 struct ResultSequence
 {
 private:
@@ -429,28 +429,28 @@ public:
 		close();
 	}
 
-	/**
-	 * Make the ResultSequence behave as an input range - empty
-	 *
-	 */
+	/++
+	Make the ResultSequence behave as an input range - empty
+	
+	+/
 	@property bool empty() const pure nothrow { return _cmd is null || !_cmd.rowsPending; }
 
-	/**
-	 * Make the ResultSequence behave as an input range - front
-	 *
-	 * Gets the current row
-	 */
+	/++
+	Make the ResultSequence behave as an input range - front
+	
+	Gets the current row
+	+/
 	@property inout(Row) front() pure inout
 	{
 		enforceEx!MYX(!empty, "Attempted 'front' on exhausted result sequence.");
 		return _row;
 	}
 
-	/**
-	 * Make the ResultSequence behave as am input range - popFront()
-	 *
-	 * Progresses to the next row of the result set - that will then be 'front'
-	 */
+	/++
+	Make the ResultSequence behave as am input range - popFront()
+	
+	Progresses to the next row of the result set - that will then be 'front'
+	+/
 	void popFront()
 	{
 		enforceEx!MYX(!empty, "Attempted 'popFront' when no more rows available");
@@ -458,9 +458,9 @@ public:
 		_numRowsFetched++;
 	}
 
-	/**
-	 * Get the current row as an associative array by column name
-	 */
+	/++
+	Get the current row as an associative array by column name
+	+/
 	 DBValue[string] asAA()
 	 {
 		enforceEx!MYX(!empty, "Attempted 'front' on exhausted result sequence.");
@@ -473,7 +473,7 @@ public:
 			aa[s]        = value;
 		}
 		return aa;
-	 }
+	}
 
 	/// Get the names of all the columns
 	@property const(string)[] colNames() const pure nothrow { return _colNames; }
@@ -490,10 +490,10 @@ public:
 		return _colNameIndicies;
 	}
 
-	/**
-	 * Explicitly clean up the MySQL resources and cancel pending results
-	 *
-	 */
+	/++
+	Explicitly clean up the MySQL resources and cancel pending results
+	
+	+/
 	void close()
 	{
 		if(_cmd)
@@ -501,10 +501,10 @@ public:
 		_cmd = null;
 	}
 
-	/**
-	 * Get the number of currently retrieved.
-	 *
-	 * Note that this is not neccessarlly the same as the length of the range.
-	 */
+	/++
+	Get the number of currently retrieved.
+	
+	Note that this is not neccessarlly the same as the length of the range.
+	+/
 	@property ulong rowCount() const pure nothrow { return _numRowsFetched; }
 }

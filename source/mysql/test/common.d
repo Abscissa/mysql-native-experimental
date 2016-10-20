@@ -1,8 +1,8 @@
-﻿/**
- * Package mysql.test contains integration and regression tests, not unittests.
- * Unittests (including regression unittests) are located together with the
- * units they test.
- */
+﻿/++
+Package mysql.test contains integration and regression tests, not unittests.
+Unittests (including regression unittests) are located together with the
+units they test.
++/
 module mysql.test.common;
 
 import std.algorithm;

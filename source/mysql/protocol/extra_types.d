@@ -14,13 +14,13 @@ import std.variant;
 
 import mysql.common;
 
-/**
- * A simple struct to represent time difference.
- *
- * D's std.datetime does not have a type that is closely compatible with the MySQL
- * interpretation of a time difference, so we define a struct here to hold such
- * values.
- */
+/++
+A simple struct to represent time difference.
+
+D's std.datetime does not have a type that is closely compatible with the MySQL
+interpretation of a time difference, so we define a struct here to hold such
+values.
++/
 struct TimeDiff
 {
 	bool negative;
@@ -28,16 +28,16 @@ struct TimeDiff
 	ubyte hours, minutes, seconds;
 }
 
-/**
- * A D struct to stand for a TIMESTAMP
- *
- * It is assumed that insertion of TIMESTAMP values will not be common, since in general,
- * such columns are used for recording the time of a row insertion, and are filled in
- * automatically by the server. If you want to force a timestamp value in a prepared insert,
- * set it into a timestamp struct as an unsigned long in the format YYYYMMDDHHMMSS
- * and use that for the approriate parameter. When TIMESTAMPs are retrieved as part of
- * a result set it will be as DateTime structs.
- */
+/++
+A D struct to stand for a TIMESTAMP
+
+It is assumed that insertion of TIMESTAMP values will not be common, since in general,
+such columns are used for recording the time of a row insertion, and are filled in
+automatically by the server. If you want to force a timestamp value in a prepared insert,
+set it into a timestamp struct as an unsigned long in the format YYYYMMDDHHMMSS
+and use that for the approriate parameter. When TIMESTAMPs are retrieved as part of
+a result set it will be as DateTime structs.
++/
 struct Timestamp
 {
 	ulong rep;
@@ -71,9 +71,8 @@ struct SQLValue
 	}
 }
 
-/**
- * Length Coded Binary Value
- * */
+
+/// Length Coded Binary Value
 struct LCB
 {
 	/// True if the LCB contains a null value
@@ -83,10 +82,10 @@ struct LCB
 	/// to store a value of the size specified. More bytes have to be fetched from the server
 	bool isIncomplete;
 
-	// Number of bytes needed to store the value (Extracted from the LCB header. The header byte is not included)
+	/// Number of bytes needed to store the value (Extracted from the LCB header. The header byte is not included)
 	ubyte numBytes;
 
-	// Number of bytes total used for this LCB
+	/// Number of bytes total used for this LCB
 	@property ubyte totalBytes() pure const nothrow
 	{
 		return cast(ubyte)(numBytes <= 1 ? 1 : numBytes+1);
@@ -118,27 +117,26 @@ struct LCB
 	}
 }
 
-/** Length Coded String
- * */
+/// Length Coded String
 struct LCS
 {
 	// dummy struct just to tell what value we are using
 	// we don't need to store anything here as the result is always a string
 }
 
-/**
- * A struct to represent specializations of prepared statement parameters.
- *
- * There are two specializations. First you can set an isNull flag to indicate that the
- * parameter is to have the SQL NULL value.
- *
- * Second, if you need to send large objects to the database it might be convenient to
- * send them in pieces. These two variables allow for this. If both are provided
- * then the corresponding column will be populated by calling the delegate repeatedly.
- * the source should fill the indicated slice with data and arrange for the delegate to
- * return the length of the data supplied. Af that is less than the chunkSize
- * then the chunk will be assumed to be the last one.
- */
+/++
+A struct to represent specializations of prepared statement parameters.
+
+There are two specializations. First you can set an isNull flag to indicate that the
+parameter is to have the SQL NULL value.
+
+Second, if you need to send large objects to the database it might be convenient to
+send them in pieces. These two variables allow for this. If both are provided
+then the corresponding column will be populated by calling the delegate repeatedly.
+the source should fill the indicated slice with data and arrange for the delegate to
+return the length of the data supplied. Af that is less than the chunkSize
+then the chunk will be assumed to be the last one.
++/
 struct ParameterSpecialization
 {
 	import mysql.protocol.constants;
@@ -151,21 +149,21 @@ struct ParameterSpecialization
 }
 alias PSN = ParameterSpecialization;
 
-/**
- * A struct to represent specializations of prepared statement parameters.
- *
- * If you are executing a query that will include result columns that are large objects
- * it may be expedient to deal with the data as it is received rather than first buffering
- * it to some sort of byte array. These two variables allow for this. If both are provided
- * then the corresponding column will be fed to the stipulated delegate in chunks of
- * chunkSize, with the possible exception of the last chunk, which may be smaller.
- * The 'finished' argument will be set to true when the last chunk is set.
- *
- * Be aware when specifying types for column specializations that for some reason the
- * field descriptions returned for a resultset have all of the types TINYTEXT, MEDIUMTEXT,
- * TEXT, LONGTEXT, TINYBLOB, MEDIUMBLOB, BLOB, and LONGBLOB lumped as type 0xfc
- * contrary to what it says in the protocol documentation.
- */
+/++
+A struct to represent specializations of prepared statement parameters.
+
+If you are executing a query that will include result columns that are large objects
+it may be expedient to deal with the data as it is received rather than first buffering
+it to some sort of byte array. These two variables allow for this. If both are provided
+then the corresponding column will be fed to the stipulated delegate in chunks of
+chunkSize, with the possible exception of the last chunk, which may be smaller.
+The 'finished' argument will be set to true when the last chunk is set.
+
+Be aware when specifying types for column specializations that for some reason the
+field descriptions returned for a resultset have all of the types TINYTEXT, MEDIUMTEXT,
+TEXT, LONGTEXT, TINYBLOB, MEDIUMBLOB, BLOB, and LONGBLOB lumped as type 0xfc
+contrary to what it says in the protocol documentation.
++/
 struct ColumnSpecialization
 {
 	size_t  cIndex;    // parameter number 0 - number of params-1
@@ -175,9 +173,7 @@ struct ColumnSpecialization
 }
 alias CSN = ColumnSpecialization;
 
-/**
- * A struct to hold column metadata
- */
+/// A struct to hold column metadata
 struct ColumnInfo
 {
 	/// The database that the table having this column belongs to.
@@ -220,10 +216,7 @@ struct ColumnInfo
 	string comment;
 }
 
-/**
- * A struct to hold stored function metadata
- *
- */
+/// A struct to hold stored function metadata
 struct MySQLProcedure
 {
 	string db;
@@ -239,12 +232,12 @@ struct MySQLProcedure
 	string collationDB;
 }
 
-/**
- * Facilities to recover meta-data from a connection
- *
- * It is important to bear in mind that the methods provided will only return the
- * information that is available to the connected user. This may well be quite limited.
- */
+/++
+Facilities to recover meta-data from a connection
+
+It is important to bear in mind that the methods provided will only return the
+information that is available to the connected user. This may well be quite limited.
++/
 struct MetaData
 {
 	import mysql.connection;
@@ -321,15 +314,15 @@ public:
 		_con = con;
 	}
 
-	/**
-	 * List the available databases
-	 *
-	 * Note that if you have connected using the credentials of a user with
-	 * limited permissions you may not get many results.
-	 *
-	 * Returns:
-	 *    An array of strings
-	 */
+	/++
+	List the available databases
+	
+	Note that if you have connected using the credentials of a user with
+	limited permissions you may not get many results.
+	
+	Returns:
+		An array of strings
+	+/
 	string[] databases()
 	{
 		auto cmd = Command(_con, "SHOW DATABASES");
@@ -341,12 +334,12 @@ public:
 		return dbNames;
 	}
 
-	/**
-	 * List the tables in the current database
-	 *
-	 * Returns:
-	 *    An array of strings
-	 */
+	/++
+	List the tables in the current database
+	
+	Returns:
+		An array of strings
+	+/
 	string[] tables()
 	{
 		auto cmd = Command(_con, "SHOW TABLES");
@@ -358,14 +351,14 @@ public:
 		return tblNames;
 	}
 
-	/**
-	 * Get column metadata for a table in the current database
-	 *
-	 * Params:
-	 *    table = The table name
-	 * Returns:
-	 *    An array of ColumnInfo structs
-	 */
+	/++
+	Get column metadata for a table in the current database
+	
+	Params:
+		table = The table name
+	Returns:
+		An array of ColumnInfo structs
+	+/
 	ColumnInfo[] columns(string table)
 	{
 		// Manually specify all fields to avoid problems when newer versions of
@@ -467,19 +460,13 @@ public:
 		return ca;
 	}
 
-	/**
-	 * Get list of stored functions in the current database, and their properties
-	 *
-	 */
+	/// Get list of stored functions in the current database, and their properties
 	MySQLProcedure[] functions()
 	{
 		return stored(false);
 	}
 
-	/**
-	 * Get list of stored procedures in the current database, and their properties
-	 *
-	 */
+	/// Get list of stored procedures in the current database, and their properties
 	MySQLProcedure[] procedures()
 	{
 		return stored(true);
