@@ -1,7 +1,7 @@
 ﻿/++
-A native D driver for the MySQL database system. Source file mysql.d.
+A native D driver for the MySQL database system.
 
-This module attempts to provide composite objects and methods that will
+This package attempts to provide composite objects and methods that will
 allow a wide range of common database operations, but be relatively easy to
 use. The design is a first attempt to illustrate the structure of a set of
 modules to cover popular database systems and ODBC.
@@ -38,10 +38,7 @@ $(UL
 
 There are numerous examples of usage in the unittest sections.
 
-The file mysqld.sql, included with the module source code, can be used to
-generate the tables required by the unit tests.
-
-This module supports both Phobos sockets and $(LINK http://vibed.org/, Vibe.d)
+This package supports both Phobos sockets and $(LINK http://vibed.org/, Vibe.d)
 sockets. Vibe.d support is disabled by default, to avoid unnecessary
 depencency on Vibe.d. To enable Vibe.d support, use:
   -version=Have_vibe_d_core
@@ -50,14 +47,16 @@ If you compile using $(LINK https://github.com/rejectedsoftware/dub, DUB),
 and your project uses Vibe.d, then the -version flag above will be included
 automatically.
 
-This requires DMD v2.064.2 or later, and a MySQL server v4.1.1 or later. Older
+This requires MySQL server v4.1.1 or later, or a MariaDB server. Older
 versions of MySQL server are obsolete, use known-insecure authentication,
-and are not supported by this module.
+and are not supported by this package.
 
-There is an outstanding issue with Connections. Normally MySQL clients
-connect to a server on the same machine via a Unix socket on *nix systems,
+See .travis.yml for a list of officially supported D compiler versions.
+
+A note on connections: Normally MySQL clients connect to a server on
+the same machine via a Unix socket on *nix systems,
 and through a named pipe on Windows. Neither of these conventions is
-currently supported. TCP must be used for all connections.
+currently supported. TCP is used for all connections.
 
 Developers - How to run the test suite:
 
@@ -81,7 +80,7 @@ After you've configured the connection string, run 'dub test' again
 and their tests will be compiled and run, first using Phobos sockets,
 then using Vibe sockets.
 
-Copyright: Copyright 2011
+Copyright: Copyright (c) 2011-2016
 License:   $(LINK www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
 Authors:   Steve Teale, James W. Oliphant, simendsjo, Sönke Ludwig, sshamov, Nick Sabalausky
 +/

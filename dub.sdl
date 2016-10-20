@@ -1,8 +1,8 @@
 name        "mysql-native"
 description "A native MySQL driver implementation based on Steve Teale's original"
 license     "BSL-1.0"
-copyright   "Copyright (c) 2011 Steve Teale"
-authors     "Steve Teale" "James W. Oliphant" "simendsjo" "Sönke Ludwig" "sshamov" "Nick Sabalausky"
+copyright   "Copyright (c) 2011-2016 Steve Teale, James W. Oliphant, Simen Endsjø, Sönke Ludwig, Sergey Shamov, and Nick Sabalausky"
+authors     "Steve Teale" "James W. Oliphant" "Simen Endsjø" "Sönke Ludwig" "Sergey Shamov" "Nick Sabalausky"
 
 dependency "vibe-d:core" version="~>0.7.29" optional=true
 
