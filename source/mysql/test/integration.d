@@ -819,7 +819,19 @@ unittest
         //assert(!cn.queryScalar(selectOneSql).hasValue);
         assert(cn.querySingle(selectOneSql).isNull(0));
 
+        // NULL as bound param
         auto inscmd = cn.prepare("INSERT INTO "~tablename~" VALUES (?)");
+        cn.exec("TRUNCATE "~tablename);
+
+        inscmd.bindParameters([Variant(null)]);
+        okp = inscmd.exec();
+        //assert(okp.affectedRows == 1, "value not inserted");
+        assert(okp == 1, "value not inserted");
+
+        //assert(!cn.queryScalar(selectOneSql).hasValue);
+        assert(cn.querySingle(selectOneSql).isNull(0));
+
+        // Values
         foreach(value; values)
         {
             cn.exec("TRUNCATE "~tablename);

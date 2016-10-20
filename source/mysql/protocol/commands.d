@@ -86,6 +86,17 @@ package:
         return prefix;
     }
 
+    // Set ParameterSpecialization.isNull for all null values.
+    // This may not be the best way to handle it, but it'll do for now.
+    void fixupNulls()
+    {
+        foreach (size_t i; 0.._inParams.length)
+        {
+            if (_inParams[i].type == typeid(typeof(null)))
+                _psa[i].isNull = true;
+        }
+    }
+
     ubyte[] analyseParams(out ubyte[] vals, out bool longData)
     {
         size_t pc = _inParams.length;
@@ -109,9 +120,16 @@ package:
 
         foreach (size_t i; 0..pc)
         {
+            enum UNSIGNED  = 0x80;
+            enum SIGNED    = 0;
             if (_psa[i].chunkSize)
                 longData= true;
-            bool isnull = _psa[i].isNull;
+            if (_psa[i].isNull)
+            {
+                types[ct++] = SQLType.NULL;
+                types[ct++] = SIGNED;
+                continue;
+            }
             Variant v = _inParams[i];
             SQLType ext = _psa[i].type;
             string ts = v.type.toString();
@@ -122,8 +140,6 @@ package:
                 isRef= true;
             }
 
-            enum UNSIGNED  = 0x80;
-            enum SIGNED    = 0;
             switch (ts)
             {
                 case "bool":
@@ -132,7 +148,6 @@ package:
                     else
                         types[ct++] = cast(ubyte) ext;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     reAlloc(2);
                     bool bv = isRef? *(v.get!(bool*)): v.get!(bool);
                     vals[vcl++] = 1;
@@ -141,21 +156,18 @@ package:
                 case "byte":
                     types[ct++] = SQLType.TINY;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     reAlloc(1);
                     vals[vcl++] = isRef? *(v.get!(byte*)): v.get!(byte);
                     break;
                 case "ubyte":
                     types[ct++] = SQLType.TINY;
                     types[ct++] = UNSIGNED;
-                    if (isnull) break;
                     reAlloc(1);
                     vals[vcl++] = isRef? *(v.get!(ubyte*)): v.get!(ubyte);
                     break;
                 case "short":
                     types[ct++] = SQLType.SHORT;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     reAlloc(2);
                     short si = isRef? *(v.get!(short*)): v.get!(short);
                     vals[vcl++] = cast(ubyte) (si & 0xff);
@@ -172,7 +184,6 @@ package:
                 case "int":
                     types[ct++] = SQLType.INT;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     reAlloc(4);
                     int ii = isRef? *(v.get!(int*)): v.get!(int);
                     vals[vcl++] = cast(ubyte) (ii & 0xff);
@@ -183,7 +194,6 @@ package:
                 case "uint":
                     types[ct++] = SQLType.INT;
                     types[ct++] = UNSIGNED;
-                    if (isnull) break;
                     reAlloc(4);
                     uint ui = isRef? *(v.get!(uint*)): v.get!(uint);
                     vals[vcl++] = cast(ubyte) (ui & 0xff);
@@ -194,7 +204,6 @@ package:
                 case "long":
                     types[ct++] = SQLType.LONGLONG;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     reAlloc(8);
                     long li = isRef? *(v.get!(long*)): v.get!(long);
                     vals[vcl++] = cast(ubyte) (li & 0xff);
@@ -209,7 +218,6 @@ package:
                 case "ulong":
                     types[ct++] = SQLType.LONGLONG;
                     types[ct++] = UNSIGNED;
-                    if (isnull) break;
                     reAlloc(8);
                     ulong ul = isRef? *(v.get!(ulong*)): v.get!(ulong);
                     vals[vcl++] = cast(ubyte) (ul & 0xff);
@@ -224,7 +232,6 @@ package:
                 case "float":
                     types[ct++] = SQLType.FLOAT;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     reAlloc(4);
                     float f = isRef? *(v.get!(float*)): v.get!(float);
                     ubyte* ubp = cast(ubyte*) &f;
@@ -236,7 +243,6 @@ package:
                 case "double":
                     types[ct++] = SQLType.DOUBLE;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     reAlloc(8);
                     double d = isRef? *(v.get!(double*)): v.get!(double);
                     ubyte* ubp = cast(ubyte*) &d;
@@ -255,7 +261,6 @@ package:
                     Date date = isRef? *(v.get!(Date*)): v.get!(Date);
                     ubyte[] da = pack(date);
                     size_t l = da.length;
-                    if (isnull) break;
                     reAlloc(l);
                     vals[vcl..vcl+l] = da[];
                     vcl += l;
@@ -266,7 +271,6 @@ package:
                     TimeOfDay time = isRef? *(v.get!(TimeOfDay*)): v.get!(TimeOfDay);
                     ubyte[] ta = pack(time);
                     size_t l = ta.length;
-                    if (isnull) break;
                     reAlloc(l);
                     vals[vcl..vcl+l] = ta[];
                     vcl += l;
@@ -277,7 +281,6 @@ package:
                     DateTime dt = isRef? *(v.get!(DateTime*)): v.get!(DateTime);
                     ubyte[] da = pack(dt);
                     size_t l = da.length;
-                    if (isnull) break;
                     reAlloc(l);
                     vals[vcl..vcl+l] = da[];
                     vcl += l;
@@ -289,7 +292,6 @@ package:
                     DateTime dt = mysql.protocol.packet_helpers.toDateTime(tms.rep);
                     ubyte[] da = pack(dt);
                     size_t l = da.length;
-                    if (isnull) break;
                     reAlloc(l);
                     vals[vcl..vcl+l] = da[];
                     vcl += l;
@@ -300,7 +302,6 @@ package:
                     else
                         types[ct++] = cast(ubyte) ext;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     string s = isRef? *(v.get!(string*)): v.get!(string);
                     ubyte[] packed = packLCS(cast(void[]) s);
                     reAlloc(packed.length);
@@ -313,7 +314,6 @@ package:
                     else
                         types[ct++] = cast(ubyte) ext;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     char[] ca = isRef? *(v.get!(char[]*)): v.get!(char[]);
                     ubyte[] packed = packLCS(cast(void[]) ca);
                     reAlloc(packed.length);
@@ -326,7 +326,6 @@ package:
                     else
                         types[ct++] = cast(ubyte) ext;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     byte[] ba = isRef? *(v.get!(byte[]*)): v.get!(byte[]);
                     ubyte[] packed = packLCS(cast(void[]) ba);
                     reAlloc(packed.length);
@@ -339,7 +338,6 @@ package:
                     else
                         types[ct++] = cast(ubyte) ext;
                     types[ct++] = SIGNED;
-                    if (isnull) break;
                     ubyte[] uba = isRef? *(v.get!(ubyte[]*)): v.get!(ubyte[]);
                     ubyte[] packed = packLCS(cast(void[]) uba);
                     reAlloc(packed.length);
@@ -602,6 +600,7 @@ public:
         _inParams[pIndex] = &val;
         psn.pIndex = pIndex;
         _psa[pIndex] = psn;
+        fixupNulls();
     }
 
     /**
@@ -619,6 +618,7 @@ public:
         enforceEx!MYX(args.length == _psParams, "Argument list supplied does not match the number of parameters.");
         foreach (size_t i, dummy; args)
             _inParams[i] = &args[i];
+        fixupNulls();
     }
 
     /**
@@ -659,6 +659,7 @@ public:
             foreach (PSN psn; psnList)
                 _psa[psn.pIndex] = psn;
         }
+        fixupNulls();
     }
 
     /**
@@ -740,11 +741,11 @@ public:
         return rv;
     }
 
-	///ditto
+    ///ditto
     bool execSQL()
     {
-		ulong ra;
-		return execSQL(ra);
+        ulong ra;
+        return execSQL(ra);
     }
     
     /**
