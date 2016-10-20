@@ -14,10 +14,10 @@ import std.variant;
 
 version(Have_vibe_d_core)
 {
-    static if(__traits(compiles, (){ import vibe.core.net; } ))
-        import vibe.core.net;
-    else
-        static assert(false, "mysql-native can't find Vibe.d's 'vibe.core.net'.");
+	static if(__traits(compiles, (){ import vibe.core.net; } ))
+		import vibe.core.net;
+	else
+		static assert(false, "mysql-native can't find Vibe.d's 'vibe.core.net'.");
 }
 
 /**
@@ -25,10 +25,10 @@ version(Have_vibe_d_core)
  */
 class MySQLException: Exception
 {
-    this(string msg, string file = __FILE__, size_t line = __LINE__) pure
-    {
-        super(msg, file, line);
-    }
+	this(string msg, string file = __FILE__, size_t line = __LINE__) pure
+	{
+		super(msg, file, line);
+	}
 }
 alias MYX = MySQLException;
 
@@ -37,10 +37,10 @@ alias MYX = MySQLException;
  */
 class MySQLProtocolException: MySQLException
 {
-    this(string msg, string file, size_t line) pure
-    {
-        super(msg, file, line);
-    }
+	this(string msg, string file, size_t line) pure
+	{
+		super(msg, file, line);
+	}
 }
 alias MYXProtocol = MySQLProtocolException;
 
@@ -48,12 +48,12 @@ alias MYXProtocol = MySQLProtocolException;
 package alias PlainPhobosSocket = std.socket.TcpSocket;
 version(Have_vibe_d_core)
 {
-    package alias PlainVibeDSocket = vibe.core.net.TCPConnection;
+	package alias PlainVibeDSocket = vibe.core.net.TCPConnection;
 }
 else
 {
-    // Dummy types
-    package alias PlainVibeDSocket = Object;
+	// Dummy types
+	package alias PlainVibeDSocket = Object;
 }
 
 alias OpenSocketCallbackPhobos = PlainPhobosSocket function(string,ushort);
@@ -65,121 +65,121 @@ enum MySQLSocketType { phobos, vibed }
 // Used to wrap both Phobos and Vibe.d sockets with a common interface.
 package interface MySQLSocket
 {
-    void close();
-    @property bool connected() const;
-    void read(ubyte[] dst);
-    void write(in ubyte[] bytes);
+	void close();
+	@property bool connected() const;
+	void read(ubyte[] dst);
+	void write(in ubyte[] bytes);
 
-    void acquire();
-    void release();
-    bool isOwner();
-    bool amOwner();
+	void acquire();
+	void release();
+	bool isOwner();
+	bool amOwner();
 }
 
 // Wraps a Phobos socket with the common interface
 package class MySQLSocketPhobos : MySQLSocket
 {
-    private PlainPhobosSocket socket;
+	private PlainPhobosSocket socket;
 
-    // The socket should already be open
-    this(PlainPhobosSocket socket)
-    {
-        enforceEx!MYX(socket, "Tried to use a null Phobos socket - Maybe the 'openSocket' callback returned null?");
-        enforceEx!MYX(socket.isAlive, "Tried to use a closed Phobos socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
-        this.socket = socket;
-    }
+	// The socket should already be open
+	this(PlainPhobosSocket socket)
+	{
+		enforceEx!MYX(socket, "Tried to use a null Phobos socket - Maybe the 'openSocket' callback returned null?");
+		enforceEx!MYX(socket.isAlive, "Tried to use a closed Phobos socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
+		this.socket = socket;
+	}
 
-    invariant()
-    {
-        assert(!!socket);
-    }
+	invariant()
+	{
+		assert(!!socket);
+	}
 
-    void close()
-    {
-        socket.shutdown(SocketShutdown.BOTH);
-        socket.close();
-    }
+	void close()
+	{
+		socket.shutdown(SocketShutdown.BOTH);
+		socket.close();
+	}
 
-    @property bool connected() const
-    {
-        return socket.isAlive;
-    }
+	@property bool connected() const
+	{
+		return socket.isAlive;
+	}
 
-    void read(ubyte[] dst)
-    {
-        // Note: I'm a little uncomfortable with this line as it doesn't
-        // (and can't) update Connection._open. Not sure what can be done,
-        // but perhaps Connection._open should be eliminated in favor of
-        // querying the socket's opened/closed state directly.
-        scope(failure) socket.close();
+	void read(ubyte[] dst)
+	{
+		// Note: I'm a little uncomfortable with this line as it doesn't
+		// (and can't) update Connection._open. Not sure what can be done,
+		// but perhaps Connection._open should be eliminated in favor of
+		// querying the socket's opened/closed state directly.
+		scope(failure) socket.close();
 
-        for (size_t off, len; off < dst.length; off += len) {
-            len = socket.receive(dst[off..$]);
-            enforceEx!MYX(len != 0, "Server closed the connection");
-            enforceEx!MYX(len != socket.ERROR, "Received std.socket.Socket.ERROR");
-        }
-    }
+		for (size_t off, len; off < dst.length; off += len) {
+			len = socket.receive(dst[off..$]);
+			enforceEx!MYX(len != 0, "Server closed the connection");
+			enforceEx!MYX(len != socket.ERROR, "Received std.socket.Socket.ERROR");
+		}
+	}
 
-    void write(in ubyte[] bytes)
-    {
-        socket.send(bytes);
-    }
+	void write(in ubyte[] bytes)
+	{
+		socket.send(bytes);
+	}
 
-    void acquire() { /+ Do nothing +/ }
-    void release() { /+ Do nothing +/ }
-    bool isOwner() { return true; }
-    bool amOwner() { return true; }
+	void acquire() { /+ Do nothing +/ }
+	void release() { /+ Do nothing +/ }
+	bool isOwner() { return true; }
+	bool amOwner() { return true; }
 }
 
 // Wraps a Vibe.d socket with the common interface
 version(Have_vibe_d_core) {
-    package class MySQLSocketVibeD : MySQLSocket
-    {
-        private PlainVibeDSocket socket;
+	package class MySQLSocketVibeD : MySQLSocket
+	{
+		private PlainVibeDSocket socket;
 
-        // The socket should already be open
-        this(PlainVibeDSocket socket)
-        {
-            enforceEx!MYX(socket, "Tried to use a null Vibe.d socket - Maybe the 'openSocket' callback returned null?");
-            enforceEx!MYX(socket.connected, "Tried to use a closed Vibe.d socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
-            this.socket = socket;
-        }
+		// The socket should already be open
+		this(PlainVibeDSocket socket)
+		{
+			enforceEx!MYX(socket, "Tried to use a null Vibe.d socket - Maybe the 'openSocket' callback returned null?");
+			enforceEx!MYX(socket.connected, "Tried to use a closed Vibe.d socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
+			this.socket = socket;
+		}
 
-        invariant()
-        {
-            assert(!!socket);
-        }
+		invariant()
+		{
+			assert(!!socket);
+		}
 
-        void close()
-        {
-            socket.close();
-        }
+		void close()
+		{
+			socket.close();
+		}
 
-        @property bool connected() const
-        {
-            return socket.connected;
-        }
+		@property bool connected() const
+		{
+			return socket.connected;
+		}
 
-        void read(ubyte[] dst)
-        {
-            socket.read(dst);
-        }
+		void read(ubyte[] dst)
+		{
+			socket.read(dst);
+		}
 
-        void write(in ubyte[] bytes)
-        {
-            socket.write(bytes);
-        }
+		void write(in ubyte[] bytes)
+		{
+			socket.write(bytes);
+		}
 
-        static if (is(typeof(&TCPConnection.isOwner))) {
-            void acquire() { socket.acquire(); }
-            void release() { socket.release(); }
-            bool isOwner() { return socket.isOwner(); }
-            bool amOwner() { return socket.isOwner(); }
-        } else {
-            void acquire() { /+ Do nothing +/ }
-            void release() { /+ Do nothing +/ }
-            bool isOwner() { return true; }
-            bool amOwner() { return true; }
-        }
-    }
+		static if (is(typeof(&TCPConnection.isOwner))) {
+			void acquire() { socket.acquire(); }
+			void release() { socket.release(); }
+			bool isOwner() { return socket.isOwner(); }
+			bool amOwner() { return socket.isOwner(); }
+		} else {
+			void acquire() { /+ Do nothing +/ }
+			void release() { /+ Do nothing +/ }
+			bool isOwner() { return true; }
+			bool amOwner() { return true; }
+		}
+	}
 }
