@@ -86,6 +86,17 @@ package:
         return prefix;
     }
 
+    // Set ParameterSpecialization.isNull for all null values.
+    // This may not be the best way to handle it, but it'll do for now.
+    void fixupNulls()
+    {
+        foreach (size_t i; 0.._inParams.length)
+        {
+            if (_inParams[i].type == typeid(typeof(null)))
+                _psa[i].isNull = true;
+        }
+    }
+
     ubyte[] analyseParams(out ubyte[] vals, out bool longData)
     {
         size_t pc = _inParams.length;
@@ -113,17 +124,13 @@ package:
             enum SIGNED    = 0;
             if (_psa[i].chunkSize)
                 longData= true;
-            Variant v = _inParams[i];
-            if (v.type == typeid(typeof(null)))
-            {
-                _psa[i].isNull = true;
-            }
             if (_psa[i].isNull)
             {
                 types[ct++] = SQLType.NULL;
                 types[ct++] = SIGNED;
                 continue;
             }
+            Variant v = _inParams[i];
             SQLType ext = _psa[i].type;
             string ts = v.type.toString();
             bool isRef;
@@ -593,6 +600,7 @@ public:
         _inParams[pIndex] = &val;
         psn.pIndex = pIndex;
         _psa[pIndex] = psn;
+        fixupNulls();
     }
 
     /**
@@ -610,6 +618,7 @@ public:
         enforceEx!MYX(args.length == _psParams, "Argument list supplied does not match the number of parameters.");
         foreach (size_t i, dummy; args)
             _inParams[i] = &args[i];
+        fixupNulls();
     }
 
     /**
@@ -650,6 +659,7 @@ public:
             foreach (PSN psn; psnList)
                 _psa[psn.pIndex] = psn;
         }
+        fixupNulls();
     }
 
     /**
@@ -731,11 +741,11 @@ public:
         return rv;
     }
 
-	///ditto
+    ///ditto
     bool execSQL()
     {
-		ulong ra;
-		return execSQL(ra);
+        ulong ra;
+        return execSQL(ra);
     }
     
     /**
