@@ -89,6 +89,7 @@ module mysql;
 
 public import mysql.common;
 public import mysql.connection;
+public import mysql.escape;
 public import mysql.db;
 public import mysql.result;
 public import mysql.protocol.commands;
