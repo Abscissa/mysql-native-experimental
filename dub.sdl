@@ -36,6 +36,6 @@ configuration "unittest-vibe" {
 
 	dependency "vibe-d:core" version="~>0.7.29" optional=false
 
-	mainSourceFile "source/mysql/connection.d"
+	mainSourceFile "source/mysql/package.d"
 	debugVersions "MYSQL_INTEGRATION_TESTS"
 }

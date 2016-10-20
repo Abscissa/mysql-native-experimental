@@ -22,4 +22,4 @@ echo "  DMD=$DMD"
 mkdir -p bin
 
 echo Compiling Phobos-socket tests...
-$RDMD --compiler=$DMD --build-only -g -unittest -debug=MYSQL_INTEGRATION_TESTS -ofbin/mysqln-tests-phobos -Isource source/mysql/connection.d && echo Running Phobos-socket tests... && bin/mysqln-tests-phobos
+$RDMD --compiler=$DMD --build-only -g -unittest -debug=MYSQL_INTEGRATION_TESTS -ofbin/mysqln-tests-phobos -Isource source/mysql/package.d && echo Running Phobos-socket tests... && bin/mysqln-tests-phobos
