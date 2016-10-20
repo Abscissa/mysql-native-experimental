@@ -1,5 +1,5 @@
-A [Boost-licensed](www.boost.org/LICENSE_1_0.txt) native D client driver
-for MySQL and MariaDB.
+A [Boost-licensed](http://www.boost.org/LICENSE_1_0.txt) native [D](http://dlang.org)
+client driver for MySQL and MariaDB.
 
 This package attempts to provide composite objects and methods that will
 allow a wide range of common database operations, but be relatively easy to
@@ -28,8 +28,8 @@ Its primary objects are:
 	- execPreparedSequence() - execute a prepared statement and handle the rows one at a time.
 	- execFunction() - execute a stored function with D variables as input and output.
 	- execProcedure() - execute a stored procedure with D variables as input.
-- ResultSet: $(UL $(LI A random access range of rows, where a Row is basically an array of variant.
-- ResultSequence: $(UL $(LIAn input range of similar rows.
+- ResultSet: A random access range of rows, where a Row is basically an array of variant.
+- ResultSequence: An input range of similar rows.
 
 There are numerous examples of usage in the unittest sections.
 
@@ -54,10 +54,10 @@ the same machine via a Unix socket on *nix systems,
 and through a named pipe on Windows. Neither of these conventions is
 currently supported. TCP is used for all connections.
 
-The old homepage for the original release of this project is
-[here](http://britseyeview.com/software/mysqln/). Parts of it are out-of-date,
-but it still provides a decent overview of the API. More up-to-date docs with
-examples are on the way, and are currently a high priority.
+See also the [old homepage](http://britseyeview.com/software/mysqln/)
+for the original release of this project is. Parts of it are out-of-date,
+but it still provides a decent overview of the current API. More up-to-date
+docs with examples are on the way, and are currently a high priority.
 
 Developers - How to run the test suite
 --------------------------------------
@@ -66,7 +66,7 @@ This package contains various unittests and integration tests. To run them,
 run `dub test`.
 
 The first time you run `dub test`, it will automatically create a
-file 'testConnectionStr.txt' in project's base diretory and then exit.
+file `testConnectionStr.txt` in project's base diretory and then exit.
 This file is deliberately not contained in the source repository
 because it's specific to your system.
 
