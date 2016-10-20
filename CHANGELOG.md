@@ -9,13 +9,13 @@ v0.1.7 - 2016-10-20
 	for full list of supported compilers.
 - **Fixed:** Fix an import deprecation message for DMD 2.071. (@Abscissa)
 - **Fixed:**
-	[#57](https://github.com/mysql-d/mysql-native/pull/57)
+	[#57](https://github.com/mysql-d/mysql-native/pull/57):
 	Added support for passing null parameters in prepared statements by using Variant(null) (@machindertech)
 - **Fixed:**
-	[#63](https://github.com/mysql-d/mysql-native/issues/63)/[#69](https://github.com/mysql-d/mysql-native/pull/69)
+	[#63](https://github.com/mysql-d/mysql-native/issues/63)/[#69](https://github.com/mysql-d/mysql-native/pull/69):
 	Add escape module to package import (@Marenz)
 - **Fixed:**
-	[#68](https://github.com/mysql-d/mysql-native/pull/68)
+	[#68](https://github.com/mysql-d/mysql-native/pull/68):
 	Update alias syntax (@Marenz)
 
 v0.1.6 - 2016-09-08
