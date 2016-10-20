@@ -4,6 +4,7 @@ v0.1.7 - TBD
 - **Change:** Drop support for DMDFE 2.066.1 and below. Compiles on DMDFE 2.067.1 through 2.072.0. See [.travis.yml](https://github.com/mysql-d/mysql-native/blob/master/.travis.yml) for full list of supported compilers.
 - **Fixed:** Fix an import deprecation message for DMD 2.071. (@Abscissa)
 - **Fixed:** [#57](https://github.com/mysql-d/mysql-native/pull/57) Added support for passing null parameters in prepared statements by using Variant(null) (@machindertech)
+- **Fixed:** [#63](https://github.com/mysql-d/mysql-native/issues/63)/[#69](https://github.com/mysql-d/mysql-native/pull/69) Add escape module to package import (@Marenz)
 - **Fixed:** [#68](https://github.com/mysql-d/mysql-native/pull/68) Update alias syntax (@Marenz)
 
 v0.1.6 - 2016-09-08
