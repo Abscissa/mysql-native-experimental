@@ -434,10 +434,7 @@ public:
 		close();
 	}
 
-	/++
-	Make the ResultSequence behave as an input range - empty
-	
-	+/
+	/// Make the ResultSequence behave as an input range - empty
 	@property bool empty() const pure nothrow { return _cmd is null || !_cmd.rowsPending; }
 
 	/++
@@ -495,12 +492,10 @@ public:
 		return _colNameIndicies;
 	}
 
-	/++
-	Explicitly clean up the MySQL resources and cancel pending results
-	
-	+/
+	/// Explicitly clean up the MySQL resources and cancel pending results
 	void close()
 	{
+		//TODO: Ensure that this is the most recent ResultSequence received on this connection
 		if(_cmd)
 			_con.purgeResult();
 		_cmd = null;
