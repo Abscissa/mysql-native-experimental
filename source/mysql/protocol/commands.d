@@ -34,7 +34,6 @@ package:
 	const(char)[] _sql;
 	uint _hStmt;
 	ulong _insertID;
-	bool _headersPending, _pendingBinary;
 	ushort _psParams, _psWarnings, _fieldCount;
 	ResultSetHeaders _rsh;
 	PreparedStmtHeaders _psh;
@@ -44,7 +43,7 @@ package:
 
 	bool sendCmd(CommandType cmd)
 	{
-		enforceEx!MYX(!(_headersPending || _con._rowsPending),
+		enforceEx!MYX(!(_con._headersPending || _con._rowsPending),
 			"There are result set elements pending - purgeResult() required.");
 
 		scope(failure) _con.kill();
@@ -466,7 +465,7 @@ public:
 	+/
 	void prepare()
 	{
-		enforceEx!MYX(!(_headersPending || _con._rowsPending),
+		enforceEx!MYX(!(_con._headersPending || _con._rowsPending),
 			"There are result set elements pending - purgeResult() required.");
 
 		scope(failure) _con.kill();
@@ -544,13 +543,13 @@ public:
 		ulong rows = 0;
 		if (_fieldCount)
 		{
-			if (_headersPending)
+			if (_con._headersPending)
 			{
 				for (size_t i = 0;; i++)
 				{
 					if (_con.getPacket().isEOFPacket())
 					{
-						_headersPending = false;
+						_con._headersPending = false;
 						break;
 					}
 					enforceEx!MYXProtocol(i < _fieldCount, "Field header count exceeded but no EOF packet found.");
@@ -562,7 +561,7 @@ public:
 				{
 					if (_con.getPacket().isEOFPacket())
 					{
-						_con._rowsPending = _pendingBinary = false;
+						_con._rowsPending = _con._pendingBinary = false;
 						break;
 					}
 				}
@@ -728,8 +727,8 @@ public:
 		{
 			// There was presumably a result set
 			assert(packet.front >= 1 && packet.front <= 250); // ResultSet packet header should have this value
-			_headersPending = _con._rowsPending = true;
-			_pendingBinary = false;
+			_con._headersPending = _con._rowsPending = true;
+			_con._pendingBinary = false;
 			auto lcb = packet.consumeIfComplete!LCB();
 			assert(!lcb.isNull);
 			assert(!lcb.isIncomplete);
@@ -769,7 +768,7 @@ public:
 		_rsh = ResultSetHeaders(_con, _fieldCount);
 		if (csa !is null)
 			_rsh.addSpecializations(csa);
-		_headersPending = false;
+		_con._headersPending = false;
 
 		Row[] rows;
 		while(true)
@@ -783,7 +782,7 @@ public:
 			if(!packet.empty && packet.isEOFPacket())
 				break;
 		}
-		_con._rowsPending = _pendingBinary = false;
+		_con._rowsPending = _con._pendingBinary = false;
 
 		return ResultSet(rows, _rsh.fieldNames);
 	}
@@ -813,7 +812,7 @@ public:
 		if (csa !is null)
 			_rsh.addSpecializations(csa);
 
-		_headersPending = false;
+		_con._headersPending = false;
 		return ResultSequence(&this, _rsh.fieldNames);
 	}
 
@@ -905,7 +904,7 @@ public:
 		else
 		{
 			// There was presumably a result set
-			_headersPending = _con._rowsPending = _pendingBinary = true;
+			_con._headersPending = _con._rowsPending = _con._pendingBinary = true;
 			auto lcb = packet.consumeIfComplete!LCB();
 			assert(!lcb.isIncomplete);
 			_fieldCount = cast(ushort)lcb.value;
@@ -938,7 +937,7 @@ public:
 		_rsh = ResultSetHeaders(_con, _fieldCount);
 		if (csa !is null)
 			_rsh.addSpecializations(csa);
-		_headersPending = false;
+		_con._headersPending = false;
 		ubyte[] packet;
 		for (size_t i = 0;; i++)
 		{
@@ -955,7 +954,7 @@ public:
 			if (!packet.empty && packet.isEOFPacket())
 				break;
 		}
-		_con._rowsPending = _pendingBinary = false;
+		_con._rowsPending = _con._pendingBinary = false;
 		rra.length = cr;
 		ResultSet rs = ResultSet(rra, _rsh.fieldNames);
 		return rs;
@@ -985,7 +984,7 @@ public:
 		_rsh = ResultSetHeaders(_con, _fieldCount);
 		if (csa !is null)
 			_rsh.addSpecializations(csa);
-		_headersPending = false;
+		_con._headersPending = false;
 		return ResultSequence(&this, _rsh.fieldNames);
 	}
 
@@ -1036,20 +1035,20 @@ public:
 	{
 		scope(failure) _con.kill();
 
-		if (_headersPending)
+		if (_con._headersPending)
 		{
 			_rsh = ResultSetHeaders(_con, _fieldCount);
-			_headersPending = false;
+			_con._headersPending = false;
 		}
 		ubyte[] packet;
 		Row rr;
 		packet = _con.getPacket();
 		if (packet.isEOFPacket())
 		{
-			_con._rowsPending = _pendingBinary = false;
+			_con._rowsPending = _con._pendingBinary = false;
 			return rr;
 		}
-		if (_pendingBinary)
+		if (_con._pendingBinary)
 			rr = Row(_con, packet, _rsh, true);
 		else
 			rr = Row(_con, packet, _rsh, false);

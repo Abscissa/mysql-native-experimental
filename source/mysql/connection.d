@@ -95,10 +95,10 @@ package:
 	OpenSocketCallbackPhobos _openSocketPhobos;
 	OpenSocketCallbackVibeD  _openSocketVibeD;
 
-	// Whether or not there are rows waiting to be retreived.
-	// MySQL protocol doesn't permit performing any other action until
-	// all pending rows are either read or purged.
-	bool _rowsPending;
+	// Whether there are rows, headers or bimary data waiting to be retreived.
+	// MySQL protocol doesn't permit performing any other action until all
+	// such data is read.
+	bool _rowsPending, _headersPending, _pendingBinary;
 
 	// This tiny thing here is pretty critical. Pay great attention to it's maintenance, otherwise
 	// you'll get the dreaded "packet out of order" message. It, and the socket connection are
