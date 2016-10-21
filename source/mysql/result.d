@@ -411,7 +411,6 @@ struct ResultSequence
 {
 private:
 	Connection  _con;
-	Command*    _cmd;
 	ResultSetHeaders _rsh;
 	Row         _row; // current row
 	string[]    _colNames;
@@ -419,10 +418,9 @@ private:
 	ulong       _numRowsFetched;
 
 package:
-	this (Connection con, Command* cmd, ResultSetHeaders rsh, string[] colNames)
+	this (Connection con, ResultSetHeaders rsh, string[] colNames)
 	{
 		_con      = con;
-		_cmd      = cmd;
 		_rsh      = rsh;
 		_colNames = colNames;
 		popFront();
@@ -435,7 +433,11 @@ public:
 	}
 
 	/// Make the ResultSequence behave as an input range - empty
-	@property bool empty() const pure nothrow { return _cmd is null || !_cmd.rowsPending; }
+	@property bool empty() const pure nothrow
+	{
+		//TODO: Ensure that this is the most recent ResultSequence received on this connection
+		return !_con._rowsPending;
+	}
 
 	/++
 	Make the ResultSequence behave as an input range - front
@@ -455,6 +457,7 @@ public:
 	+/
 	void popFront()
 	{
+		//TODO: Ensure that this is the most recent ResultSequence received on this connection
 		enforceEx!MYX(!empty, "Attempted 'popFront' when no more rows available");
 		_row = _con.getNextRow();
 		_numRowsFetched++;
@@ -496,9 +499,7 @@ public:
 	void close()
 	{
 		//TODO: Ensure that this is the most recent ResultSequence received on this connection
-		if(_cmd)
-			_con.purgeResult();
-		_cmd = null;
+		_con.purgeResult();
 		//TODO: Make certain that, at this point, this ResultSequence can no longer be used
 	}
 

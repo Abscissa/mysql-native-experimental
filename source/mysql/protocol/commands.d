@@ -782,7 +782,7 @@ public:
 			_con._rsh.addSpecializations(csa);
 
 		_con._headersPending = false;
-		return ResultSequence(_con, &this, _con._rsh, _con._rsh.fieldNames);
+		return ResultSequence(_con, _con._rsh, _con._rsh.fieldNames);
 	}
 
 	/++
@@ -954,7 +954,7 @@ public:
 		if (csa !is null)
 			_con._rsh.addSpecializations(csa);
 		_con._headersPending = false;
-		return ResultSequence(_con, &this, _con._rsh, _con._rsh.fieldNames);
+		return ResultSequence(_con, _con._rsh, _con._rsh.fieldNames);
 	}
 
 	/++
@@ -1133,7 +1133,7 @@ public:
 		return _psParams;
 	}
 
-	/// Gets the number of rows pending
+	/// Gets whether rows are pending
 	@property bool rowsPending() pure const nothrow { return _con._rowsPending; }
 
 	/// Gets the result header's field descriptions.
