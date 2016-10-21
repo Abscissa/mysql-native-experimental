@@ -34,7 +34,7 @@ package:
 	const(char)[] _sql;
 	uint _hStmt;
 	ulong _insertID;
-	bool _rowsPending, _headersPending, _pendingBinary, _rebound;
+	bool _headersPending, _pendingBinary, _rebound;
 	ushort _psParams, _psWarnings, _fieldCount;
 	ResultSetHeaders _rsh;
 	PreparedStmtHeaders _psh;
@@ -44,7 +44,7 @@ package:
 
 	bool sendCmd(CommandType cmd)
 	{
-		enforceEx!MYX(!(_headersPending || _rowsPending),
+		enforceEx!MYX(!(_headersPending || _con._rowsPending),
 			"There are result set elements pending - purgeResult() required.");
 
 		scope(failure) _con.kill();
@@ -466,7 +466,7 @@ public:
 	+/
 	void prepare()
 	{
-		enforceEx!MYX(!(_headersPending || _rowsPending),
+		enforceEx!MYX(!(_headersPending || _con._rowsPending),
 			"There are result set elements pending - purgeResult() required.");
 
 		scope(failure) _con.kill();
@@ -556,13 +556,13 @@ public:
 					enforceEx!MYXProtocol(i < _fieldCount, "Field header count exceeded but no EOF packet found.");
 				}
 			}
-			if (_rowsPending)
+			if (_con._rowsPending)
 			{
 				for (;;  rows++)
 				{
 					if (_con.getPacket().isEOFPacket())
 					{
-						_rowsPending = _pendingBinary = false;
+						_con._rowsPending = _pendingBinary = false;
 						break;
 					}
 				}
@@ -728,7 +728,7 @@ public:
 		{
 			// There was presumably a result set
 			assert(packet.front >= 1 && packet.front <= 250); // ResultSet packet header should have this value
-			_headersPending = _rowsPending = true;
+			_headersPending = _con._rowsPending = true;
 			_pendingBinary = false;
 			auto lcb = packet.consumeIfComplete!LCB();
 			assert(!lcb.isNull);
@@ -783,7 +783,7 @@ public:
 			if(!packet.empty && packet.isEOFPacket())
 				break;
 		}
-		_rowsPending = _pendingBinary = false;
+		_con._rowsPending = _pendingBinary = false;
 
 		return ResultSet(rows, _rsh.fieldNames);
 	}
@@ -905,7 +905,7 @@ public:
 		else
 		{
 			// There was presumably a result set
-			_headersPending = _rowsPending = _pendingBinary = true;
+			_headersPending = _con._rowsPending = _pendingBinary = true;
 			auto lcb = packet.consumeIfComplete!LCB();
 			assert(!lcb.isIncomplete);
 			_fieldCount = cast(ushort)lcb.value;
@@ -955,7 +955,7 @@ public:
 			if (!packet.empty && packet.isEOFPacket())
 				break;
 		}
-		_rowsPending = _pendingBinary = false;
+		_con._rowsPending = _pendingBinary = false;
 		rra.length = cr;
 		ResultSet rs = ResultSet(rra, _rsh.fieldNames);
 		return rs;
@@ -1046,7 +1046,7 @@ public:
 		packet = _con.getPacket();
 		if (packet.isEOFPacket())
 		{
-			_rowsPending = _pendingBinary = false;
+			_con._rowsPending = _pendingBinary = false;
 			return rr;
 		}
 		if (_pendingBinary)
@@ -1185,7 +1185,7 @@ public:
 	}
 
 	/// Gets the number of rows pending
-	@property bool rowsPending() pure const nothrow { return _rowsPending; }
+	@property bool rowsPending() pure const nothrow { return _con._rowsPending; }
 
 	/// Gets the result header's field descriptions.
 	@property FieldDescription[] resultFieldDescriptions() pure { return _rsh.fieldDescriptions; }
