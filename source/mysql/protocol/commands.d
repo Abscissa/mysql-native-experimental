@@ -30,15 +30,15 @@ that does not produce a result set.
 struct Command
 {
 package:
-	Connection _con;
-	const(char)[] _sql;
-	uint _hStmt;
-	ulong _insertID;
-	ushort _psParams, _psWarnings;
-	PreparedStmtHeaders _psh;
-	Variant[] _inParams;
-	ParameterSpecialization[] _psa;
-	string _prevFunc;
+	Connection _con;    // This can disappear along with Command
+	const(char)[] _sql; // This can disappear along with Command
+	uint _hStmt;        //TODO: Move to struct Prepared
+	ulong _insertID;    //TODO: Figure out what to do with this
+	ushort _psParams, _psWarnings;  //TODO: Move to struct Prepared
+	PreparedStmtHeaders _psh;       //TODO: Move to struct Prepared
+	Variant[] _inParams;            //TODO: Move to struct Prepared and convert to Nullable!Variant
+	ParameterSpecialization[] _psa; //TODO: Move to struct Prepared
+	string _prevFunc; // Has to do with stored procedures
 
 	bool sendCmd(CommandType cmd)
 	{
@@ -394,6 +394,7 @@ public:
 	
 	Params: con = A Connection object to communicate with the server
 	+/
+	// This can disappear along with Command
 	this(Connection con)
 	{
 		_con = con;
@@ -406,6 +407,7 @@ public:
 	Params: con = A Connection object to communicate with the server
 	               sql = SQL command string.
 	+/
+	// This can disappear along with Command
 	this(Connection con, const(char)[] sql)
 	{
 		_sql = sql;
@@ -415,6 +417,7 @@ public:
 	@property
 	{
 		/// Get the current SQL for the Command
+		// This can disappear along with Command
 		const(char)[] sql() pure const nothrow { return _sql; }
 
 		/++
@@ -431,6 +434,7 @@ public:
 		
 		Params: sql = SQL command string.
 		+/
+		// This can disappear along with Command
 		const(char)[] sql(const(char)[] sql)
 		{
 			if (_hStmt)
@@ -462,6 +466,7 @@ public:
 	Throws: MySQLException if there are pending result set items, or if the
 	server has a problem.
 	+/
+	//TODO: Return a struct Prepared
 	void prepare()
 	{
 		enforceEx!MYX(!(_con._headersPending || _con._rowsPending),
@@ -509,6 +514,7 @@ public:
 	holds about the current prepared statement, and resets the Command
 	object to an initial state in that respect.
 	+/
+	//TODO: Move to struct Prepared
 	void releaseStatement()
 	{
 		scope(failure) _con.kill();
@@ -551,6 +557,9 @@ public:
 	To bind to some D variable, we set the corrsponding variant with its
 	address, so there is no need to rebind between calls to execPreparedXXX.
 	+/
+	//TODO: Move to struct Prepared
+	//TODO: Change "ref T" to "T" and "Nullable!T"
+	//TODO: Turn into a setter for "param".
 	void bindParameter(T)(ref T val, size_t pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
 	{
 		// Now in theory we should be able to check the parameter type here, since the
@@ -580,6 +589,8 @@ public:
 	The tuple must match the required number of parameters, and it is the programmer's
 	responsibility to ensure that they are of appropriate types.
 	+/
+	//TODO: Move to struct Prepared
+	//TODO: Change "ref T" to "T" and "Nullable!T"
 	void bindParameterTuple(T...)(ref T args)
 	{
 		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
@@ -617,6 +628,8 @@ public:
 	Params: va = External list of Variants to be used as parameters
 	               psnList = any required specializations
 	+/
+	//TODO: Move to struct Prepared
+	//TODO: Overload with "Variant" to "Nullable!Variant"
 	void bindParameters(Variant[] va, ParameterSpecialization[] psnList= null)
 	{
 		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
@@ -641,6 +654,8 @@ public:
 	------------
 	Params: index = The zero based index
 	+/
+	//TODO: Move to struct Prepared
+	//TODO: Change "ref Variant" to "Nullable!Variant"
 	ref Variant param(size_t index) pure
 	{
 		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
@@ -653,6 +668,7 @@ public:
 	
 	Params: index = The zero based index
 	+/
+	//TODO: Move to struct Prepared
 	void setNullParam(size_t index)
 	{
 		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
@@ -828,6 +844,7 @@ public:
 	Params: ra = An out parameter to receive the number of rows affected.
 	Returns: true if there was a (possibly empty) result set.
 	+/
+	//TODO: Move to struct Prepared
 	bool execPrepared(out ulong ra)
 	{
 		enforceEx!MYX(_hStmt, "The statement has not been prepared.");
@@ -895,6 +912,7 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSet.
 	+/
+	//TODO: Move to struct Prepared
 	ResultSet execPreparedResult(ColumnSpecialization[] csa = null)
 	{
 		ulong ra;
@@ -942,6 +960,7 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
+	//TODO: Move to struct Prepared
 	ResultSequence execPreparedSequence(ColumnSpecialization[] csa = null)
 	{
 		ulong ra;
@@ -967,6 +986,7 @@ public:
 	Params: args = A tuple of D variables to receive the results.
 	Returns: true if there was a (possibly empty) result set.
 	+/
+	//TODO: Move to struct Prepared
 	void execPreparedTuple(T...)(ref T args)
 	{
 		ulong ra;
