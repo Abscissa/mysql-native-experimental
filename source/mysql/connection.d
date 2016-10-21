@@ -100,6 +100,9 @@ package:
 	// such data is read.
 	bool _rowsPending, _headersPending, _binaryPending;
 
+	// Field count of last performed command.
+	ushort _fieldCount;
+
 	// This tiny thing here is pretty critical. Pay great attention to it's maintenance, otherwise
 	// you'll get the dreaded "packet out of order" message. It, and the socket connection are
 	// the reason why most other objects require a connection object for their construction.
@@ -720,6 +723,51 @@ public:
 	{
 		sendCmd(CommandType.REFRESH, [flags]);
 		return getCmdResponse();
+	}
+
+	/++
+	Flush any outstanding result set elements.
+	
+	When the server responds to a command that produces a result set, it
+	queues the whole set of corresponding packets over the current connection.
+	Before that Connection can embark on any new command, it must receive
+	all of those packets and junk them.
+	http://www.mysqlperformanceblog.com/2007/07/08/mysql-net_write_timeout-vs-wait_timeout-and-protocol-notes/
+	+/
+	ulong purgeResult()
+	{
+		scope(failure) kill();
+
+		ulong rows = 0;
+		if (_fieldCount)
+		{
+			if (_headersPending)
+			{
+				for (size_t i = 0;; i++)
+				{
+					if (getPacket().isEOFPacket())
+					{
+						_headersPending = false;
+						break;
+					}
+					enforceEx!MYXProtocol(i < _fieldCount, "Field header count exceeded but no EOF packet found.");
+				}
+			}
+			if (_rowsPending)
+			{
+				for (;;  rows++)
+				{
+					if (getPacket().isEOFPacket())
+					{
+						_rowsPending = _binaryPending = false;
+						break;
+					}
+				}
+			}
+		}
+		_fieldCount = 0;
+		resetPacket();
+		return rows;
 	}
 
 	/++

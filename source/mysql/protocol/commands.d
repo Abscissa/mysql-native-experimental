@@ -34,7 +34,7 @@ package:
 	const(char)[] _sql;
 	uint _hStmt;
 	ulong _insertID;
-	ushort _psParams, _psWarnings, _fieldCount;
+	ushort _psParams, _psWarnings;
 	ResultSetHeaders _rsh;
 	PreparedStmtHeaders _psh;
 	Variant[] _inParams;
@@ -436,7 +436,7 @@ public:
 		{
 			if (_hStmt)
 			{
-				purgeResult();
+				_con.purgeResult();
 				releaseStatement();
 				_con.resetPacket();
 			}
@@ -473,14 +473,14 @@ public:
 		if (_hStmt)
 			releaseStatement();
 		_con.sendCmd(CommandType.STMT_PREPARE, _sql);
-		_fieldCount = 0;
+		_con._fieldCount = 0;
 
 		ubyte[] packet = _con.getPacket();
 		if (packet.front == ResultPacketMarker.ok)
 		{
 			packet.popFront();
 			_hStmt              = packet.consume!int();
-			_fieldCount         = packet.consume!short();
+			_con._fieldCount    = packet.consume!short();
 			_psParams           = packet.consume!short();
 
 			_inParams.length    = _psParams;
@@ -491,7 +491,7 @@ public:
 
 			// At this point the server also sends field specs for parameters
 			// and columns if there were any of each
-			_psh = PreparedStmtHeaders(_con, _fieldCount, _psParams);
+			_psh = PreparedStmtHeaders(_con, _con._fieldCount, _psParams);
 		}
 		else if(packet.front == ResultPacketMarker.error)
 		{
@@ -520,7 +520,7 @@ public:
 		_con.bumpPacket();
 		packet[4] = CommandType.STMT_CLOSE;
 		_hStmt.packInto(packet[5..9]);
-		purgeResult();
+		_con.purgeResult();
 		_con.send(packet);
 		// It seems that the server does not find it necessary to send a response
 		// for this command.
@@ -536,40 +536,10 @@ public:
 	all of those packets and junk them.
 	http://www.mysqlperformanceblog.com/2007/07/08/mysql-net_write_timeout-vs-wait_timeout-and-protocol-notes/
 	+/
+	deprecated("Use Connection.purgeResult() instead.")
 	ulong purgeResult()
 	{
-		scope(failure) _con.kill();
-
-		ulong rows = 0;
-		if (_fieldCount)
-		{
-			if (_con._headersPending)
-			{
-				for (size_t i = 0;; i++)
-				{
-					if (_con.getPacket().isEOFPacket())
-					{
-						_con._headersPending = false;
-						break;
-					}
-					enforceEx!MYXProtocol(i < _fieldCount, "Field header count exceeded but no EOF packet found.");
-				}
-			}
-			if (_con._rowsPending)
-			{
-				for (;;  rows++)
-				{
-					if (_con.getPacket().isEOFPacket())
-					{
-						_con._rowsPending = _con._binaryPending = false;
-						break;
-					}
-				}
-			}
-		}
-		_fieldCount = 0;
-		_con.resetPacket();
-		return rows;
+		return _con.purgeResult();
 	}
 
 	/++
@@ -710,7 +680,7 @@ public:
 		scope(failure) _con.kill();
 
 		_con.sendCmd(CommandType.QUERY, _sql);
-		_fieldCount = 0;
+		_con._fieldCount = 0;
 		ubyte[] packet = _con.getPacket();
 		bool rv;
 		if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
@@ -732,8 +702,8 @@ public:
 			auto lcb = packet.consumeIfComplete!LCB();
 			assert(!lcb.isNull);
 			assert(!lcb.isIncomplete);
-			_fieldCount = cast(ushort)lcb.value;
-			assert(_fieldCount == lcb.value);
+			_con._fieldCount = cast(ushort)lcb.value;
+			assert(_con._fieldCount == lcb.value);
 			rv = true;
 			ra = 0;
 		}
@@ -765,7 +735,7 @@ public:
 		ulong ra;
 		enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
 
-		_rsh = ResultSetHeaders(_con, _fieldCount);
+		_rsh = ResultSetHeaders(_con, _con._fieldCount);
 		if (csa !is null)
 			_rsh.addSpecializations(csa);
 		_con._headersPending = false;
@@ -808,7 +778,7 @@ public:
 		uint cr = 0;
 		ulong ra;
 		enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
-		_rsh = ResultSetHeaders(_con, _fieldCount);
+		_rsh = ResultSetHeaders(_con, _con._fieldCount);
 		if (csa !is null)
 			_rsh.addSpecializations(csa);
 
@@ -843,7 +813,7 @@ public:
 		// If there were more rows, flush them away
 		// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
 		// allow sloppy SQL that does not ensure just one row!
-		purgeResult();
+		_con.purgeResult();
 	}
 
 	/++
@@ -907,7 +877,7 @@ public:
 			_con._headersPending = _con._rowsPending = _con._binaryPending = true;
 			auto lcb = packet.consumeIfComplete!LCB();
 			assert(!lcb.isIncomplete);
-			_fieldCount = cast(ushort)lcb.value;
+			_con._fieldCount = cast(ushort)lcb.value;
 			rv = true;
 		}
 		return rv;
@@ -934,7 +904,7 @@ public:
 		Row[] rra;
 		rra.length = alloc;
 		uint cr = 0;
-		_rsh = ResultSetHeaders(_con, _fieldCount);
+		_rsh = ResultSetHeaders(_con, _con._fieldCount);
 		if (csa !is null)
 			_rsh.addSpecializations(csa);
 		_con._headersPending = false;
@@ -981,7 +951,7 @@ public:
 		Row[] rra;
 		rra.length = alloc;
 		uint cr = 0;
-		_rsh = ResultSetHeaders(_con, _fieldCount);
+		_rsh = ResultSetHeaders(_con, _con._fieldCount);
 		if (csa !is null)
 			_rsh.addSpecializations(csa);
 		_con._headersPending = false;
@@ -1014,7 +984,7 @@ public:
 		// If there were more rows, flush them away
 		// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
 		// allow sloppy SQL that does not ensure just one row!
-		purgeResult();
+		_con.purgeResult();
 	}
 
 	/++
@@ -1037,7 +1007,7 @@ public:
 
 		if (_con._headersPending)
 		{
-			_rsh = ResultSetHeaders(_con, _fieldCount);
+			_rsh = ResultSetHeaders(_con, _con._fieldCount);
 			_con._headersPending = false;
 		}
 		ubyte[] packet;
@@ -1118,7 +1088,7 @@ public:
 		// If there were more rows, flush them away
 		// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
 		// allow sloppy SQL that does not ensure just one row!
-		purgeResult();
+		_con.purgeResult();
 		return !rr.isNull(0);
 	}
 

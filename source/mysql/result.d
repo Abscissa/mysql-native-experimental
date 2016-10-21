@@ -502,8 +502,9 @@ public:
 	void close()
 	{
 		if(_cmd)
-			_cmd.purgeResult();
+			_con.purgeResult();
 		_cmd = null;
+		//TODO: Make certain that, at this point, this ResultSequence can no longer be used
 	}
 
 	/++
