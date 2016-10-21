@@ -410,12 +410,12 @@ through a result set of that size.
 struct ResultSequence
 {
 private:
-	Connection  _con;
+	Connection       _con;
 	ResultSetHeaders _rsh;
-	Row         _row; // current row
-	string[]    _colNames;
-	size_t[string] _colNameIndicies;
-	ulong       _numRowsFetched;
+	Row              _row; // current row
+	string[]         _colNames;
+	size_t[string]   _colNameIndicies;
+	ulong            _numRowsFetched;
 
 package:
 	this (Connection con, ResultSetHeaders rsh, string[] colNames)
