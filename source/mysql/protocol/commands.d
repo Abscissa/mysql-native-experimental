@@ -813,7 +813,7 @@ public:
 			_rsh.addSpecializations(csa);
 
 		_con._headersPending = false;
-		return ResultSequence(&this, _rsh.fieldNames);
+		return ResultSequence(_con, &this, _rsh, _rsh.fieldNames);
 	}
 
 	/++
@@ -985,7 +985,7 @@ public:
 		if (csa !is null)
 			_rsh.addSpecializations(csa);
 		_con._headersPending = false;
-		return ResultSequence(&this, _rsh.fieldNames);
+		return ResultSequence(_con, &this, _rsh, _rsh.fieldNames);
 	}
 
 	/++

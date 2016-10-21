@@ -13,6 +13,7 @@ import std.traits;
 import std.variant;
 
 import mysql.common;
+import mysql.connection;
 import mysql.protocol.commands;
 import mysql.protocol.packets;
 
@@ -409,16 +410,20 @@ through a result set of that size.
 struct ResultSequence
 {
 private:
+	Connection  _con;
 	Command*    _cmd;
+	ResultSetHeaders _rsh;
 	Row         _row; // current row
 	string[]    _colNames;
 	size_t[string] _colNameIndicies;
 	ulong       _numRowsFetched;
 
 package:
-	this (Command* cmd, string[] colNames)
+	this (Connection con, Command* cmd, ResultSetHeaders rsh, string[] colNames)
 	{
+		_con      = con;
 		_cmd      = cmd;
+		_rsh      = rsh;
 		_colNames = colNames;
 		popFront();
 	}
