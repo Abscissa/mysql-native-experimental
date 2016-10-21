@@ -98,7 +98,7 @@ package:
 	// Whether there are rows, headers or bimary data waiting to be retreived.
 	// MySQL protocol doesn't permit performing any other action until all
 	// such data is read.
-	bool _rowsPending, _headersPending, _pendingBinary;
+	bool _rowsPending, _headersPending, _binaryPending;
 
 	// This tiny thing here is pretty critical. Pay great attention to it's maintenance, otherwise
 	// you'll get the dreaded "packet out of order" message. It, and the socket connection are

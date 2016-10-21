@@ -561,7 +561,7 @@ public:
 				{
 					if (_con.getPacket().isEOFPacket())
 					{
-						_con._rowsPending = _con._pendingBinary = false;
+						_con._rowsPending = _con._binaryPending = false;
 						break;
 					}
 				}
@@ -728,7 +728,7 @@ public:
 			// There was presumably a result set
 			assert(packet.front >= 1 && packet.front <= 250); // ResultSet packet header should have this value
 			_con._headersPending = _con._rowsPending = true;
-			_con._pendingBinary = false;
+			_con._binaryPending = false;
 			auto lcb = packet.consumeIfComplete!LCB();
 			assert(!lcb.isNull);
 			assert(!lcb.isIncomplete);
@@ -782,7 +782,7 @@ public:
 			if(!packet.empty && packet.isEOFPacket())
 				break;
 		}
-		_con._rowsPending = _con._pendingBinary = false;
+		_con._rowsPending = _con._binaryPending = false;
 
 		return ResultSet(rows, _rsh.fieldNames);
 	}
@@ -904,7 +904,7 @@ public:
 		else
 		{
 			// There was presumably a result set
-			_con._headersPending = _con._rowsPending = _con._pendingBinary = true;
+			_con._headersPending = _con._rowsPending = _con._binaryPending = true;
 			auto lcb = packet.consumeIfComplete!LCB();
 			assert(!lcb.isIncomplete);
 			_fieldCount = cast(ushort)lcb.value;
@@ -954,7 +954,7 @@ public:
 			if (!packet.empty && packet.isEOFPacket())
 				break;
 		}
-		_con._rowsPending = _con._pendingBinary = false;
+		_con._rowsPending = _con._binaryPending = false;
 		rra.length = cr;
 		ResultSet rs = ResultSet(rra, _rsh.fieldNames);
 		return rs;
@@ -1045,10 +1045,10 @@ public:
 		packet = _con.getPacket();
 		if (packet.isEOFPacket())
 		{
-			_con._rowsPending = _con._pendingBinary = false;
+			_con._rowsPending = _con._binaryPending = false;
 			return rr;
 		}
-		if (_con._pendingBinary)
+		if (_con._binaryPending)
 			rr = Row(_con, packet, _rsh, true);
 		else
 			rr = Row(_con, packet, _rsh, false);
