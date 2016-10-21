@@ -35,7 +35,6 @@ package:
 	uint _hStmt;
 	ulong _insertID;
 	ushort _psParams, _psWarnings;
-	ResultSetHeaders _rsh;
 	PreparedStmtHeaders _psh;
 	Variant[] _inParams;
 	ParameterSpecialization[] _psa;
@@ -669,7 +668,7 @@ public:
 	It can be used with commands that don't produce a result set, or those that
 	do. If there is a result set its existence will be indicated by the return value.
 	
-	Any result set can be accessed vis getNextRow(), but you should really be
+	Any result set can be accessed vis Connection.getNextRow(), but you should really be
 	using execSQLResult() or execSQLSequence() for such queries.
 	
 	Params: ra = An out parameter to receive the number of rows affected.
@@ -735,9 +734,9 @@ public:
 		ulong ra;
 		enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
 
-		_rsh = ResultSetHeaders(_con, _con._fieldCount);
+		_con._rsh = ResultSetHeaders(_con, _con._fieldCount);
 		if (csa !is null)
-			_rsh.addSpecializations(csa);
+			_con._rsh.addSpecializations(csa);
 		_con._headersPending = false;
 
 		Row[] rows;
@@ -746,7 +745,7 @@ public:
 			auto packet = _con.getPacket();
 			if(packet.isEOFPacket())
 				break;
-			rows ~= Row(_con, packet, _rsh, false);
+			rows ~= Row(_con, packet, _con._rsh, false);
 			// As the row fetches more data while incomplete, it might already have
 			// fetched the EOF marker, so we have to check it again
 			if(!packet.empty && packet.isEOFPacket())
@@ -754,7 +753,7 @@ public:
 		}
 		_con._rowsPending = _con._binaryPending = false;
 
-		return ResultSet(rows, _rsh.fieldNames);
+		return ResultSet(rows, _con._rsh.fieldNames);
 	}
 
 	/++
@@ -778,12 +777,12 @@ public:
 		uint cr = 0;
 		ulong ra;
 		enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
-		_rsh = ResultSetHeaders(_con, _con._fieldCount);
+		_con._rsh = ResultSetHeaders(_con, _con._fieldCount);
 		if (csa !is null)
-			_rsh.addSpecializations(csa);
+			_con._rsh.addSpecializations(csa);
 
 		_con._headersPending = false;
-		return ResultSequence(_con, &this, _rsh, _rsh.fieldNames);
+		return ResultSequence(_con, &this, _con._rsh, _con._rsh.fieldNames);
 	}
 
 	/++
@@ -800,7 +799,7 @@ public:
 	{
 		ulong ra;
 		enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
-		Row rr = getNextRow();
+		Row rr = _con.getNextRow();
 		/+if (!rr._valid)   // The result set was empty - not a crime.
 			return;+/
 		enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
@@ -823,7 +822,7 @@ public:
 	It can be used with commands that don't produce a result set, or those that
 	do. If there is a result set its existence will be indicated by the return value.
 	
-	Any result set can be accessed vis getNextRow(), but you should really be
+	Any result set can be accessed vis Connection.getNextRow(), but you should really be
 	using execPreparedResult() or execPreparedSequence() for such queries.
 	
 	Params: ra = An out parameter to receive the number of rows affected.
@@ -904,9 +903,9 @@ public:
 		Row[] rra;
 		rra.length = alloc;
 		uint cr = 0;
-		_rsh = ResultSetHeaders(_con, _con._fieldCount);
+		_con._rsh = ResultSetHeaders(_con, _con._fieldCount);
 		if (csa !is null)
-			_rsh.addSpecializations(csa);
+			_con._rsh.addSpecializations(csa);
 		_con._headersPending = false;
 		ubyte[] packet;
 		for (size_t i = 0;; i++)
@@ -914,7 +913,7 @@ public:
 			packet = _con.getPacket();
 			if (packet.isEOFPacket())
 				break;
-			Row row = Row(_con, packet, _rsh, true);
+			Row row = Row(_con, packet, _con._rsh, true);
 			if (cr >= alloc)
 			{
 				alloc = (alloc*3)/2;
@@ -926,7 +925,7 @@ public:
 		}
 		_con._rowsPending = _con._binaryPending = false;
 		rra.length = cr;
-		ResultSet rs = ResultSet(rra, _rsh.fieldNames);
+		ResultSet rs = ResultSet(rra, _con._rsh.fieldNames);
 		return rs;
 	}
 
@@ -951,11 +950,11 @@ public:
 		Row[] rra;
 		rra.length = alloc;
 		uint cr = 0;
-		_rsh = ResultSetHeaders(_con, _con._fieldCount);
+		_con._rsh = ResultSetHeaders(_con, _con._fieldCount);
 		if (csa !is null)
-			_rsh.addSpecializations(csa);
+			_con._rsh.addSpecializations(csa);
 		_con._headersPending = false;
-		return ResultSequence(_con, &this, _rsh, _rsh.fieldNames);
+		return ResultSequence(_con, &this, _con._rsh, _con._rsh.fieldNames);
 	}
 
 	/++
@@ -972,7 +971,7 @@ public:
 	{
 		ulong ra;
 		enforceEx!MYX(execPrepared(ra), "The executed query did not produce a result set.");
-		Row rr = getNextRow();
+		Row rr = _con.getNextRow();
 		// enforceEx!MYX(rr._valid, "The result set was empty.");
 		enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
 		foreach (size_t i, dummy; args)
@@ -1001,29 +1000,10 @@ public:
 	
 	Returns: A Row object.
 	+/
+	deprecated("Use Connection.getNextRow() instead.")
 	Row getNextRow()
 	{
-		scope(failure) _con.kill();
-
-		if (_con._headersPending)
-		{
-			_rsh = ResultSetHeaders(_con, _con._fieldCount);
-			_con._headersPending = false;
-		}
-		ubyte[] packet;
-		Row rr;
-		packet = _con.getPacket();
-		if (packet.isEOFPacket())
-		{
-			_con._rowsPending = _con._binaryPending = false;
-			return rr;
-		}
-		if (_con._binaryPending)
-			rr = Row(_con, packet, _rsh, true);
-		else
-			rr = Row(_con, packet, _rsh, false);
-		//rr._valid = true;
-		return rr;
+		return _con.getNextRow();
 	}
 
 	/++
@@ -1078,7 +1058,7 @@ public:
 		bindParameterTuple(args);
 		ulong ra;
 		enforceEx!MYX(execPrepared(ra), "The executed query did not produce a result set.");
-		Row rr = getNextRow();
+		Row rr = _con.getNextRow();
 		/+enforceEx!MYX(rr._valid, "The result set was empty.");+/
 		enforceEx!MYX(rr._values.length == 1, "Result was not a single column.");
 		enforceEx!MYX(typeid(target).toString() == rr._values[0].type.toString(),
@@ -1157,7 +1137,7 @@ public:
 	@property bool rowsPending() pure const nothrow { return _con._rowsPending; }
 
 	/// Gets the result header's field descriptions.
-	@property FieldDescription[] resultFieldDescriptions() pure { return _rsh.fieldDescriptions; }
+	@property FieldDescription[] resultFieldDescriptions() pure { return _con._rsh.fieldDescriptions; }
 	/// Gets the prepared header's field descriptions.
 	@property FieldDescription[] preparedFieldDescriptions() pure { return _psh.fieldDescriptions; }
 	/// Gets the prepared header's param descriptions.

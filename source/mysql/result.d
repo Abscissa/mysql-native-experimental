@@ -456,7 +456,7 @@ public:
 	void popFront()
 	{
 		enforceEx!MYX(!empty, "Attempted 'popFront' when no more rows available");
-		_row = _cmd.getNextRow();
+		_row = _con.getNextRow();
 		_numRowsFetched++;
 	}
 

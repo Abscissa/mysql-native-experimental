@@ -98,10 +98,16 @@ package:
 	// Whether there are rows, headers or bimary data waiting to be retreived.
 	// MySQL protocol doesn't permit performing any other action until all
 	// such data is read.
+	//TODO: Use these to check if purging is ok, not "if(_fieldCount)"
 	bool _rowsPending, _headersPending, _binaryPending;
 
 	// Field count of last performed command.
+	// 0 if the command's data has been purged (to...sort of...prevent repeated purges)
+	//TODO: Don't cleat this upon purge
 	ushort _fieldCount;
+
+	// ResultSetHeaders of last performed command.
+	ResultSetHeaders _rsh;
 
 	// This tiny thing here is pretty critical. Pay great attention to it's maintenance, otherwise
 	// you'll get the dreaded "packet out of order" message. It, and the socket connection are
@@ -723,6 +729,45 @@ public:
 	{
 		sendCmd(CommandType.REFRESH, [flags]);
 		return getCmdResponse();
+	}
+
+	/++
+	Get the next Row of a pending result set.
+	
+	This method can be used after either execSQL() or execPrepared() have returned true
+	to retrieve result set rows sequentially.
+	
+	Similar functionality is available via execSQLSequence() and execPreparedSequence() in
+	which case the interface is presented as a forward range of Rows.
+	
+	This method allows you to deal with very large result sets either a row at a time,
+	or by feeding the rows into some suitable container such as a linked list.
+	
+	Returns: A Row object.
+	+/
+	Row getNextRow()
+	{
+		scope(failure) kill();
+
+		if (_headersPending)
+		{
+			_rsh = ResultSetHeaders(this, _fieldCount);
+			_headersPending = false;
+		}
+		ubyte[] packet;
+		Row rr;
+		packet = getPacket();
+		if (packet.isEOFPacket())
+		{
+			_rowsPending = _binaryPending = false;
+			return rr;
+		}
+		if (_binaryPending)
+			rr = Row(this, packet, _rsh, true);
+		else
+			rr = Row(this, packet, _rsh, false);
+		//rr._valid = true;
+		return rr;
 	}
 
 	/++
