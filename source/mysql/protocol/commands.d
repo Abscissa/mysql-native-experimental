@@ -34,7 +34,7 @@ package:
 	const(char)[] _sql;
 	uint _hStmt;
 	ulong _insertID;
-	bool _headersPending, _pendingBinary, _rebound;
+	bool _headersPending, _pendingBinary;
 	ushort _psParams, _psWarnings, _fieldCount;
 	ResultSetHeaders _rsh;
 	PreparedStmtHeaders _psh;
