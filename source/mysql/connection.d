@@ -98,12 +98,9 @@ package:
 	// Whether there are rows, headers or bimary data waiting to be retreived.
 	// MySQL protocol doesn't permit performing any other action until all
 	// such data is read.
-	//TODO: Use these to check if purging is ok, not "if(_fieldCount)"
 	bool _rowsPending, _headersPending, _binaryPending;
 
 	// Field count of last performed command.
-	// 0 if the command's data has been purged (to...sort of...prevent repeated purges)
-	//TODO: Don't cleat this upon purge
 	ushort _fieldCount;
 
 	// ResultSetHeaders of last performed command.
@@ -784,33 +781,30 @@ public:
 		scope(failure) kill();
 
 		ulong rows = 0;
-		if (_fieldCount)
+		if (_headersPending)
 		{
-			if (_headersPending)
+			for (size_t i = 0;; i++)
 			{
-				for (size_t i = 0;; i++)
+				if (getPacket().isEOFPacket())
 				{
-					if (getPacket().isEOFPacket())
-					{
-						_headersPending = false;
-						break;
-					}
-					enforceEx!MYXProtocol(i < _fieldCount, "Field header count exceeded but no EOF packet found.");
+					_headersPending = false;
+					break;
 				}
+				enforceEx!MYXProtocol(i < _fieldCount,
+					text("Field header count (", _fieldCount, ") exceeded but no EOF packet found."));
 			}
-			if (_rowsPending)
+		}
+		if (_rowsPending)
+		{
+			for (;;  rows++)
 			{
-				for (;;  rows++)
+				if (getPacket().isEOFPacket())
 				{
-					if (getPacket().isEOFPacket())
-					{
-						_rowsPending = _binaryPending = false;
-						break;
-					}
+					_rowsPending = _binaryPending = false;
+					break;
 				}
 			}
 		}
-		_fieldCount = 0;
 		resetPacket();
 		return rows;
 	}
