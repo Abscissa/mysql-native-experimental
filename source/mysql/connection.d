@@ -95,6 +95,8 @@ package:
 	OpenSocketCallbackPhobos _openSocketPhobos;
 	OpenSocketCallbackVibeD  _openSocketVibeD;
 
+	ulong _insertID;
+
 	// Whether there are rows, headers or bimary data waiting to be retreived.
 	// MySQL protocol doesn't permit performing any other action until all
 	// such data is read.
@@ -861,6 +863,10 @@ public:
 	@property string currentDB() pure const nothrow { return _db; }
 	/// Socket type being used
 	@property MySQLSocketType socketType() pure const nothrow { return _socketType; }
+
+	/// After a command that inserted a row into a table with an auto-increment
+	/// ID column, this method allows you to retrieve the last insert ID.
+	@property ulong lastInsertID() pure const nothrow { return _insertID; }
 
 	/// Gets whether rows are pending
 	@property bool rowsPending() pure const nothrow { return _rowsPending; }

@@ -33,7 +33,6 @@ package:
 	Connection _con;    // This can disappear along with Command
 	const(char)[] _sql; // This can disappear along with Command
 	uint _hStmt;        //TODO: Move to struct Prepared
-	ulong _insertID;    //TODO: Figure out what to do with this
 	ushort _psParams, _psWarnings;  //TODO: Move to struct Prepared
 	PreparedStmtHeaders _psh;       //TODO: Move to struct Prepared
 	Variant[] _inParams;            //TODO: Move to struct Prepared and convert to Nullable!Variant
@@ -713,7 +712,7 @@ public:
 			enforcePacketOK(okp);
 			ra = okp.affected;
 			_con._serverStatus = okp.serverStatus;
-			_insertID = okp.insertID;
+			_con._insertID = okp.insertID;
 			rv = false;
 		}
 		else
@@ -893,7 +892,7 @@ public:
 			enforcePacketOK(okp);
 			ra = okp.affected;
 			_con._serverStatus = okp.serverStatus;
-			_insertID = okp.insertID;
+			_con._insertID = okp.insertID;
 			rv = false;
 		}
 		else
@@ -1155,8 +1154,8 @@ public:
 
 	/// After a command that inserted a row into a table with an auto-increment
 	/// ID column, this method allows you to retrieve the last insert ID.
-	//TODO: Figure out what to do with this, along with _insertID
-	@property ulong lastInsertID() pure const nothrow { return _insertID; }
+	deprecated("Use Connection.lastInsertID instead")
+	@property ulong lastInsertID() pure const nothrow { return _con.lastInsertID; }
 
 	/// Gets the number of parameters in this Command
 	//TODO: Move to struct Prepared
