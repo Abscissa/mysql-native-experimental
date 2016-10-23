@@ -861,4 +861,10 @@ public:
 	@property string currentDB() pure const nothrow { return _db; }
 	/// Socket type being used
 	@property MySQLSocketType socketType() pure const nothrow { return _socketType; }
+
+	/// Gets whether rows are pending
+	@property bool rowsPending() pure const nothrow { return _rowsPending; }
+
+	/// Gets the result header's field descriptions.
+	@property FieldDescription[] resultFieldDescriptions() pure { return _rsh.fieldDescriptions; }
 }

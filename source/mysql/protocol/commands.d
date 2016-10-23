@@ -1166,12 +1166,12 @@ public:
 	}
 
 	/// Gets whether rows are pending
-	//TODO: Move to Connection
-	@property bool rowsPending() pure const nothrow { return _con._rowsPending; }
+	deprecated("Use Connection.rowsPending instead")
+	@property bool rowsPending() pure const nothrow { return _con.rowsPending; }
 
 	/// Gets the result header's field descriptions.
-	//TODO: Move to Connection
-	@property FieldDescription[] resultFieldDescriptions() pure { return _con._rsh.fieldDescriptions; }
+	deprecated("Use Connection.resultFieldDescriptions instead")
+	@property FieldDescription[] resultFieldDescriptions() pure { return _con.resultFieldDescriptions; }
 
 	/// Gets the prepared header's field descriptions.
 	//TODO: Move to struct Prepared
