@@ -266,6 +266,22 @@ unittest
 		c1.param(1) ~= "x";
 	}
 
+	c1.sql = "insert into basetest (intcol, stringcol) values(?, ?)";
+	c1.prepare();
+	//Variant[] va;
+	va.length = 2;
+	va[0] = 42;
+	va[1] = "The quick brown fox x";
+	c1.bindParameters(va);
+	foreach (int i; 0..20)
+	{
+		c1.execPrepared(ra);
+
+		va[0] = c1.getParam(0).get!int + 1;
+		va[1] = c1.getParam(1).get!string ~ "x";
+		c1.bindParameters(va);
+	}
+
 	int a;
 	string b;
 	c1.sql = "select intcol, stringcol from basetest where bytecol=-128 limit 1";

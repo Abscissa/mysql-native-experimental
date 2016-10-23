@@ -50,6 +50,7 @@ package:
 		return true;
 	}
 
+	//TODO: Move to struct Prepared
 	static ubyte[] makeBitmap(in ParameterSpecialization[] psa) pure nothrow
 	{
 		size_t bml = (psa.length+7)/8;
@@ -68,6 +69,7 @@ package:
 		return bma;
 	}
 
+	//TODO: Move to struct Prepared
 	ubyte[] makePSPrefix(ubyte flags = 0) pure const nothrow
 	{
 		ubyte[] prefix;
@@ -86,6 +88,7 @@ package:
 
 	// Set ParameterSpecialization.isNull for all null values.
 	// This may not be the best way to handle it, but it'll do for now.
+	//TODO: Move to struct Prepared
 	void fixupNulls()
 	{
 		foreach (size_t i; 0.._inParams.length)
@@ -95,6 +98,7 @@ package:
 		}
 	}
 
+	//TODO: Move to struct Prepared
 	ubyte[] analyseParams(out ubyte[] vals, out bool longData)
 	{
 		size_t pc = _inParams.length;
@@ -352,6 +356,7 @@ package:
 		return types;
 	}
 
+	//TODO: Move to struct Prepared
 	void sendLongData()
 	{
 		assert(_psa.length <= ushort.max); // parameter number is sent as short
@@ -558,8 +563,6 @@ public:
 	address, so there is no need to rebind between calls to execPreparedXXX.
 	+/
 	//TODO: Move to struct Prepared
-	//TODO: Change "ref T" to "T" and "Nullable!T"
-	//TODO: Turn into a setter for "param".
 	void bindParameter(T)(ref T val, size_t pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
 	{
 		// Now in theory we should be able to check the parameter type here, since the
@@ -656,7 +659,22 @@ public:
 	+/
 	//TODO: Move to struct Prepared
 	//TODO: Change "ref Variant" to "Nullable!Variant"
+	deprecated("Use getParam to get and the bind functions to set.")
 	ref Variant param(size_t index) pure
+	{
+		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
+		enforceEx!MYX(index < _psParams, "Parameter index out of range.");
+		return _inParams[index];
+	}
+
+	/++
+	Prepared statement parameter getter.
+
+	Params: index = The zero based index
+	+/
+	//TODO: Move to struct Prepared
+	//TODO: Change "ref Variant" to "Nullable!Variant"
+	Variant getParam(size_t index)
 	{
 		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
 		enforceEx!MYX(index < _psParams, "Parameter index out of range.");
