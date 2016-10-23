@@ -311,6 +311,7 @@ unittest
 	c1.execSQLTuple(referredBack);
 	assert(referredBack == 666);
 
+	//TODO: Enable these tests for execFunction/execProcedure
 	// Test execFunction()
 	string g = "Gorgeous";
 	string reply;

@@ -803,6 +803,7 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
+	//TODO: This needs unittested
 	ResultSequence execSQLSequence(ColumnSpecialization[] csa = null)
 	{
 		uint alloc = 20;
@@ -979,6 +980,7 @@ public:
 	Returns: A (possibly empty) ResultSequence.
 	+/
 	//TODO: Move to struct Prepared
+	//TODO: This needs unittested
 	ResultSequence execPreparedSequence(ColumnSpecialization[] csa = null)
 	{
 		ulong ra;
