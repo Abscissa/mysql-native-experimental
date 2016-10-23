@@ -40,16 +40,6 @@ package:
 	ParameterSpecialization[] _psa; //TODO: Move to struct Prepared
 	string _prevFunc; // Has to do with stored procedures
 
-	bool sendCmd(CommandType cmd)
-	{
-		enforceEx!MYX(!(_con._headersPending || _con._rowsPending),
-			"There are result set elements pending - purgeResult() required.");
-
-		scope(failure) _con.kill();
-		_con.sendCmd(cmd, _sql);
-		return true;
-	}
-
 	//TODO: Move to struct Prepared
 	static ubyte[] makeBitmap(in ParameterSpecialization[] psa) pure nothrow
 	{
@@ -1165,21 +1155,29 @@ public:
 
 	/// After a command that inserted a row into a table with an auto-increment
 	/// ID column, this method allows you to retrieve the last insert ID.
+	//TODO: Figure out what to do with this, along with _insertID
 	@property ulong lastInsertID() pure const nothrow { return _insertID; }
 
 	/// Gets the number of parameters in this Command
+	//TODO: Move to struct Prepared
 	@property ushort numParams() pure const nothrow
 	{
 		return _psParams;
 	}
 
 	/// Gets whether rows are pending
+	//TODO: Move to Connection
 	@property bool rowsPending() pure const nothrow { return _con._rowsPending; }
 
 	/// Gets the result header's field descriptions.
+	//TODO: Move to Connection
 	@property FieldDescription[] resultFieldDescriptions() pure { return _con._rsh.fieldDescriptions; }
+
 	/// Gets the prepared header's field descriptions.
+	//TODO: Move to struct Prepared
 	@property FieldDescription[] preparedFieldDescriptions() pure { return _psh.fieldDescriptions; }
+
 	/// Gets the prepared header's param descriptions.
+	//TODO: Move to struct Prepared
 	@property ParamDescription[] preparedParamDescriptions() pure { return _psh.paramDescriptions; }
 }

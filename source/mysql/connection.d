@@ -185,6 +185,11 @@ package:
 	}
 	body
 	{
+		enforceEx!MYX(!(_headersPending || _rowsPending),
+			"There are result set elements pending - purgeResult() required.");
+
+		scope(failure) kill();
+
 		if(!_socket.connected)
 		{
 			if(cmd == CommandType.QUIT)
