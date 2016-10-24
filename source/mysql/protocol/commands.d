@@ -18,6 +18,7 @@ import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
+import mysql.protocol.prepared;
 
 /++
 Encapsulation of an SQL command or query.
@@ -32,354 +33,8 @@ struct Command
 package:
 	Connection _con;    // This can disappear along with Command
 	const(char)[] _sql; // This can disappear along with Command
-	uint _hStmt;        //TODO: Move to struct Prepared
-	ushort _psParams, _psWarnings;  //TODO: Move to struct Prepared
-	PreparedStmtHeaders _psh;       //TODO: Move to struct Prepared
-	Variant[] _inParams;            //TODO: Move to struct Prepared and convert to Nullable!Variant
-	ParameterSpecialization[] _psa; //TODO: Move to struct Prepared
 	string _prevFunc; // Has to do with stored procedures
-
-	//TODO: Move to struct Prepared
-	static ubyte[] makeBitmap(in ParameterSpecialization[] psa) pure nothrow
-	{
-		size_t bml = (psa.length+7)/8;
-		ubyte[] bma;
-		bma.length = bml;
-		foreach (size_t i, PSN psn; psa)
-		{
-			if (!psn.isNull)
-				continue;
-			size_t bn = i/8;
-			size_t bb = i%8;
-			ubyte sr = 1;
-			sr <<= bb;
-			bma[bn] |= sr;
-		}
-		return bma;
-	}
-
-	//TODO: Move to struct Prepared
-	ubyte[] makePSPrefix(ubyte flags = 0) pure const nothrow
-	{
-		ubyte[] prefix;
-		prefix.length = 14;
-
-		prefix[4] = CommandType.STMT_EXECUTE;
-		_hStmt.packInto(prefix[5..9]);
-		prefix[9] = flags;   // flags, no cursor
-		prefix[10] = 1; // iteration count - currently always 1
-		prefix[11] = 0;
-		prefix[12] = 0;
-		prefix[13] = 0;
-
-		return prefix;
-	}
-
-	// Set ParameterSpecialization.isNull for all null values.
-	// This may not be the best way to handle it, but it'll do for now.
-	//TODO: Move to struct Prepared
-	void fixupNulls()
-	{
-		foreach (size_t i; 0.._inParams.length)
-		{
-			if (_inParams[i].type == typeid(typeof(null)))
-				_psa[i].isNull = true;
-		}
-	}
-
-	//TODO: Move to struct Prepared
-	ubyte[] analyseParams(out ubyte[] vals, out bool longData)
-	{
-		size_t pc = _inParams.length;
-		ubyte[] types;
-		types.length = pc*2;
-		size_t alloc = pc*20;
-		vals.length = alloc;
-		uint vcl = 0, len;
-		int ct = 0;
-
-		void reAlloc(size_t n)
-		{
-			if (vcl+n < alloc)
-				return;
-			size_t inc = (alloc*3)/2;
-			if (inc <  n)
-				inc = n;
-			alloc += inc;
-			vals.length = alloc;
-		}
-
-		foreach (size_t i; 0..pc)
-		{
-			enum UNSIGNED  = 0x80;
-			enum SIGNED    = 0;
-			if (_psa[i].chunkSize)
-				longData= true;
-			if (_psa[i].isNull)
-			{
-				types[ct++] = SQLType.NULL;
-				types[ct++] = SIGNED;
-				continue;
-			}
-			Variant v = _inParams[i];
-			SQLType ext = _psa[i].type;
-			string ts = v.type.toString();
-			bool isRef;
-			if (ts[$-1] == '*')
-			{
-				ts.length = ts.length-1;
-				isRef= true;
-			}
-
-			switch (ts)
-			{
-				case "bool":
-					if (ext == SQLType.INFER_FROM_D_TYPE)
-						types[ct++] = SQLType.BIT;
-					else
-						types[ct++] = cast(ubyte) ext;
-					types[ct++] = SIGNED;
-					reAlloc(2);
-					bool bv = isRef? *(v.get!(bool*)): v.get!(bool);
-					vals[vcl++] = 1;
-					vals[vcl++] = bv? 0x31: 0x30;
-					break;
-				case "byte":
-					types[ct++] = SQLType.TINY;
-					types[ct++] = SIGNED;
-					reAlloc(1);
-					vals[vcl++] = isRef? *(v.get!(byte*)): v.get!(byte);
-					break;
-				case "ubyte":
-					types[ct++] = SQLType.TINY;
-					types[ct++] = UNSIGNED;
-					reAlloc(1);
-					vals[vcl++] = isRef? *(v.get!(ubyte*)): v.get!(ubyte);
-					break;
-				case "short":
-					types[ct++] = SQLType.SHORT;
-					types[ct++] = SIGNED;
-					reAlloc(2);
-					short si = isRef? *(v.get!(short*)): v.get!(short);
-					vals[vcl++] = cast(ubyte) (si & 0xff);
-					vals[vcl++] = cast(ubyte) ((si >> 8) & 0xff);
-					break;
-				case "ushort":
-					types[ct++] = SQLType.SHORT;
-					types[ct++] = UNSIGNED;
-					reAlloc(2);
-					ushort us = isRef? *(v.get!(ushort*)): v.get!(ushort);
-					vals[vcl++] = cast(ubyte) (us & 0xff);
-					vals[vcl++] = cast(ubyte) ((us >> 8) & 0xff);
-					break;
-				case "int":
-					types[ct++] = SQLType.INT;
-					types[ct++] = SIGNED;
-					reAlloc(4);
-					int ii = isRef? *(v.get!(int*)): v.get!(int);
-					vals[vcl++] = cast(ubyte) (ii & 0xff);
-					vals[vcl++] = cast(ubyte) ((ii >> 8) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ii >> 16) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ii >> 24) & 0xff);
-					break;
-				case "uint":
-					types[ct++] = SQLType.INT;
-					types[ct++] = UNSIGNED;
-					reAlloc(4);
-					uint ui = isRef? *(v.get!(uint*)): v.get!(uint);
-					vals[vcl++] = cast(ubyte) (ui & 0xff);
-					vals[vcl++] = cast(ubyte) ((ui >> 8) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ui >> 16) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ui >> 24) & 0xff);
-					break;
-				case "long":
-					types[ct++] = SQLType.LONGLONG;
-					types[ct++] = SIGNED;
-					reAlloc(8);
-					long li = isRef? *(v.get!(long*)): v.get!(long);
-					vals[vcl++] = cast(ubyte) (li & 0xff);
-					vals[vcl++] = cast(ubyte) ((li >> 8) & 0xff);
-					vals[vcl++] = cast(ubyte) ((li >> 16) & 0xff);
-					vals[vcl++] = cast(ubyte) ((li >> 24) & 0xff);
-					vals[vcl++] = cast(ubyte) ((li >> 32) & 0xff);
-					vals[vcl++] = cast(ubyte) ((li >> 40) & 0xff);
-					vals[vcl++] = cast(ubyte) ((li >> 48) & 0xff);
-					vals[vcl++] = cast(ubyte) ((li >> 56) & 0xff);
-					break;
-				case "ulong":
-					types[ct++] = SQLType.LONGLONG;
-					types[ct++] = UNSIGNED;
-					reAlloc(8);
-					ulong ul = isRef? *(v.get!(ulong*)): v.get!(ulong);
-					vals[vcl++] = cast(ubyte) (ul & 0xff);
-					vals[vcl++] = cast(ubyte) ((ul >> 8) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ul >> 16) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ul >> 24) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ul >> 32) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ul >> 40) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ul >> 48) & 0xff);
-					vals[vcl++] = cast(ubyte) ((ul >> 56) & 0xff);
-					break;
-				case "float":
-					types[ct++] = SQLType.FLOAT;
-					types[ct++] = SIGNED;
-					reAlloc(4);
-					float f = isRef? *(v.get!(float*)): v.get!(float);
-					ubyte* ubp = cast(ubyte*) &f;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp;
-					break;
-				case "double":
-					types[ct++] = SQLType.DOUBLE;
-					types[ct++] = SIGNED;
-					reAlloc(8);
-					double d = isRef? *(v.get!(double*)): v.get!(double);
-					ubyte* ubp = cast(ubyte*) &d;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp++;
-					vals[vcl++] = *ubp;
-					break;
-				case "std.datetime.Date":
-					types[ct++] = SQLType.DATE;
-					types[ct++] = SIGNED;
-					Date date = isRef? *(v.get!(Date*)): v.get!(Date);
-					ubyte[] da = pack(date);
-					size_t l = da.length;
-					reAlloc(l);
-					vals[vcl..vcl+l] = da[];
-					vcl += l;
-					break;
-				case "std.datetime.Time":
-					types[ct++] = SQLType.TIME;
-					types[ct++] = SIGNED;
-					TimeOfDay time = isRef? *(v.get!(TimeOfDay*)): v.get!(TimeOfDay);
-					ubyte[] ta = pack(time);
-					size_t l = ta.length;
-					reAlloc(l);
-					vals[vcl..vcl+l] = ta[];
-					vcl += l;
-					break;
-				case "std.datetime.DateTime":
-					types[ct++] = SQLType.DATETIME;
-					types[ct++] = SIGNED;
-					DateTime dt = isRef? *(v.get!(DateTime*)): v.get!(DateTime);
-					ubyte[] da = pack(dt);
-					size_t l = da.length;
-					reAlloc(l);
-					vals[vcl..vcl+l] = da[];
-					vcl += l;
-					break;
-				case "connect.Timestamp":
-					types[ct++] = SQLType.TIMESTAMP;
-					types[ct++] = SIGNED;
-					Timestamp tms = isRef? *(v.get!(Timestamp*)): v.get!(Timestamp);
-					DateTime dt = mysql.protocol.packet_helpers.toDateTime(tms.rep);
-					ubyte[] da = pack(dt);
-					size_t l = da.length;
-					reAlloc(l);
-					vals[vcl..vcl+l] = da[];
-					vcl += l;
-					break;
-				case "immutable(char)[]":
-					if (ext == SQLType.INFER_FROM_D_TYPE)
-						types[ct++] = SQLType.VARCHAR;
-					else
-						types[ct++] = cast(ubyte) ext;
-					types[ct++] = SIGNED;
-					string s = isRef? *(v.get!(string*)): v.get!(string);
-					ubyte[] packed = packLCS(cast(void[]) s);
-					reAlloc(packed.length);
-					vals[vcl..vcl+packed.length] = packed[];
-					vcl += packed.length;
-					break;
-				case "char[]":
-					if (ext == SQLType.INFER_FROM_D_TYPE)
-						types[ct++] = SQLType.VARCHAR;
-					else
-						types[ct++] = cast(ubyte) ext;
-					types[ct++] = SIGNED;
-					char[] ca = isRef? *(v.get!(char[]*)): v.get!(char[]);
-					ubyte[] packed = packLCS(cast(void[]) ca);
-					reAlloc(packed.length);
-					vals[vcl..vcl+packed.length] = packed[];
-					vcl += packed.length;
-					break;
-				case "byte[]":
-					if (ext == SQLType.INFER_FROM_D_TYPE)
-						types[ct++] = SQLType.TINYBLOB;
-					else
-						types[ct++] = cast(ubyte) ext;
-					types[ct++] = SIGNED;
-					byte[] ba = isRef? *(v.get!(byte[]*)): v.get!(byte[]);
-					ubyte[] packed = packLCS(cast(void[]) ba);
-					reAlloc(packed.length);
-					vals[vcl..vcl+packed.length] = packed[];
-					vcl += packed.length;
-					break;
-				case "ubyte[]":
-					if (ext == SQLType.INFER_FROM_D_TYPE)
-						types[ct++] = SQLType.TINYBLOB;
-					else
-						types[ct++] = cast(ubyte) ext;
-					types[ct++] = SIGNED;
-					ubyte[] uba = isRef? *(v.get!(ubyte[]*)): v.get!(ubyte[]);
-					ubyte[] packed = packLCS(cast(void[]) uba);
-					reAlloc(packed.length);
-					vals[vcl..vcl+packed.length] = packed[];
-					vcl += packed.length;
-					break;
-				case "void":
-					throw new MYX("Unbound parameter " ~ to!string(i), __FILE__, __LINE__);
-				default:
-					throw new MYX("Unsupported parameter type " ~ ts, __FILE__, __LINE__);
-			}
-		}
-		vals.length = vcl;
-		return types;
-	}
-
-	//TODO: Move to struct Prepared
-	void sendLongData()
-	{
-		assert(_psa.length <= ushort.max); // parameter number is sent as short
-		foreach (ushort i, PSN psn; _psa)
-		{
-			if (!psn.chunkSize) continue;
-			uint cs = psn.chunkSize;
-			uint delegate(ubyte[]) dg = psn.chunkDelegate;
-
-			ubyte[] chunk;
-			chunk.length = cs+11;
-			chunk.setPacketHeader(0 /*each chunk is separate cmd*/);
-			chunk[4] = CommandType.STMT_SEND_LONG_DATA;
-			_hStmt.packInto(chunk[5..9]); // statement handle
-			packInto(i, chunk[9..11]); // parameter number
-
-			// byte 11 on is payload
-			for (;;)
-			{
-				uint sent = dg(chunk[11..cs+11]);
-				if (sent < cs)
-				{
-					if (sent == 0)    // data was exact multiple of chunk size - all sent
-						break;
-					sent += 7;        // adjust for non-payload bytes
-					chunk.length = chunk.length - (cs-sent);     // trim the chunk
-					packInto!(uint, true)(cast(uint)sent, chunk[0..3]);
-					_con.send(chunk);
-					break;
-				}
-				_con.send(chunk);
-			}
-		}
-	}
+	Prepared _prepared; // The current prepared statement info
 
 public:
 
@@ -431,7 +86,7 @@ public:
 		// This can disappear along with Command
 		const(char)[] sql(const(char)[] sql)
 		{
-			if (_hStmt)
+			if (!_prepared.isReleased)
 			{
 				_con.purgeResult();
 				releaseStatement();
@@ -460,45 +115,10 @@ public:
 	Throws: MySQLException if there are pending result set items, or if the
 	server has a problem.
 	+/
-	//TODO: Return a struct Prepared
+	deprecated("Use Prepare.this(Connection conn, string sql) instead")
 	void prepare()
 	{
-		enforceEx!MYX(!(_con._headersPending || _con._rowsPending),
-			"There are result set elements pending - purgeResult() required.");
-
-		scope(failure) _con.kill();
-
-		if (_hStmt)
-			releaseStatement();
-		_con.sendCmd(CommandType.STMT_PREPARE, _sql);
-		_con._fieldCount = 0;
-
-		ubyte[] packet = _con.getPacket();
-		if (packet.front == ResultPacketMarker.ok)
-		{
-			packet.popFront();
-			_hStmt              = packet.consume!int();
-			_con._fieldCount    = packet.consume!short();
-			_psParams           = packet.consume!short();
-
-			_inParams.length    = _psParams;
-			_psa.length         = _psParams;
-
-			packet.popFront(); // one byte filler
-			_psWarnings         = packet.consume!short();
-
-			// At this point the server also sends field specs for parameters
-			// and columns if there were any of each
-			_psh = PreparedStmtHeaders(_con, _con._fieldCount, _psParams);
-		}
-		else if(packet.front == ResultPacketMarker.error)
-		{
-			auto error = OKErrorPacket(packet);
-			enforcePacketOK(error);
-			assert(0); // FIXME: what now?
-		}
-		else
-			assert(0); // FIXME: what now?
+		_prepared = Prepared(_con, _sql.idup);
 	}
 
 	/++
@@ -508,22 +128,10 @@ public:
 	holds about the current prepared statement, and resets the Command
 	object to an initial state in that respect.
 	+/
-	//TODO: Move to struct Prepared
+	deprecated("Use Prepared.release instead")
 	void releaseStatement()
 	{
-		scope(failure) _con.kill();
-
-		ubyte[] packet;
-		packet.length = 9;
-		packet.setPacketHeader(0/*packet number*/);
-		_con.bumpPacket();
-		packet[4] = CommandType.STMT_CLOSE;
-		_hStmt.packInto(packet[5..9]);
-		_con.purgeResult();
-		_con.send(packet);
-		// It seems that the server does not find it necessary to send a response
-		// for this command.
-		_hStmt = 0;
+		_prepared.release();
 	}
 
 	/++
@@ -551,25 +159,11 @@ public:
 	To bind to some D variable, we set the corrsponding variant with its
 	address, so there is no need to rebind between calls to execPreparedXXX.
 	+/
-	//TODO: Move to struct Prepared
+	deprecated("Use Prepared.setParam instead")
 	void bindParameter(T)(ref T val, size_t pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
 	{
-		// Now in theory we should be able to check the parameter type here, since the
-		// protocol is supposed to send us type information for the parameters, but this
-		// capability seems to be broken. This assertion is supported by the fact that
-		// the same information is not available via the MySQL C API either. It is up
-		// to the programmer to ensure that appropriate type information is embodied
-		// in the variant array, or provided explicitly. This sucks, but short of
-		// having a client side SQL parser I don't see what can be done.
-		//
-		// We require that the statement be prepared at this point so we can at least
-		// check that the parameter number is within the required range
-		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
-		enforceEx!MYX(pIndex < _psParams, "Parameter number is out of range for the prepared statement.");
-		_inParams[pIndex] = &val;
-		psn.pIndex = pIndex;
-		_psa[pIndex] = psn;
-		fixupNulls();
+		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		_prepared.setParam(pIndex, &val, psn);
 	}
 
 	/++
@@ -581,14 +175,13 @@ public:
 	The tuple must match the required number of parameters, and it is the programmer's
 	responsibility to ensure that they are of appropriate types.
 	+/
-	//TODO: Move to struct Prepared
-	//TODO: Change "ref T" to "T" and "Nullable!T"
+	deprecated("Use Prepared.setParams instead")
 	void bindParameterTuple(T...)(ref T args)
 	{
-		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
-		enforceEx!MYX(args.length == _psParams, "Argument list supplied does not match the number of parameters.");
+		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		enforceEx!MYX(args.length == _prepared.numParams, "Argument list supplied does not match the number of parameters.");
 		foreach (size_t i, dummy; args)
-			_inParams[i] = &args[i];
+			_prepared.setParam(&args[i], i);
 		fixupNulls();
 	}
 
@@ -620,19 +213,10 @@ public:
 	Params: va = External list of Variants to be used as parameters
 	               psnList = any required specializations
 	+/
-	//TODO: Move to struct Prepared
-	//TODO: Overload with "Variant" to "Nullable!Variant"
+	deprecated("Use Prepared.setParams instead")
 	void bindParameters(Variant[] va, ParameterSpecialization[] psnList= null)
 	{
-		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
-		enforceEx!MYX(va.length == _psParams, "Param count supplied does not match prepared statement");
-		_inParams[] = va[];
-		if (psnList !is null)
-		{
-			foreach (PSN psn; psnList)
-				_psa[psn.pIndex] = psn;
-		}
-		fixupNulls();
+		_prepared.setParams(va, psnList);
 	}
 
 	/++
@@ -648,12 +232,12 @@ public:
 	+/
 	//TODO: Move to struct Prepared
 	//TODO: Change "ref Variant" to "Nullable!Variant"
-	deprecated("Use getParam to get and the bind functions to set.")
+	deprecated("Use Prepared.getParam to get and Prepared.setParam to set.")
 	ref Variant param(size_t index) pure
 	{
-		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
-		enforceEx!MYX(index < _psParams, "Parameter index out of range.");
-		return _inParams[index];
+		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		enforceEx!MYX(index < _prepared.numParams, "Parameter index out of range.");
+		return _prepared._inParams[index];
 	}
 
 	/++
@@ -661,13 +245,12 @@ public:
 
 	Params: index = The zero based index
 	+/
-	//TODO: Move to struct Prepared
-	//TODO: Change "ref Variant" to "Nullable!Variant"
+	//TODO? Change "ref Variant" to "Nullable!Variant"
+	deprecated("Use Prepared.getParam instead.")
 	Variant getParam(size_t index)
 	{
-		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
-		enforceEx!MYX(index < _psParams, "Parameter index out of range.");
-		return _inParams[index];
+		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		return _prepared.getParam(index);
 	}
 
 	/++
@@ -675,13 +258,11 @@ public:
 	
 	Params: index = The zero based index
 	+/
-	//TODO: Move to struct Prepared
+	deprecated("Use Prepared.setNullParam instead.")
 	void setNullParam(size_t index)
 	{
-		enforceEx!MYX(_hStmt, "The statement must be prepared before parameters are bound.");
-		enforceEx!MYX(index < _psParams, "Parameter index out of range.");
-		_psa[index].isNull = true;
-		_inParams[index] = "";
+		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		_prepared.setNullParam(index);
 	}
 
 	/++
@@ -852,59 +433,11 @@ public:
 	Params: ra = An out parameter to receive the number of rows affected.
 	Returns: true if there was a (possibly empty) result set.
 	+/
-	//TODO: Move to struct Prepared
+	deprecated("Use Prepared.exec instead")
 	bool execPrepared(out ulong ra)
 	{
-		enforceEx!MYX(_hStmt, "The statement has not been prepared.");
-		scope(failure) _con.kill();
-
-		ubyte[] packet;
-		_con.resetPacket();
-
-		ubyte[] prefix = makePSPrefix(0);
-		size_t len = prefix.length;
-		bool longData;
-
-		if (_psh._paramCount)
-		{
-			ubyte[] one = [ 1 ];
-			ubyte[] vals;
-			ubyte[] types = analyseParams(vals, longData);
-			ubyte[] nbm = makeBitmap(_psa);
-			packet = prefix ~ nbm ~ one ~ types ~ vals;
-		}
-		else
-			packet = prefix;
-
-		if (longData)
-			sendLongData();
-
-		assert(packet.length <= uint.max);
-		packet.setPacketHeader(_con.pktNumber);
-		_con.bumpPacket();
-		_con.send(packet);
-		packet = _con.getPacket();
-		bool rv;
-		if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
-		{
-			_con.resetPacket();
-			auto okp = OKErrorPacket(packet);
-			enforcePacketOK(okp);
-			ra = okp.affected;
-			_con._serverStatus = okp.serverStatus;
-			_con._insertID = okp.insertID;
-			rv = false;
-		}
-		else
-		{
-			// There was presumably a result set
-			_con._headersPending = _con._rowsPending = _con._binaryPending = true;
-			auto lcb = packet.consumeIfComplete!LCB();
-			assert(!lcb.isIncomplete);
-			_con._fieldCount = cast(ushort)lcb.value;
-			rv = true;
-		}
-		return rv;
+		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared.");
+		return _prepared.execImpl(ra);
 	}
 
 	/++
@@ -920,39 +453,11 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSet.
 	+/
-	//TODO: Move to struct Prepared
+	deprecated("Use Prepared.queryResult instead")
 	ResultSet execPreparedResult(ColumnSpecialization[] csa = null)
 	{
-		ulong ra;
-		enforceEx!MYX(execPrepared(ra), "The executed query did not produce a result set.");
-		uint alloc = 20;
-		Row[] rra;
-		rra.length = alloc;
-		uint cr = 0;
-		_con._rsh = ResultSetHeaders(_con, _con._fieldCount);
-		if (csa !is null)
-			_con._rsh.addSpecializations(csa);
-		_con._headersPending = false;
-		ubyte[] packet;
-		for (size_t i = 0;; i++)
-		{
-			packet = _con.getPacket();
-			if (packet.isEOFPacket())
-				break;
-			Row row = Row(_con, packet, _con._rsh, true);
-			if (cr >= alloc)
-			{
-				alloc = (alloc*3)/2;
-				rra.length = alloc;
-			}
-			rra[cr++] = row;
-			if (!packet.empty && packet.isEOFPacket())
-				break;
-		}
-		_con._rowsPending = _con._binaryPending = false;
-		rra.length = cr;
-		ResultSet rs = ResultSet(rra, _con._rsh.fieldNames);
-		return rs;
+		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared.");
+		return _prepared.queryResult(csa);
 	}
 
 	/++
@@ -968,21 +473,12 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
-	//TODO: Move to struct Prepared
 	//TODO: This needs unittested
+	deprecated("Use Prepared.querySequence instead")
 	ResultSequence execPreparedSequence(ColumnSpecialization[] csa = null)
 	{
-		ulong ra;
-		enforceEx!MYX(execPrepared(ra), "The executed query did not produce a result set.");
-		uint alloc = 20;
-		Row[] rra;
-		rra.length = alloc;
-		uint cr = 0;
-		_con._rsh = ResultSetHeaders(_con, _con._fieldCount);
-		if (csa !is null)
-			_con._rsh.addSpecializations(csa);
-		_con._headersPending = false;
-		return ResultSequence(_con, _con._rsh, _con._rsh.fieldNames);
+		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared.");
+		return _prepared.querySequence(csa);
 	}
 
 	/++
@@ -995,24 +491,11 @@ public:
 	Params: args = A tuple of D variables to receive the results.
 	Returns: true if there was a (possibly empty) result set.
 	+/
-	//TODO: Move to struct Prepared
+	deprecated("Use Prepared.queryTuple instead")
 	void execPreparedTuple(T...)(ref T args)
 	{
-		ulong ra;
-		enforceEx!MYX(execPrepared(ra), "The executed query did not produce a result set.");
-		Row rr = _con.getNextRow();
-		// enforceEx!MYX(rr._valid, "The result set was empty.");
-		enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
-		foreach (size_t i, dummy; args)
-		{
-			enforceEx!MYX(typeid(args[i]).toString() == rr._values[i].type.toString(),
-				"Tuple "~to!string(i)~" type and column type are not compatible.");
-			args[i] = rr._values[i].get!(typeof(args[i]));
-		}
-		// If there were more rows, flush them away
-		// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
-		// allow sloppy SQL that does not ensure just one row!
-		_con.purgeResult();
+		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared.");
+		_prepared.queryTuple(args);
 	}
 
 	/++
@@ -1065,7 +548,7 @@ public:
 	bool execFunction(T, U...)(string name, ref T target, U args)
 	{
 		bool repeatCall = (name == _prevFunc);
-		enforceEx!MYX(repeatCall || _hStmt == 0, "You must not prepare the statement before calling execFunction");
+		enforceEx!MYX(repeatCall || _prepared.isReleased, "You must not prepare the statement before calling execFunction");
 		if (!repeatCall)
 		{
 			_sql = "select " ~ name ~ "(";
@@ -1128,7 +611,7 @@ public:
 	bool execProcedure(T...)(string name, ref T args)
 	{
 		bool repeatCall = (name == _prevFunc);
-		enforceEx!MYX(repeatCall || _hStmt == 0, "You must not prepare a statement before calling execProcedure");
+		enforceEx!MYX(repeatCall || _prepared.isReleased, "You must not prepare a statement before calling execProcedure");
 		if (!repeatCall)
 		{
 			_sql = "call " ~ name ~ "(";
@@ -1158,10 +641,10 @@ public:
 	@property ulong lastInsertID() pure const nothrow { return _con.lastInsertID; }
 
 	/// Gets the number of parameters in this Command
-	//TODO: Move to struct Prepared
+	deprecated("Use Prepared.numParams instead")
 	@property ushort numParams() pure const nothrow
 	{
-		return _psParams;
+		return _prepared.numParams;
 	}
 
 	/// Gets whether rows are pending
@@ -1173,10 +656,10 @@ public:
 	@property FieldDescription[] resultFieldDescriptions() pure { return _con.resultFieldDescriptions; }
 
 	/// Gets the prepared header's field descriptions.
-	//TODO: Move to struct Prepared
-	@property FieldDescription[] preparedFieldDescriptions() pure { return _psh.fieldDescriptions; }
+	deprecated("Use Prepared.preparedFieldDescriptions instead")
+	@property FieldDescription[] preparedFieldDescriptions() pure { return _prepared._psh.fieldDescriptions; }
 
 	/// Gets the prepared header's param descriptions.
-	//TODO: Move to struct Prepared
-	@property ParamDescription[] preparedParamDescriptions() pure { return _psh.paramDescriptions; }
+	deprecated("Use Prepared.preparedParamDescriptions instead")
+	@property ParamDescription[] preparedParamDescriptions() pure { return _prepared._psh.paramDescriptions; }
 }
