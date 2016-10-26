@@ -20,7 +20,16 @@ import mysql.protocol.extra_types;
 import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
 
-alias Prepared = RefCounted!(PreparedImpl, RefCountedAutoInitialize.no);
+struct Prepared
+{
+	RefCounted!(PreparedImpl, RefCountedAutoInitialize.no) preparedImpl;
+	alias preparedImpl this;
+	
+	@property bool isPrepared() pure const
+	{
+		return preparedImpl.refCountedStore.isInitialized && !preparedImpl.isReleased;
+	}
+}
 
 /++
 Submit an SQL command to the server to be compiled into a prepared statement.
@@ -50,7 +59,7 @@ Prepared prepare(Connection conn, string sql)
 	auto prepared = PreparedImpl(conn, sql);
 	return refCounted(move(prepared));
 	+/
-	return refCounted(PreparedImpl(conn, sql));
+	return Prepared( refCounted(PreparedImpl(conn, sql)) );
 }
 
 //TODO: Move this next to ColumnSpecialization definition
@@ -165,7 +174,7 @@ private:
 	}
 
 package:
-	uint _hStmt;
+	uint _hStmt; // Server's identifier for this prepared statement. This is 0 when released.
 	ushort _psParams, _psWarnings;
 	PreparedStmtHeaders _psh;
 	Variant[] _inParams;  //TODO? Convert to Nullable!Variant
@@ -577,32 +586,6 @@ package:
 		return rv;
 	}
 
-	/++
-	Release a prepared statement.
-	
-	This method tells the server that it can dispose of the information it
-	holds about the current prepared statement.
-	+/
-	void release()
-	{
-		if(!_hStmt)
-			return;
-
-		scope(failure) _conn.kill();
-
-		ubyte[] packet;
-		packet.length = 9;
-		packet.setPacketHeader(0/*packet number*/);
-		_conn.bumpPacket();
-		packet[4] = CommandType.STMT_CLOSE;
-		_hStmt.packInto(packet[5..9]);
-		_conn.purgeResult();
-		_conn.send(packet);
-		// It seems that the server does not find it necessary to send a response
-		// for this command.
-		_hStmt = 0;
-	}
-
 	/// Has this statement been released?
 	@property bool isReleased() pure const nothrow
 	{
@@ -916,6 +899,32 @@ public:
 		_inParams[index] = Variant(null);
 		fixupNulls();
 		+/
+	}
+
+	/++
+	Release a prepared statement.
+	
+	This method tells the server that it can dispose of the information it
+	holds about the current prepared statement.
+	+/
+	void release()
+	{
+		if(!_hStmt)
+			return;
+
+		scope(failure) _conn.kill();
+
+		ubyte[] packet;
+		packet.length = 9;
+		packet.setPacketHeader(0/*packet number*/);
+		_conn.bumpPacket();
+		packet[4] = CommandType.STMT_CLOSE;
+		_hStmt.packInto(packet[5..9]);
+		_conn.purgeResult();
+		_conn.send(packet);
+		// It seems that the server does not find it necessary to send a response
+		// for this command.
+		_hStmt = 0;
 	}
 
 	/// Gets the number of parameters in this Command
