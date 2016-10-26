@@ -10,6 +10,7 @@ import std.socket;
 import std.stdio;
 import std.string;
 import std.traits;
+import std.typecons;
 import std.variant;
 
 import mysql.common;
@@ -18,6 +19,39 @@ import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
+
+alias Prepared = RefCounted!(PreparedImpl, RefCountedAutoInitialize.no);
+
+/++
+Submit an SQL command to the server to be compiled into a prepared statement.
+
+The result of a successful outcome will be a statement handle - an ID -
+for the prepared statement, a count of the parameters required for
+excution of the statement, and a count of the columns that will be present
+in any result set that the command generates. Thes values will be stored
+in in the Command struct.
+
+The server will then proceed to send prepared statement headers,
+including parameter descriptions, and result set field descriptions,
+followed by an EOF packet.
+
+If there is an existing statement handle in the Command struct, that
+prepared statement is released.
+
+Throws: MySQLException if there are pending result set items, or if the
+server has a problem.
++/
+//TODO: Throws if already in the middle of receiving a resultset
+Prepared prepare(Connection conn, string sql)
+{
+	/+
+	import std.algorithm.mutation : move;
+
+	auto prepared = PreparedImpl(conn, sql);
+	return refCounted(move(prepared));
+	+/
+	return refCounted(PreparedImpl(conn, sql));
+}
 
 //TODO: Move this next to ColumnSpecialization definition
 struct QuerySpecialization
@@ -44,9 +78,7 @@ Commands that are expected to return a result set - queries - have distinctive m
 that are enforced. That is it will be an error to call such a method with an SQL command
 that does not produce a result set.
 +/
-//TODO: Maybe this should be a class, to prevent isReleased from going out-of-date on a copy.
-//      Or maybe refcounted
-struct Prepared
+struct PreparedImpl
 {
 private:
 	Connection _conn;
@@ -68,6 +100,68 @@ private:
 	{
 		enforceNotReleased();
 		enforceNothingPending();
+	}
+
+	@disable this(this); // Not copyable
+
+	/++
+	Submit an SQL command to the server to be compiled into a prepared statement.
+
+	The result of a successful outcome will be a statement handle - an ID -
+	for the prepared statement, a count of the parameters required for
+	excution of the statement, and a count of the columns that will be present
+	in any result set that the command generates. Thes values will be stored
+	in in the Command struct.
+
+	The server will then proceed to send prepared statement headers,
+	including parameter descriptions, and result set field descriptions,
+	followed by an EOF packet.
+
+	If there is an existing statement handle in the Command struct, that
+	prepared statement is released.
+
+	Throws: MySQLException if there are pending result set items, or if the
+	server has a problem.
+	+/
+	//TODO: Throws if already in the middle of receiving a resultset
+	public this(Connection conn, string sql)
+	{
+		this._conn = conn;
+
+		enforceEx!MYX(!(conn._headersPending || conn._rowsPending),
+			"There are result set elements pending - purgeResult() required.");
+
+		scope(failure) conn.kill();
+
+		conn.sendCmd(CommandType.STMT_PREPARE, sql);
+		conn._fieldCount = 0;
+
+		ubyte[] packet = conn.getPacket();
+		if (packet.front == ResultPacketMarker.ok)
+		{
+			packet.popFront();
+			_hStmt              = packet.consume!int();
+			conn._fieldCount    = packet.consume!short();
+			_psParams           = packet.consume!short();
+
+			_inParams.length    = _psParams;
+			_psa.length         = _psParams;
+
+			packet.popFront(); // one byte filler
+			_psWarnings         = packet.consume!short();
+
+			// At this point the server also sends field specs for parameters
+			// and columns if there were any of each
+			_psh = PreparedStmtHeaders(conn, conn._fieldCount, _psParams);
+		}
+		else if(packet.front == ResultPacketMarker.error)
+		{
+			auto error = OKErrorPacket(packet);
+			enforcePacketOK(error);
+			assert(0); // FIXME: what now?
+		}
+		else
+			assert(0); // FIXME: what now?
 	}
 
 package:
@@ -483,6 +577,38 @@ package:
 		return rv;
 	}
 
+	/++
+	Release a prepared statement.
+	
+	This method tells the server that it can dispose of the information it
+	holds about the current prepared statement.
+	+/
+	void release()
+	{
+		if(!_hStmt)
+			return;
+
+		scope(failure) _conn.kill();
+
+		ubyte[] packet;
+		packet.length = 9;
+		packet.setPacketHeader(0/*packet number*/);
+		_conn.bumpPacket();
+		packet[4] = CommandType.STMT_CLOSE;
+		_hStmt.packInto(packet[5..9]);
+		_conn.purgeResult();
+		_conn.send(packet);
+		// It seems that the server does not find it necessary to send a response
+		// for this command.
+		_hStmt = 0;
+	}
+
+	/// Has this statement been released?
+	@property bool isReleased() pure const nothrow
+	{
+		return _hStmt == 0;
+	}
+
 public:
 	/+ ******************************************
 
@@ -507,64 +633,9 @@ public:
 
 	****************************************** +/
 
-	/++
-	Submit an SQL command to the server to be compiled into a prepared statement.
-
-	The result of a successful outcome will be a statement handle - an ID -
-	for the prepared statement, a count of the parameters required for
-	excution of the statement, and a count of the columns that will be present
-	in any result set that the command generates. Thes values will be stored
-	in in the Command struct.
-
-	The server will then proceed to send prepared statement headers,
-	including parameter descriptions, and result set field descriptions,
-	followed by an EOF packet.
-
-	If there is an existing statement handle in the Command struct, that
-	prepared statement is released.
-
-	Throws: MySQLException if there are pending result set items, or if the
-	server has a problem.
-	+/
-	//TODO: Throws if already in the middle of receiving a resultset
-	this(Connection conn, string sql)
+	~this()
 	{
-		this._conn = conn;
-
-		enforceEx!MYX(!(conn._headersPending || conn._rowsPending),
-			"There are result set elements pending - purgeResult() required.");
-
-		scope(failure) conn.kill();
-
-		conn.sendCmd(CommandType.STMT_PREPARE, sql);
-		conn._fieldCount = 0;
-
-		ubyte[] packet = conn.getPacket();
-		if (packet.front == ResultPacketMarker.ok)
-		{
-			packet.popFront();
-			_hStmt              = packet.consume!int();
-			conn._fieldCount    = packet.consume!short();
-			_psParams           = packet.consume!short();
-
-			_inParams.length    = _psParams;
-			_psa.length         = _psParams;
-
-			packet.popFront(); // one byte filler
-			_psWarnings         = packet.consume!short();
-
-			// At this point the server also sends field specs for parameters
-			// and columns if there were any of each
-			_psh = PreparedStmtHeaders(conn, conn._fieldCount, _psParams);
-		}
-		else if(packet.front == ResultPacketMarker.error)
-		{
-			auto error = OKErrorPacket(packet);
-			enforcePacketOK(error);
-			assert(0); // FIXME: what now?
-		}
-		else
-			assert(0); // FIXME: what now?
+		release();
 	}
 
 	/++
@@ -845,38 +916,6 @@ public:
 		_inParams[index] = Variant(null);
 		fixupNulls();
 		+/
-	}
-
-	/++
-	Release a prepared statement.
-	
-	This method tells the server that it can dispose of the information it
-	holds about the current prepared statement.
-	+/
-	void release()
-	{
-		if(!_hStmt)
-			return;
-
-		scope(failure) _conn.kill();
-
-		ubyte[] packet;
-		packet.length = 9;
-		packet.setPacketHeader(0/*packet number*/);
-		_conn.bumpPacket();
-		packet[4] = CommandType.STMT_CLOSE;
-		_hStmt.packInto(packet[5..9]);
-		_conn.purgeResult();
-		_conn.send(packet);
-		// It seems that the server does not find it necessary to send a response
-		// for this command.
-		_hStmt = 0;
-	}
-
-	/// Has this statement been released?
-	@property bool isReleased() pure const nothrow
-	{
-		return _hStmt == 0;
 	}
 
 	/// Gets the number of parameters in this Command

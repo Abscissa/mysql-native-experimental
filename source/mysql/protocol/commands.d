@@ -86,7 +86,7 @@ public:
 		// This can disappear along with Command
 		const(char)[] sql(const(char)[] sql)
 		{
-			if (!_prepared.isReleased)
+			if (_prepared.refCountedStore.isInitialized)
 			{
 				_con.purgeResult();
 				releaseStatement();
@@ -118,7 +118,7 @@ public:
 	deprecated("Use Prepare.this(Connection conn, string sql) instead")
 	void prepare()
 	{
-		_prepared = Prepared(_con, _sql.idup);
+		_prepared = .prepare(_con, _sql.idup);
 	}
 
 	/++
@@ -131,7 +131,8 @@ public:
 	deprecated("Use Prepared.release instead")
 	void releaseStatement()
 	{
-		_prepared.release();
+		if (_prepared.refCountedStore.isInitialized)
+			_prepared.release();
 	}
 
 	/++
@@ -162,7 +163,7 @@ public:
 	deprecated("Use Prepared.setParam instead")
 	void bindParameter(T)(ref T val, size_t pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
 	{
-		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		enforceEx!MYX(_prepared.refCountedStore.isInitialized, "The statement must be prepared before parameters are bound.");
 		_prepared.setParam(pIndex, &val, psn);
 	}
 
@@ -178,7 +179,7 @@ public:
 	deprecated("Use Prepared.setParams instead")
 	void bindParameterTuple(T...)(ref T args)
 	{
-		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		enforceEx!MYX(_prepared.refCountedStore.isInitialized, "The statement must be prepared before parameters are bound.");
 		enforceEx!MYX(args.length == _prepared.numParams, "Argument list supplied does not match the number of parameters.");
 		foreach (size_t i, dummy; args)
 			_prepared.setParam(&args[i], i);
@@ -235,7 +236,7 @@ public:
 	deprecated("Use Prepared.getParam to get and Prepared.setParam to set.")
 	ref Variant param(size_t index) pure
 	{
-		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		enforceEx!MYX(_prepared.refCountedStore.isInitialized, "The statement must be prepared before parameters are bound.");
 		enforceEx!MYX(index < _prepared.numParams, "Parameter index out of range.");
 		return _prepared._inParams[index];
 	}
@@ -249,7 +250,7 @@ public:
 	deprecated("Use Prepared.getParam instead.")
 	Variant getParam(size_t index)
 	{
-		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		enforceEx!MYX(_prepared.refCountedStore.isInitialized, "The statement must be prepared before parameters are bound.");
 		return _prepared.getParam(index);
 	}
 
@@ -261,7 +262,7 @@ public:
 	deprecated("Use Prepared.setNullParam instead.")
 	void setNullParam(size_t index)
 	{
-		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared before parameters are bound.");
+		enforceEx!MYX(_prepared.refCountedStore.isInitialized, "The statement must be prepared before parameters are bound.");
 		_prepared.setNullParam(index);
 	}
 
@@ -436,7 +437,7 @@ public:
 	deprecated("Use Prepared.exec instead")
 	bool execPrepared(out ulong ra)
 	{
-		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared.");
+		enforceEx!MYX(_prepared.refCountedStore.isInitialized, "The statement must be prepared.");
 		return _prepared.execImpl(ra);
 	}
 
@@ -456,7 +457,7 @@ public:
 	deprecated("Use Prepared.queryResult instead")
 	ResultSet execPreparedResult(ColumnSpecialization[] csa = null)
 	{
-		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared.");
+		enforceEx!MYX(_prepared.refCountedStore.isInitialized, "The statement must be prepared.");
 		return _prepared.queryResult(csa);
 	}
 
@@ -477,7 +478,7 @@ public:
 	deprecated("Use Prepared.querySequence instead")
 	ResultSequence execPreparedSequence(ColumnSpecialization[] csa = null)
 	{
-		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared.");
+		enforceEx!MYX(_prepared.refCountedStore.isInitialized, "The statement must be prepared.");
 		return _prepared.querySequence(csa);
 	}
 
@@ -494,7 +495,7 @@ public:
 	deprecated("Use Prepared.queryTuple instead")
 	void execPreparedTuple(T...)(ref T args)
 	{
-		enforceEx!MYX(!_prepared.isReleased, "The statement must be prepared.");
+		enforceEx!MYX(_prepared.refCountedStore.isInitialized, "The statement must be prepared.");
 		_prepared.queryTuple(args);
 	}
 
@@ -548,7 +549,7 @@ public:
 	bool execFunction(T, U...)(string name, ref T target, U args)
 	{
 		bool repeatCall = (name == _prevFunc);
-		enforceEx!MYX(repeatCall || _prepared.isReleased, "You must not prepare the statement before calling execFunction");
+		enforceEx!MYX(repeatCall || !_prepared.refCountedStore.isInitialized, "You must not prepare the statement before calling execFunction");
 		if (!repeatCall)
 		{
 			_sql = "select " ~ name ~ "(";
@@ -611,7 +612,7 @@ public:
 	bool execProcedure(T...)(string name, ref T args)
 	{
 		bool repeatCall = (name == _prevFunc);
-		enforceEx!MYX(repeatCall || _prepared.isReleased, "You must not prepare a statement before calling execProcedure");
+		enforceEx!MYX(repeatCall || !_prepared.refCountedStore.isInitialized, "You must not prepare a statement before calling execProcedure");
 		if (!repeatCall)
 		{
 			_sql = "call " ~ name ~ "(";

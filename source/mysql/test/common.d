@@ -114,7 +114,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 
 	ulong exec(Params...)(Connection cn, string sql, ref Params params)
 	{
-		auto cmd = cn.prepare(sql);
+		auto cmd = cn.prepareCmd(sql);
 		cmd.bindAll(params);
 		return cmd.exec();
 	}
@@ -129,7 +129,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 	
 	ResultSet query(Params...)(Connection cn, string sql, ref Params params)
 	{
-		auto cmd = cn.prepare(sql);
+		auto cmd = cn.prepareCmd(sql);
 		cmd.bindAll(params);
 		return cmd.query();
 	}
@@ -154,7 +154,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 		return cn.query(sql, params)[0][0];
 	}
 
-	Command prepare(Connection cn, string sql)
+	Command prepareCmd(Connection cn, string sql)
 	{
 		auto cmd = Command(cn);
 		cmd.sql = sql;

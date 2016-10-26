@@ -581,7 +581,7 @@ unittest
 	// Select without result
 	cn.truncate("manytypes");
 	cn.exec("INSERT INTO manytypes (i, f) VALUES (1, NULL)");
-	cmd = cn.prepare("SELECT * FROM manytypes WHERE i = ?");
+	cmd = cn.prepareCmd("SELECT * FROM manytypes WHERE i = ?");
 	{
 		auto val = 2;
 		cmd.bind(0, val);
@@ -595,7 +595,7 @@ unittest
 	// Bind single primitive value
 	cn.truncate("manytypes");
 	cn.exec("INSERT INTO manytypes (i, f) VALUES (1, NULL)");
-	cmd = cn.prepare("SELECT * FROM manytypes WHERE i = ?");
+	cmd = cn.prepareCmd("SELECT * FROM manytypes WHERE i = ?");
 	{
 		auto val = 1;
 		cmd.bind(0, val);
@@ -616,7 +616,7 @@ unittest
 	/+
 	// Insert null - params defaults to null
 	cn.truncate("manytypes");
-	cn.prepare("INSERT INTO manytypes (i, f) VALUES (1, ?)" ).exec();
+	cn.prepareCmd("INSERT INTO manytypes (i, f) VALUES (1, ?)" ).exec();
 	cn.assertScalar!int("SELECT i FROM manytypes WHERE f IS NULL", 1);
 	+/
 
@@ -641,7 +641,7 @@ unittest
 	/+
 	cn.truncate("manytypes");
 	cn.exec("INSERT INTO manytypes (i, f) VALUES (1, NULL)");
-	cmd = cn.prepare("SELECT i FROM manytypes WHERE f <=> ?");
+	cmd = cn.prepareCmd("SELECT i FROM manytypes WHERE f <=> ?");
 	cmd.bind(0, 1);
 	tbl = cmd.query()[0];
 	assert(tbl.length == 0);
@@ -829,7 +829,7 @@ unittest
 		auto okp = cn.exec(insertNullSql);
 		//assert(okp.affectedRows == 1);
 		assert(okp == 1);
-		okp = cn.prepare(insertNullSql).exec();
+		okp = cn.prepareCmd(insertNullSql).exec();
 		//assert(okp.affectedRows == 1);
 		assert(okp == 1);
 
@@ -837,7 +837,7 @@ unittest
 		assert(cn.querySingle(selectOneSql).isNull(0));
 
 		// NULL as bound param
-		auto inscmd = cn.prepare("INSERT INTO "~tablename~" VALUES (?)");
+		auto inscmd = cn.prepareCmd("INSERT INTO "~tablename~" VALUES (?)");
 		cn.exec("TRUNCATE "~tablename);
 
 		inscmd.bindParameters([Variant(null)]);
@@ -907,7 +907,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
 	mixin(scopedCn);
-	auto cmd = cn.prepare(
+	auto cmd = cn.prepareCmd(
 			"SELECT * FROM information_schema.character_sets"~
 			" WHERE CHARACTER_SET_NAME=?");
 	auto val = "utf8";
