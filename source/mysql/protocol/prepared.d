@@ -639,7 +639,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong rowsAffected;
-		auto receivedResultSet = execImpl(rowsAffected);
+		bool receivedResultSet = execImpl(rowsAffected);
 		enforceEx!MYX(
 			receivedResultSet,
 			"A result set was returned. Use the query functions, not exec, "~
@@ -715,6 +715,8 @@ public:
 	If there are long data items among the expected result columns you can
 	specify that they are to be subject to chunked transfer via a delegate.
 	
+	WARNING: This function is not currently unittested.
+
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/

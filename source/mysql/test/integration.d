@@ -624,7 +624,7 @@ unittest
 	cn.truncate("manytypes");
 	{
 		auto val = null;
-		cn.exec("INSERT INTO manytypes (i, f) VALUES (1, ?)", val);
+		cn.execCmd("INSERT INTO manytypes (i, f) VALUES (1, ?)", val);
 	}
 	cn.assertScalar!int("SELECT i FROM manytypes WHERE f IS NULL", 1);
 
@@ -829,7 +829,7 @@ unittest
 		auto okp = cn.exec(insertNullSql);
 		//assert(okp.affectedRows == 1);
 		assert(okp == 1);
-		okp = cn.prepareCmd(insertNullSql).exec();
+		okp = cn.prepareCmd(insertNullSql).execCmd();
 		//assert(okp.affectedRows == 1);
 		assert(okp == 1);
 
@@ -841,7 +841,7 @@ unittest
 		cn.exec("TRUNCATE "~tablename);
 
 		inscmd.bindParameters([Variant(null)]);
-		okp = inscmd.exec();
+		okp = inscmd.execCmd();
 		//assert(okp.affectedRows == 1, "value not inserted");
 		assert(okp == 1, "value not inserted");
 
@@ -854,7 +854,7 @@ unittest
 			cn.exec("TRUNCATE "~tablename);
 
 			inscmd.bind(0, value);
-			okp = inscmd.exec();
+			okp = inscmd.execCmd();
 			//assert(okp.affectedRows == 1, "value not inserted");
 			assert(okp == 1, "value not inserted");
 

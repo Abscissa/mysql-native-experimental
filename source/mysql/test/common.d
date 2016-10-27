@@ -102,7 +102,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 	// At the moment, the following functions are here just for the tests
 	// borrowed from simendsjo's fork. I'm not quite ready to expose a public
 	// interface just yet.
-	ulong exec()(Connection cn, string sql)
+/+	ulong execCmd()(Connection cn, string sql)
 	{
 		auto cmd = Command(cn);
 		cmd.sql = sql;
@@ -111,12 +111,12 @@ debug(MYSQL_INTEGRATION_TESTS)
 		cmd.execSQL(rowsAffected);
 		return rowsAffected;
 	}
-
-	ulong exec(Params...)(Connection cn, string sql, ref Params params)
++/
+	ulong execCmd(Params...)(Connection cn, string sql, ref Params params)
 	{
 		auto cmd = cn.prepareCmd(sql);
 		cmd.bindAll(params);
-		return cmd.exec();
+		return cmd.execCmd();
 	}
 	
 	ResultSet query()(Connection cn, string sql)
@@ -162,7 +162,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 		return cmd;
 	}
 	
-	ulong exec()(Command cmd)
+	ulong execCmd()(Command cmd)
 	{
 		ulong rowsAffected;
 		cmd.execPrepared(rowsAffected);

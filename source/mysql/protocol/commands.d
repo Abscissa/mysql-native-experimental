@@ -21,6 +21,204 @@ import mysql.protocol.packet_helpers;
 import mysql.protocol.prepared;
 
 /++
+Execute a one-off SQL command.
+
+Use this method when you are not going to be using the same command repeatedly.
+It can be used with commands that don't produce a result set, or those that
+do. If there is a result set its existence will be indicated by the return value.
+
+Any result set can be accessed vis Connection.getNextRow(), but you should really be
+using execSQLResult() or execSQLSequence() for such queries.
+
+Params: ra = An out parameter to receive the number of rows affected.
+Returns: true if there was a (possibly empty) result set.
++/
+//TODO? Merge with Prepared.execImpl?
+package bool execImpl(Connection conn, string sql, out ulong ra)
+{
+	scope(failure) conn.kill();
+
+	conn.sendCmd(CommandType.QUERY, sql);
+	conn._fieldCount = 0;
+	ubyte[] packet = conn.getPacket();
+	bool rv;
+	if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
+	{
+		conn.resetPacket();
+		auto okp = OKErrorPacket(packet);
+		enforcePacketOK(okp);
+		ra = okp.affected;
+		conn._serverStatus = okp.serverStatus;
+		conn._insertID = okp.insertID;
+		rv = false;
+	}
+	else
+	{
+		// There was presumably a result set
+		assert(packet.front >= 1 && packet.front <= 250); // ResultSet packet header should have this value
+		conn._headersPending = conn._rowsPending = true;
+		conn._binaryPending = false;
+		auto lcb = packet.consumeIfComplete!LCB();
+		assert(!lcb.isNull);
+		assert(!lcb.isIncomplete);
+		conn._fieldCount = cast(ushort)lcb.value;
+		assert(conn._fieldCount == lcb.value);
+		rv = true;
+		ra = 0;
+	}
+	return rv;
+}
+
+///ditto
+package bool execImpl(Connection conn, string sql)
+{
+	ulong rowsAffected;
+	return execImpl(conn, sql, rowsAffected);
+}
+
+/++
+Execute a one-off SQL command.
+
+Use this method when you are not going to be using the same command repeatedly.
+It can be used with commands that don't produce a result set, or those that
+do. If there is a result set its existence will be indicated by the return value.
+
+Any result set can be accessed vis Connection.getNextRow(), but you should really be
+using execSQLResult() or execSQLSequence() for such queries.
+
+Params: ra = An out parameter to receive the number of rows affected.
+Returns: true if there was a (possibly empty) result set.
++/
+//TODO: Unittest: Throws if resultset was returned ("Use query instead!")
+//TODO: Can/Should I merge the implementation of this with Prepared.exec?
+ulong exec(Connection conn, string sql)
+{
+	ulong rowsAffected;
+	bool receivedResultSet = execImpl(conn, sql, rowsAffected);
+	enforceEx!MYX(
+		!receivedResultSet,
+		"A result set was returned. Use the query functions, not exec, "~
+		"for commands that return result sets."
+	);
+
+	return rowsAffected;
+}
+
+/++
+Execute a one-off SQL command for the case where you expect a result set,
+and want it all at once.
+
+Use this method when you are not going to be using the same command repeatedly.
+This method will throw if the SQL command does not produce a result set.
+
+If there are long data items among the expected result columns you can specify
+that they are to be subject to chunked transfer via a delegate.
+
+Params: csa = An optional array of ColumnSpecialization structs.
+Returns: A (possibly empty) ResultSet.
++/
+//TODO: Unittest: Throws if resultset NOT returned ("Use exec instead!")
+//TODO: Can I merge the implementation of this with Prepared.queryResult?
+ResultSet queryResult(Connection conn, string sql, ColumnSpecialization[] csa = null)
+{
+	ulong ra;
+	enforceEx!MYX(execImpl(conn, sql, ra),
+		"The executed query did not produce a result set. Use the exec "~
+		"functions, not query, for commands that don't produce result sets.");
+
+	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
+	if (csa !is null)
+		conn._rsh.addSpecializations(csa);
+	conn._headersPending = false;
+
+	Row[] rows;
+	while(true)
+	{
+		auto packet = conn.getPacket();
+		if(packet.isEOFPacket())
+			break;
+		rows ~= Row(conn, packet, conn._rsh, false);
+		// As the row fetches more data while incomplete, it might already have
+		// fetched the EOF marker, so we have to check it again
+		if(!packet.empty && packet.isEOFPacket())
+			break;
+	}
+	conn._rowsPending = conn._binaryPending = false;
+
+	return ResultSet(rows, conn._rsh.fieldNames);
+}
+
+/++
+Execute a one-off SQL command for the case where you expect a result set,
+and want to deal with it a row at a time.
+
+Use this method when you are not going to be using the same command repeatedly.
+This method will throw if the SQL command does not produce a result set.
+
+If there are long data items among the expected result columns you can specify
+that they are to be subject to chunked transfer via a delegate.
+
+WARNING: This function is not currently unittested.
+
+Params: csa = An optional array of ColumnSpecialization structs.
+Returns: A (possibly empty) ResultSequence.
++/
+//TODO: Unittest: Throws if resultset NOT returned ("Use exec instead!")
+//TODO: Can I merge the implementation of this with Prepared.querySequence?
+//TODO: This needs unittested
+ResultSequence querySequence(Connection conn, string sql, ColumnSpecialization[] csa = null)
+{
+	uint alloc = 20;
+	Row[] rra;
+	rra.length = alloc;
+	uint cr = 0;
+	ulong ra;
+	enforceEx!MYX(execImpl(conn, sql, ra),
+		"The executed query did not produce a result set. Use the exec "~
+		"functions, not query, for commands that don't produce result sets.");
+	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
+	if (csa !is null)
+		conn._rsh.addSpecializations(csa);
+
+	conn._headersPending = false;
+	return ResultSequence(conn, conn._rsh, conn._rsh.fieldNames);
+}
+
+/++
+Execute a one-off SQL command to place result values into a set of D variables.
+
+Use this method when you are not going to be using the same command repeatedly.
+It will throw if the specified command does not produce a result set, or if
+any column type is incompatible with the corresponding D variable.
+
+Params: args = A tuple of D variables to receive the results.
+Returns: true if there was a (possibly empty) result set.
++/
+//TODO: Unittest: Throws if resultset NOT returned ("Use exec instead!")
+//TODO: Can I merge the implementation of this with Prepared.queryTuple?
+void queryTuple(T...)(Connection conn, string sql, ref T args)
+{
+	ulong ra;
+	enforceEx!MYX(execImpl(conn, sql, ra),
+		"The executed query did not produce a result set. Use the exec "~
+		"functions, not query, for commands that don't produce result sets.");
+	Row rr = conn.getNextRow();
+	/+if (!rr._valid)   // The result set was empty - not a crime.
+		return;+/
+	enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
+	foreach (size_t i, dummy; args)
+	{
+		enforceEx!MYX(typeid(args[i]).toString() == rr._values[i].type.toString(),
+			"Tuple "~to!string(i)~" type and column type are not compatible.");
+		args[i] = rr._values[i].get!(typeof(args[i]));
+	}
+	// If there were more rows, flush them away
+	// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
+	// allow sloppy SQL that does not ensure just one row!
+	conn.purgeResult();
+}
+
+/++
 Execute a stored function, with any required input variables, and store the
 return value into a D variable.
 
@@ -38,6 +236,8 @@ In the interest of performance, this method assumes that the user has the
 required information about the number and types of IN parameters and the
 type of the output variable. In the same interest, if the method is called
 repeatedly for the same stored function, prepare() is omitted after the first call.
+
+WARNING: This function is not currently unittested.
 
 Params:
 	T = The type of the variable to receive the return result.
@@ -106,6 +306,8 @@ after the first call.
 OUT parameters are not currently supported. It should generally be
 possible with MySQL to present them as a result set.
 
+WARNING: This function is not currently unittested.
+
 Params:
 	T = Type tuple
 	name = The name of the stored procedure.
@@ -154,7 +356,7 @@ struct Command
 {
 package:
 	Connection _con;    // This can disappear along with Command
-	const(char)[] _sql; // This can disappear along with Command
+	string _sql; // This can disappear along with Command
 	string _prevFunc; // Has to do with stored procedures
 	Prepared _prepared; // The current prepared statement info
 
@@ -181,7 +383,7 @@ public:
 	// This can disappear along with Command
 	this(Connection con, const(char)[] sql)
 	{
-		_sql = sql;
+		_sql = sql.idup;
 		this(con);
 	}
 
@@ -214,7 +416,7 @@ public:
 				releaseStatement();
 				_con.resetPacket();
 			}
-			return this._sql = sql;
+			return this._sql = sql.idup;
 		}
 	}
 
@@ -240,7 +442,7 @@ public:
 	deprecated("Use Prepare.this(Connection conn, string sql) instead")
 	void prepare()
 	{
-		_prepared = .prepare(_con, _sql.idup);
+		_prepared = .prepare(_con, _sql);
 	}
 
 	/++
@@ -401,46 +603,18 @@ public:
 	Params: ra = An out parameter to receive the number of rows affected.
 	Returns: true if there was a (possibly empty) result set.
 	+/
+	deprecated("Use the free-standing function .exec instead")
 	bool execSQL(out ulong ra)
 	{
-		scope(failure) _con.kill();
-
-		_con.sendCmd(CommandType.QUERY, _sql);
-		_con._fieldCount = 0;
-		ubyte[] packet = _con.getPacket();
-		bool rv;
-		if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
-		{
-			_con.resetPacket();
-			auto okp = OKErrorPacket(packet);
-			enforcePacketOK(okp);
-			ra = okp.affected;
-			_con._serverStatus = okp.serverStatus;
-			_con._insertID = okp.insertID;
-			rv = false;
-		}
-		else
-		{
-			// There was presumably a result set
-			assert(packet.front >= 1 && packet.front <= 250); // ResultSet packet header should have this value
-			_con._headersPending = _con._rowsPending = true;
-			_con._binaryPending = false;
-			auto lcb = packet.consumeIfComplete!LCB();
-			assert(!lcb.isNull);
-			assert(!lcb.isIncomplete);
-			_con._fieldCount = cast(ushort)lcb.value;
-			assert(_con._fieldCount == lcb.value);
-			rv = true;
-			ra = 0;
-		}
-		return rv;
+		return .execImpl(_con, _sql, ra);
 	}
 
 	///ditto
+	deprecated("Use the free-standing function .exec instead")
 	bool execSQL()
 	{
 		ulong ra;
-		return execSQL(ra);
+		return .execImpl(_con, _sql, ra);
 	}
 	
 	/++
@@ -456,31 +630,10 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSet.
 	+/
+	deprecated("Use the free-standing function .queryResult instead")
 	ResultSet execSQLResult(ColumnSpecialization[] csa = null)
 	{
-		ulong ra;
-		enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
-
-		_con._rsh = ResultSetHeaders(_con, _con._fieldCount);
-		if (csa !is null)
-			_con._rsh.addSpecializations(csa);
-		_con._headersPending = false;
-
-		Row[] rows;
-		while(true)
-		{
-			auto packet = _con.getPacket();
-			if(packet.isEOFPacket())
-				break;
-			rows ~= Row(_con, packet, _con._rsh, false);
-			// As the row fetches more data while incomplete, it might already have
-			// fetched the EOF marker, so we have to check it again
-			if(!packet.empty && packet.isEOFPacket())
-				break;
-		}
-		_con._rowsPending = _con._binaryPending = false;
-
-		return ResultSet(rows, _con._rsh.fieldNames);
+		return .queryResult(_con, _sql, csa);
 	}
 
 	/++
@@ -493,24 +646,16 @@ public:
 	If there are long data items among the expected result columns you can specify
 	that they are to be subject to chunked transfer via a delegate.
 	
+	WARNING: This function is not currently unittested.
+
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
 	//TODO: This needs unittested
+	deprecated("Use the free-standing function .querySequence instead")
 	ResultSequence execSQLSequence(ColumnSpecialization[] csa = null)
 	{
-		uint alloc = 20;
-		Row[] rra;
-		rra.length = alloc;
-		uint cr = 0;
-		ulong ra;
-		enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
-		_con._rsh = ResultSetHeaders(_con, _con._fieldCount);
-		if (csa !is null)
-			_con._rsh.addSpecializations(csa);
-
-		_con._headersPending = false;
-		return ResultSequence(_con, _con._rsh, _con._rsh.fieldNames);
+		return .querySequence(_con, _sql, csa);
 	}
 
 	/++
@@ -523,24 +668,10 @@ public:
 	Params: args = A tuple of D variables to receive the results.
 	Returns: true if there was a (possibly empty) result set.
 	+/
+	deprecated("Use the free-standing function .queryTuple instead")
 	void execSQLTuple(T...)(ref T args)
 	{
-		ulong ra;
-		enforceEx!MYX(execSQL(ra), "The executed query did not produce a result set.");
-		Row rr = _con.getNextRow();
-		/+if (!rr._valid)   // The result set was empty - not a crime.
-			return;+/
-		enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
-		foreach (size_t i, dummy; args)
-		{
-			enforceEx!MYX(typeid(args[i]).toString() == rr._values[i].type.toString(),
-				"Tuple "~to!string(i)~" type and column type are not compatible.");
-			args[i] = rr._values[i].get!(typeof(args[i]));
-		}
-		// If there were more rows, flush them away
-		// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
-		// allow sloppy SQL that does not ensure just one row!
-		_con.purgeResult();
+		.queryTuple(_con, _sql, args);
 	}
 
 	/++
@@ -593,6 +724,8 @@ public:
 	If there are long data items among the expected result columns you can
 	specify that they are to be subject to chunked transfer via a delegate.
 	
+	WARNING: This function is not currently unittested.
+
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
@@ -660,6 +793,8 @@ public:
 	type of the output variable. In the same interest, if the method is called
 	repeatedly for the same stored function, prepare() is omitted after the first call.
 	
+	WARNING: This function is not currently unittested.
+
 	Params:
 	   T = The type of the variable to receive the return result.
 	   U = type tuple of arguments
@@ -692,6 +827,8 @@ public:
 	OUT parameters are not currently supported. It should generally be
 	possible with MySQL to present them as a result set.
 	
+	WARNING: This function is not currently unittested.
+
 	Params:
 		T = Type tuple
 		name = The name of the stored procedure.
