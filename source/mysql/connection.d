@@ -128,7 +128,8 @@ package:
 	{
 		enforceEx!MYX(!hasPending,
 			"Data is pending on the connection. Any existing ResultSequence "~
-			"must be completed or purged before issuing a new command."
+			"must be completed or purged before performing any other communication "~
+			"with the server."
 		);
 	}
 
