@@ -57,7 +57,6 @@ prepared statement is released.
 Throws: MySQLException if there are pending result set items, or if the
 server has a problem.
 +/
-//TODO: Unittest: Throws if already in the middle of receiving a resultset
 Prepared prepare(Connection conn, string sql)
 {
 	return Prepared( refCounted(PreparedImpl(conn, sql)) );
@@ -127,7 +126,6 @@ private:
 	Throws: MySQLException if there are pending result set items, or if the
 	server has a problem.
 	+/
-	//TODO: Unittest: Throws if already in the middle of receiving a resultset
 	public this(Connection conn, string sql)
 	{
 		this._conn = conn;

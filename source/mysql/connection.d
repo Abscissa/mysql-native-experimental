@@ -123,14 +123,42 @@ package:
 		assert(_socketType != MySQLSocketType.vibed);
 	}
 
-	//TODO: Test usages of enforceNothingPending
 	void enforceNothingPending()
 	{
-		enforceEx!MYX(!hasPending,
-			"Data is pending on the connection. Any existing ResultSequence "~
-			"must be completed or purged before performing any other communication "~
-			"with the server."
-		);
+		enforceEx!MYXDataPending(!hasPending);
+	}
+
+	debug(MYSQL_INTEGRATION_TESTS)
+	unittest
+	{
+		import mysql.protocol.prepared;
+		import mysql.test.common : scopedCn;
+		mixin(scopedCn);
+
+		cn.exec("DROP TABLE IF EXISTS `enforceNothingPending`");
+		cn.exec("CREATE TABLE `enforceNothingPending` (
+			`val` INTEGER
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+		cn.exec("INSERT INTO `enforceNothingPending` VALUES (1), (2)");
+
+		immutable selectSQL = "SELECT * FROM `enforceNothingPending`";
+		Prepared prepared;
+		assertNotThrown!MYXDataPending(cn.queryResult(selectSQL));
+		assertNotThrown!MYXDataPending(prepared = cn.prepare(selectSQL));
+		assertNotThrown!MYXDataPending(prepared.queryResult());
+		
+		auto resultSeq = cn.querySequence(selectSQL);
+		
+		assertThrown!MYXDataPending(cn.queryResult(selectSQL));
+		assertThrown!MYXDataPending(cn.querySequence(selectSQL));
+		assertThrown!MYXDataPending(cn.prepare(selectSQL));
+		assertThrown!MYXDataPending(prepared.queryResult());
+
+		resultSeq.each(); // Consume range
+
+		assertNotThrown!MYXDataPending(cn.queryResult(selectSQL));
+		assertNotThrown!MYXDataPending(cn.prepare(selectSQL));
+		assertNotThrown!MYXDataPending(prepared.queryResult());
 	}
 
 	ubyte[] getPacket()
