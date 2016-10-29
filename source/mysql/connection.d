@@ -871,6 +871,13 @@ public:
 	/// Gets whether rows are pending
 	@property bool rowsPending() pure const nothrow { return _rowsPending; }
 
+	/// Gets whether anything (rows, headers or binary) is pending.
+	/// New commands cannot be sent on a conncection while anything is pending.
+	@property bool hasPending() pure const nothrow
+	{
+		return _rowsPending || _headersPending || _binaryPending;
+	}
+
 	/// Gets the result header's field descriptions.
 	@property FieldDescription[] resultFieldDescriptions() pure { return _rsh.fieldDescriptions; }
 }

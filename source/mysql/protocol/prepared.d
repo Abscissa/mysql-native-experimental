@@ -20,6 +20,13 @@ import mysql.protocol.extra_types;
 import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
 
+/++
+Encapsulation of a prepared statement.
+
+Commands that are expected to return a result set - queries - have distinctive methods
+that are enforced. That is it will be an error to call such a method with an SQL command
+that does not produce a result set.
++/
 struct Prepared
 {
 	RefCounted!(PreparedImpl, RefCountedAutoInitialize.no) preparedImpl;
@@ -53,12 +60,6 @@ server has a problem.
 //TODO: Throws if already in the middle of receiving a resultset
 Prepared prepare(Connection conn, string sql)
 {
-	/+
-	import std.algorithm.mutation : move;
-
-	auto prepared = PreparedImpl(conn, sql);
-	return refCounted(move(prepared));
-	+/
 	return Prepared( refCounted(PreparedImpl(conn, sql)) );
 }
 
@@ -93,7 +94,7 @@ private:
 	Connection _conn;
 	QuerySpecialization _qsn;
 
-	//TODO: Test enforceNothingPending
+	//TODO: Test enforceNotReleased
 	void enforceNotReleased()
 	{
 		enforceEx!MYX(_hStmt, "The prepared statement has already been released.");
@@ -102,7 +103,10 @@ private:
 	//TODO: Test enforceNothingPending
 	void enforceNothingPending()
 	{
-		//TODO: Implement Prepared.enforceNothingPending
+		enforceEx!MYX(!_conn.hasPending,
+			"Data is pending on the connection. Any existing ResultSequence "~
+			"must be completed or purged before issuing a new command."
+		);
 	}
 
 	void enforceReadyForCommand()
@@ -781,7 +785,7 @@ public:
 
 	The value may, but doesn't have to be, wrapped in a Variant.
 	
-	The value may, but doesn't have to be, be a pointer to the desired value.
+	The value may, but doesn't have to be, a pointer to the desired value.
 
 	The value can be null.
 
@@ -855,7 +859,6 @@ public:
 	Params: va = External list of Variants to be used as parameters
 	               psnList = any required specializations
 	+/
-	//TODO: Move to struct Prepared
 	//TODO? Overload with "Variant" to "Nullable!Variant"
 	void setParams(Variant[] va, ParameterSpecialization[] psnList= null)
 	{
