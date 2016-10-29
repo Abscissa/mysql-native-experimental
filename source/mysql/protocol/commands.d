@@ -36,6 +36,7 @@ Returns: true if there was a (possibly empty) result set.
 //TODO? Merge with Prepared.execImpl?
 package bool execImpl(Connection conn, string sql, out ulong ra)
 {
+	conn.enforceNothingPending();
 	scope(failure) conn.kill();
 
 	conn.sendCmd(CommandType.QUERY, sql);
@@ -250,6 +251,8 @@ Params:
 //TODO: Replace this with something that returns Prepared
 bool execFunction(T, U...)(Connection conn, string name, ref T target, U args)
 {
+	conn.enforceNothingPending();
+
 	bool repeatCall = false;//(name == _prevFunc);
 	enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare the statement before calling execFunction");
 	Prepared prepared;
@@ -318,6 +321,8 @@ Returns: True if the SP created a result set.
 //TODO: Refactor execFunction and execProcedure to reuse common code
 bool execProcedure(T...)(Connection conn, string name, ref T args)
 {
+	conn.enforceNothingPending();
+
 	bool repeatCall = false;//(name == _prevFunc);
 	enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare a statement before calling execProcedure");
 	Prepared prepared;

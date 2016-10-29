@@ -94,25 +94,16 @@ private:
 	Connection _conn;
 	QuerySpecialization _qsn;
 
-	//TODO: Test enforceNotReleased
+	//TODO: Test usages of enforceNotReleased
 	void enforceNotReleased()
 	{
 		enforceEx!MYX(_hStmt, "The prepared statement has already been released.");
 	}
 
-	//TODO: Test enforceNothingPending
-	void enforceNothingPending()
-	{
-		enforceEx!MYX(!_conn.hasPending,
-			"Data is pending on the connection. Any existing ResultSequence "~
-			"must be completed or purged before issuing a new command."
-		);
-	}
-
 	void enforceReadyForCommand()
 	{
 		enforceNotReleased();
-		enforceNothingPending();
+		_conn.enforceNothingPending();
 	}
 
 	@disable this(this); // Not copyable

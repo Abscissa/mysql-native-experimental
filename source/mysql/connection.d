@@ -123,6 +123,15 @@ package:
 		assert(_socketType != MySQLSocketType.vibed);
 	}
 
+	//TODO: Test usages of enforceNothingPending
+	void enforceNothingPending()
+	{
+		enforceEx!MYX(!hasPending,
+			"Data is pending on the connection. Any existing ResultSequence "~
+			"must be completed or purged before issuing a new command."
+		);
+	}
+
 	ubyte[] getPacket()
 	{
 		scope(failure) kill();
