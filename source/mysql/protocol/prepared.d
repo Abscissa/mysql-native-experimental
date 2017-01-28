@@ -125,6 +125,7 @@ unittest
 	{
 		import mysql.test.common;
 		mixin(scopedCn);
+		initBaseTestTables(cn);
 
 		exec(cn, `DROP PROCEDURE IF EXISTS insert2`);
 		exec(cn, `
