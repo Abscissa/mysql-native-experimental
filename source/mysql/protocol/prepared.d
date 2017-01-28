@@ -659,6 +659,8 @@ package:
 	}
 
 	/++
+	Internal implementation for the exec and query functions.
+
 	Execute a prepared command.
 	
 	Use this method when you will use the same SQL command repeatedly.
@@ -671,7 +673,7 @@ package:
 	Params: ra = An out parameter to receive the number of rows affected.
 	Returns: true if there was a (possibly empty) result set.
 	+/
-	bool execImpl(out ulong ra)
+	bool execQueryImpl(out ulong ra)
 	{
 		enforceReadyForCommand();
 		scope(failure) _conn.kill();
@@ -777,7 +779,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong rowsAffected;
-		bool receivedResultSet = execImpl(rowsAffected);
+		bool receivedResultSet = execQueryImpl(rowsAffected);
 		if(receivedResultSet)
 		{
 			_conn.purgeResult();
@@ -805,7 +807,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYXNoResultRecieved(execImpl(ra));
+		enforceEx!MYXNoResultRecieved(execQueryImpl(ra));
 
 		uint alloc = 20;
 		Row[] rra;
@@ -861,7 +863,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYXNoResultRecieved(execImpl(ra));
+		enforceEx!MYXNoResultRecieved(execQueryImpl(ra));
 
 		uint alloc = 20;
 		Row[] rra;
@@ -889,7 +891,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYXNoResultRecieved(execImpl(ra));
+		enforceEx!MYXNoResultRecieved(execQueryImpl(ra));
 		Row rr = _conn.getNextRow();
 		// enforceEx!MYX(rr._valid, "The result set was empty.");
 		enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");

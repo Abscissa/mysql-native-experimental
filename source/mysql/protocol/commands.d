@@ -21,6 +21,8 @@ import mysql.protocol.packet_helpers;
 import mysql.protocol.prepared;
 
 /++
+Internal implementation for the exec and query functions.
+
 Execute a one-off SQL command.
 
 Use this method when you are not going to be using the same command repeatedly.
@@ -33,8 +35,8 @@ using execSQLResult() or execSQLSequence() for such queries.
 Params: ra = An out parameter to receive the number of rows affected.
 Returns: true if there was a (possibly empty) result set.
 +/
-//TODO? Merge with Prepared.execImpl?
-package bool execImpl(Connection conn, string sql, out ulong ra)
+//TODO? Merge with Prepared.execQueryImpl?
+package bool execQueryImpl(Connection conn, string sql, out ulong ra)
 {
 	conn.enforceNothingPending();
 	scope(failure) conn.kill();
@@ -71,10 +73,10 @@ package bool execImpl(Connection conn, string sql, out ulong ra)
 }
 
 ///ditto
-package bool execImpl(Connection conn, string sql)
+package bool execQueryImpl(Connection conn, string sql)
 {
 	ulong rowsAffected;
-	return execImpl(conn, sql, rowsAffected);
+	return execQueryImpl(conn, sql, rowsAffected);
 }
 
 /++
@@ -94,7 +96,7 @@ Returns: true if there was a (possibly empty) result set.
 ulong exec(Connection conn, string sql)
 {
 	ulong rowsAffected;
-	bool receivedResultSet = execImpl(conn, sql, rowsAffected);
+	bool receivedResultSet = execQueryImpl(conn, sql, rowsAffected);
 	if(receivedResultSet)
 	{
 		conn.purgeResult();
@@ -121,7 +123,7 @@ Returns: A (possibly empty) ResultSet.
 ResultSet queryResult(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
 	ulong ra;
-	enforceEx!MYXNoResultRecieved(execImpl(conn, sql, ra));
+	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, sql, ra));
 
 	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
 	if (csa !is null)
@@ -169,7 +171,7 @@ ResultSequence querySequence(Connection conn, string sql, ColumnSpecialization[]
 	rra.length = alloc;
 	uint cr = 0;
 	ulong ra;
-	enforceEx!MYXNoResultRecieved(execImpl(conn, sql, ra));
+	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, sql, ra));
 	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
 	if (csa !is null)
 		conn._rsh.addSpecializations(csa);
@@ -192,7 +194,7 @@ Returns: true if there was a (possibly empty) result set.
 void queryTuple(T...)(Connection conn, string sql, ref T args)
 {
 	ulong ra;
-	enforceEx!MYXNoResultRecieved(execImpl(conn, sql, ra));
+	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, sql, ra));
 	Row rr = conn.getNextRow();
 	/+if (!rr._valid)   // The result set was empty - not a crime.
 		return;+/
@@ -469,7 +471,7 @@ public:
 	deprecated("Use the free-standing function .exec instead")
 	bool execSQL(out ulong ra)
 	{
-		return .execImpl(_con, _sql, ra);
+		return .execQueryImpl(_con, _sql, ra);
 	}
 
 	///ditto
@@ -477,7 +479,7 @@ public:
 	bool execSQL()
 	{
 		ulong ra;
-		return .execImpl(_con, _sql, ra);
+		return .execQueryImpl(_con, _sql, ra);
 	}
 	
 	/++
@@ -554,7 +556,7 @@ public:
 	bool execPrepared(out ulong ra)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared.");
-		return _prepared.execImpl(ra);
+		return _prepared.execQueryImpl(ra);
 	}
 
 	/++
@@ -680,7 +682,7 @@ public:
 
 		_prepared.setArgs(args);
 		ulong ra;
-		enforceEx!MYX(_prepared.execImpl(ra), "The executed query did not produce a result set.");
+		enforceEx!MYX(_prepared.execQueryImpl(ra), "The executed query did not produce a result set.");
 		Row rr = _con.getNextRow();
 		/+enforceEx!MYX(rr._valid, "The result set was empty.");+/
 		enforceEx!MYX(rr._values.length == 1, "Result was not a single column.");
@@ -735,7 +737,7 @@ public:
 
 		_prepared.setArgs(args);
 		ulong ra;
-		return _prepared.execImpl(ra);
+		return _prepared.execQueryImpl(ra);
 	}
 
 	/// After a command that inserted a row into a table with an auto-increment
