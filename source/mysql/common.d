@@ -21,7 +21,7 @@ version(Have_vibe_d_core)
 }
 
 /++
-An exception type to distinguish exceptions thrown by this module.
+An exception type to distinguish exceptions thrown by this package.
 +/
 class MySQLException: Exception
 {
@@ -38,7 +38,7 @@ creating a new prepared statement) while the server is still sending results
 data. Any ResultSequence must be consumed or purged before anything else
 can be done on the connection.
 +/
-class MySQLDataPendingException: Exception
+class MySQLDataPendingException: MySQLException
 {
 	this(string file = __FILE__, size_t line = __LINE__) pure
 	{
@@ -51,6 +51,9 @@ alias MYXDataPending = MySQLProtocolException;
 
 /++
 Received invalid data from the server which violates the MySQL network protocol.
+(Quite possibly mysql-native's fault. Please
+$(LINK2 https://github.com/mysql-d/mysql-native/issues, file an issue)
+if you receive this.)
 +/
 class MySQLProtocolException: MySQLException
 {
