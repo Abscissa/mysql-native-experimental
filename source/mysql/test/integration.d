@@ -311,11 +311,16 @@ unittest
 	c1.execSQLTuple(referredBack);
 	assert(referredBack == 666);
 
-	//TODO: Enable these tests for execFunction/execProcedure
 	// Test execFunction()
+	exec(cn, `DROP FUNCTION IF EXISTS hello`);
+	exec(cn, `
+		CREATE FUNCTION hello (s CHAR(20))
+		RETURNS CHAR(50) DETERMINISTIC
+		RETURN CONCAT('Hello ',s,'!')
+	`);
 	string g = "Gorgeous";
 	string reply;
-/+
+
 	c1.sql = "";
 	bool nonNull = c1.execFunction("hello", reply, g);
 	assert(nonNull && reply == "Hello Gorgeous!");
@@ -324,6 +329,13 @@ unittest
 	assert(nonNull && reply == "Hello Hotlips!");
 
 	// Test execProcedure()
+	exec(cn, `DROP PROCEDURE IF EXISTS insert2`);
+	exec(cn, `
+		CREATE PROCEDURE insert2 (IN p1 INT, IN p2 CHAR(50))
+		BEGIN
+			INSERT INTO basetest (intcol, stringcol) VALUES(p1, p2);
+		END
+	`);
 	g = "inserted string 1";
 	int m = 2001;
 	c1.sql = "";
@@ -332,7 +344,7 @@ unittest
 	c1.sql = "select stringcol from basetest where intcol=2001";
 	c1.execSQLTuple(reply);
 	assert(reply == g);
-+/
+
 /+
 	c1.sql = "delete from tblob";
 	c1.execSQL(ra);

@@ -254,7 +254,7 @@ bool execFunction(T, U...)(Connection conn, string name, ref T target, U args)
 	conn.enforceNothingPending();
 
 	bool repeatCall = false;//(name == _prevFunc);
-	enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare the statement before calling execFunction");
+	//enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare the statement before calling execFunction");
 	Prepared prepared;
 	if (!repeatCall)
 	{
@@ -274,7 +274,7 @@ bool execFunction(T, U...)(Connection conn, string name, ref T target, U args)
 		prepared = conn.prepare(sql);
 	//	_prevFunc = name;
 	}
-	prepared.bindParameterTuple(args);
+	prepared.setParams(args);
 	ulong ra;
 	enforceEx!MYX(prepared.execImpl(ra), "The executed query did not produce a result set.");
 	Row rr = conn.getNextRow();
@@ -319,12 +319,12 @@ Returns: True if the SP created a result set.
 +/
 //TODO: Replace this with something that returns Prepared
 //TODO: Refactor execFunction and execProcedure to reuse common code
-bool execProcedure(T...)(Connection conn, string name, ref T args)
+bool execProcedure(T...)(Connection conn, string name, T args)
 {
 	conn.enforceNothingPending();
 
 	bool repeatCall = false;//(name == _prevFunc);
-	enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare a statement before calling execProcedure");
+	//enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare a statement before calling execProcedure");
 	Prepared prepared;
 	if (!repeatCall)
 	{
@@ -344,7 +344,7 @@ bool execProcedure(T...)(Connection conn, string name, ref T args)
 		prepared = conn.prepare(sql);
 		//_prevFunc = name;
 	}
-	prepared.bindParameterTuple(args);
+	prepared.setParams(args);
 	ulong ra;
 	return prepared.execImpl(ra);
 }
