@@ -220,136 +220,6 @@ void queryTuple(T...)(Connection conn, string sql, ref T args)
 }
 
 /++
-Execute a stored function, with any required input variables, and store the
-return value into a D variable.
-
-For this method, no query string is to be provided. The required one is of
-the form "select foo(?, ? ...)". The method generates it and the appropriate
-bindings - in, and out. Chunked transfers are not supported in either
-direction. If you need them, create the parameters separately, then use
-execPreparedResult() to get a one-row, one-column result set.
-
-If it is not possible to convert the column value to the type of target,
-then execFunction will throw. If the result is NULL, that is indicated
-by a false return value, and target is unchanged.
-
-In the interest of performance, this method assumes that the user has the
-required information about the number and types of IN parameters and the
-type of the output variable. In the same interest, if the method is called
-repeatedly for the same stored function, prepare() is omitted after the first call.
-
-WARNING: This function is not currently unittested.
-
-Params:
-	T = The type of the variable to receive the return result.
-	U = type tuple of arguments
-	name = The name of the stored function.
-	target = the D variable to receive the stored function return result.
-	args = The list of D variables to act as IN arguments to the stored function.
-
-+/
-//TODO: Replace this with something that returns Prepared
-bool execFunction(T, U...)(Connection conn, string name, ref T target, U args)
-{
-	conn.enforceNothingPending();
-
-	bool repeatCall = false;//(name == _prevFunc);
-	//enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare the statement before calling execFunction");
-	Prepared prepared;
-	if (!repeatCall)
-	{
-		auto sql = "select " ~ name ~ "(";
-		bool comma = false;
-		foreach (arg; args)
-		{
-			if (comma)
-				sql ~= ",?";
-			else
-			{
-				sql ~= "?";
-				comma = true;
-			}
-		}
-		sql ~= ")";
-		prepared = conn.prepare(sql);
-	//	_prevFunc = name;
-	}
-	prepared.setParams(args);
-	ulong ra;
-	enforceEx!MYX(prepared.execImpl(ra), "The executed query did not produce a result set.");
-	Row rr = conn.getNextRow();
-	/+enforceEx!MYX(rr._valid, "The result set was empty.");+/
-	enforceEx!MYX(rr._values.length == 1, "Result was not a single column.");
-	enforceEx!MYX(typeid(target).toString() == rr._values[0].type.toString(),
-					"Target type and column type are not compatible.");
-	if (!rr.isNull(0))
-		target = rr._values[0].get!(T);
-	// If there were more rows, flush them away
-	// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
-	// allow sloppy SQL that does not ensure just one row!
-	conn.purgeResult();
-	return !rr.isNull(0);
-}
-
-/++
-Execute a stored procedure, with any required input variables.
-
-For this method, no query string is to be provided. The required one is
-of the form "call proc(?, ? ...)". The method generates it and the
-appropriate in bindings. Chunked transfers are not supported. If you
-need them, create the parameters separately, then use execPrepared() or
-execPreparedResult().
-
-In the interest of performance, this method assumes that the user has
-the required information about the number and types of IN parameters.
-In the same interest, if the method is called repeatedly for the same
-stored function, prepare() and other redundant operations are omitted
-after the first call.
-
-OUT parameters are not currently supported. It should generally be
-possible with MySQL to present them as a result set.
-
-WARNING: This function is not currently unittested.
-
-Params:
-	T = Type tuple
-	name = The name of the stored procedure.
-	args = Tuple of args
-Returns: True if the SP created a result set.
-+/
-//TODO: Replace this with something that returns Prepared
-//TODO: Refactor execFunction and execProcedure to reuse common code
-bool execProcedure(T...)(Connection conn, string name, T args)
-{
-	conn.enforceNothingPending();
-
-	bool repeatCall = false;//(name == _prevFunc);
-	//enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare a statement before calling execProcedure");
-	Prepared prepared;
-	if (!repeatCall)
-	{
-		auto sql = "call " ~ name ~ "(";
-		bool comma = false;
-		foreach (arg; args)
-		{
-			if (comma)
-				sql ~= ",?";
-			else
-			{
-				sql ~= "?";
-				comma = true;
-			}
-		}
-		sql ~= ")";
-		prepared = conn.prepare(sql);
-		//_prevFunc = name;
-	}
-	prepared.setParams(args);
-	ulong ra;
-	return prepared.execImpl(ra);
-}
-
-/++
 Encapsulation of an SQL command or query.
 
 A Command be be either a one-off SQL query, or may use a prepared statement.
@@ -417,9 +287,8 @@ public:
 		{
 			if (_prepared.isPrepared)
 			{
-				_con.purgeResult();
-				releaseStatement();
-				_con.resetPacket();
+				_prepared.release();
+				_prevFunc = null; 
 			}
 			return this._sql = sql.idup;
 		}
@@ -808,10 +677,33 @@ public:
 	   args = The list of D variables to act as IN arguments to the stored function.
 	
 	+/
-	deprecated("Use the free-standing function .execFunction instead")
+	deprecated("Use prepareFunction instead")
 	bool execFunction(T, U...)(string name, ref T target, U args)
 	{
-		return .execFunction(_con, name, target, args);
+		bool repeatCall = name == _prevFunc;
+		enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare a statement before calling execFunction");
+
+		if(!repeatCall)
+		{
+			_prepared = prepareFunction(_con, name, U.length);
+			_prevFunc = name;
+		}
+
+		_prepared.setParams(args);
+		ulong ra;
+		enforceEx!MYX(_prepared.execImpl(ra), "The executed query did not produce a result set.");
+		Row rr = _con.getNextRow();
+		/+enforceEx!MYX(rr._valid, "The result set was empty.");+/
+		enforceEx!MYX(rr._values.length == 1, "Result was not a single column.");
+		enforceEx!MYX(typeid(target).toString() == rr._values[0].type.toString(),
+						"Target type and column type are not compatible.");
+		if (!rr.isNull(0))
+			target = rr._values[0].get!(T);
+		// If there were more rows, flush them away
+		// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
+		// allow sloppy SQL that does not ensure just one row!
+		_con.purgeResult();
+		return !rr.isNull(0);
 	}
 
 	/++
@@ -840,10 +732,21 @@ public:
 		args = Tuple of args
 	Returns: True if the SP created a result set.
 	+/
-	deprecated("Use the free-standing function .execProcedure instead")
+	deprecated("Use prepareProcedure instead")
 	bool execProcedure(T...)(string name, ref T args)
 	{
-		return .execProcedure(_con, name, args);
+		bool repeatCall = name == _prevFunc;
+		enforceEx!MYX(repeatCall || !_prepared.isPrepared, "You must not prepare a statement before calling execProcedure");
+
+		if(!repeatCall)
+		{
+			_prepared = prepareProcedure(_con, name, T.length);
+			_prevFunc = name;
+		}
+
+		_prepared.setParams(args);
+		ulong ra;
+		return _prepared.execImpl(ra);
 	}
 
 	/// After a command that inserted a row into a table with an auto-increment

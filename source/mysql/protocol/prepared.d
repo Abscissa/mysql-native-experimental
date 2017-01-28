@@ -51,15 +51,125 @@ The server will then proceed to send prepared statement headers,
 including parameter descriptions, and result set field descriptions,
 followed by an EOF packet.
 
-If there is an existing statement handle in the Command struct, that
-prepared statement is released.
-
 Throws: MySQLException if there are pending result set items, or if the
 server has a problem.
 +/
 Prepared prepare(Connection conn, string sql)
 {
 	return Prepared( refCounted(PreparedImpl(conn, sql)) );
+}
+
+/++
+Convenience function to create a prepared statement which calls a stored function.
+
+Throws: MySQLException if there are pending result set items, or if the
+server has a problem.
+
+Params:
+	name = The name of the stored function.
+	numArgs = The number of arguments the stored procedure takes.
++/
+Prepared prepareFunction(Connection conn, string name, int numArgs)
+{
+	auto sql = "select " ~ name ~ preparedPlaceholderArgs(numArgs);
+	return prepare(conn, sql);
+}
+
+///
+unittest
+{
+	debug(MYSQL_INTEGRATION_TESTS)
+	{
+		import mysql.test.common;
+		mixin(scopedCn);
+
+		exec(cn, `DROP FUNCTION IF EXISTS hello`);
+		exec(cn, `
+			CREATE FUNCTION hello (s CHAR(20))
+			RETURNS CHAR(50) DETERMINISTIC
+			RETURN CONCAT('Hello ',s,'!')
+		`);
+
+		auto preparedHello = prepareFunction(cn, "hello", 1);
+		preparedHello.setParams("World");
+		ResultSet rs = preparedHello.queryResult();
+		assert(rs.length == 1);
+		assert(rs[0][0] == "Hello World!");
+	}
+}
+
+/++
+Convenience function to create a prepared statement which calls a stored procedure.
+
+OUT parameters are not currently supported. It should generally be
+possible with MySQL to present them as a result set.
+
+Throws: MySQLException if there are pending result set items, or if the
+server has a problem.
+
+Params:
+	name = The name of the stored procedure.
+	numArgs = The number of arguments the stored procedure takes.
+
++/
+Prepared prepareProcedure(Connection conn, string name, int numArgs)
+{
+	auto sql = "call " ~ name ~ preparedPlaceholderArgs(numArgs);
+	return prepare(conn, sql);
+}
+
+///
+unittest
+{
+	debug(MYSQL_INTEGRATION_TESTS)
+	{
+		import mysql.test.common;
+		mixin(scopedCn);
+
+		exec(cn, `DROP PROCEDURE IF EXISTS insert2`);
+		exec(cn, `
+			CREATE PROCEDURE insert2 (IN p1 INT, IN p2 CHAR(50))
+			BEGIN
+				INSERT INTO basetest (intcol, stringcol) VALUES(p1, p2);
+			END
+		`);
+
+		auto preparedInsert2 = prepareProcedure(cn, "insert2", 2);
+		preparedInsert2.setParams(2001, "inserted string 1");
+		preparedInsert2.exec();
+
+		ResultSet rs = queryResult(cn, "SELECT stringcol FROM basetest WHERE intcol=2001");
+		assert(rs.length == 1);
+		assert(rs[0][0] == "inserted string 1");
+	}
+}
+
+private string preparedPlaceholderArgs(int numArgs)
+{
+	auto sql = "(";
+	bool comma = false;
+	foreach(i; 0..numArgs)
+	{
+		if (comma)
+			sql ~= ",?";
+		else
+		{
+			sql ~= "?";
+			comma = true;
+		}
+	}
+	sql ~= ")";
+
+	return sql;
+}
+
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
+	assert(preparedPlaceholderArgs(3) == "(?,?,?)");
+	assert(preparedPlaceholderArgs(2) == "(?,?)");
+	assert(preparedPlaceholderArgs(1) == "(?)");
+	assert(preparedPlaceholderArgs(0) == "()");
 }
 
 //TODO: Move this next to ColumnSpecialization definition
@@ -633,7 +743,7 @@ public:
 		ulong rowsAffected;
 		bool receivedResultSet = execImpl(rowsAffected);
 		enforceEx!MYX(
-			receivedResultSet,
+			!receivedResultSet,
 			"A result set was returned. Use the query functions, not exec, "~
 			"for commands that return result sets."
 		);

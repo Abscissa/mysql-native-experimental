@@ -318,6 +318,11 @@ unittest
 		RETURNS CHAR(50) DETERMINISTIC
 		RETURN CONCAT('Hello ',s,'!')
 	`);
+
+	rs = queryResult(cn, "select hello ('World')");
+	assert(rs.length == 1);
+	assert(rs[0][0] == "Hello World!");
+
 	string g = "Gorgeous";
 	string reply;
 
@@ -342,6 +347,15 @@ unittest
 	c1.execProcedure("insert2", m, g);
 
 	c1.sql = "select stringcol from basetest where intcol=2001";
+	c1.execSQLTuple(reply);
+	assert(reply == g);
+
+	g = "inserted string 2";
+	m = 2002;
+	c1.sql = "";
+	c1.execProcedure("insert2", m, g);
+
+	c1.sql = "select stringcol from basetest where intcol=2002";
 	c1.execSQLTuple(reply);
 	assert(reply == g);
 
