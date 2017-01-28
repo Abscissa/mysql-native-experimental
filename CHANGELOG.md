@@ -1,3 +1,10 @@
+TBD - TBD
+=====================
+- **Change:**
+	Drop support for DMDFE 2.067.x and below. Compiles on
+	DMDFE 2.068.2 through 2.072.0. See [.travis.yml](https://github.com/mysql-d/mysql-native/blob/master/.travis.yml)
+	for full list of supported compilers.
+
 v0.1.7 - 2016-10-20
 =====================
 - **New:**
