@@ -32,8 +32,6 @@ debug(MYSQL_INTEGRATION_TESTS)
 	import std.conv;
 	import std.datetime;
 
-	void main() {}
-
 	private @property string testConnectionStrFile()
 	{
 		import std.file, std.path;

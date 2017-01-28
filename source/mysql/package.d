@@ -17,4 +17,6 @@ debug(MYSQL_INTEGRATION_TESTS)
 	public import mysql.test.common;
 	public import mysql.test.integration;
 	public import mysql.test.regression;
+
+	void main() {}
 }
