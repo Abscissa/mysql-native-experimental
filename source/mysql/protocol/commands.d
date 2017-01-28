@@ -188,7 +188,6 @@ any column type is incompatible with the corresponding D variable.
 Params: args = A tuple of D variables to receive the results.
 Returns: true if there was a (possibly empty) result set.
 +/
-//TODO: Unittest: Throws if resultset NOT returned ("Use exec instead!")
 //TODO: Can I merge the implementation of this with Prepared.queryTuple?
 void queryTuple(T...)(Connection conn, string sql, ref T args)
 {

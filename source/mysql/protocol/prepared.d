@@ -230,21 +230,25 @@ private:
 		immutable selectSQL = "SELECT * FROM `enforceNotReleased`";
 		Prepared preparedInsert;
 		Prepared preparedSelect;
+		int queryTupleResult;
 		assertNotThrown!MYXNotPrepared(preparedInsert = cn.prepare(insertSQL));
 		assertNotThrown!MYXNotPrepared(preparedSelect = cn.prepare(selectSQL));
 		assertNotThrown!MYXNotPrepared(preparedInsert.exec());
 		assertNotThrown!MYXNotPrepared(preparedSelect.queryResult());
 		assertNotThrown!MYXNotPrepared(preparedSelect.querySequence().each());
+		assertNotThrown!MYXNotPrepared(preparedSelect.queryTuple(queryTupleResult));
 		
 		preparedInsert.release();
 		assertThrown!MYXNotPrepared(preparedInsert.exec());
 		assertNotThrown!MYXNotPrepared(preparedSelect.queryResult());
 		assertNotThrown!MYXNotPrepared(preparedSelect.querySequence().each());
+		assertNotThrown!MYXNotPrepared(preparedSelect.queryTuple(queryTupleResult));
 
 		preparedSelect.release();
 		assertThrown!MYXNotPrepared(preparedInsert.exec());
 		assertThrown!MYXNotPrepared(preparedSelect.queryResult());
 		assertThrown!MYXNotPrepared(preparedSelect.querySequence().each());
+		assertThrown!MYXNotPrepared(preparedSelect.queryTuple(queryTupleResult));
 	}
 
 	@disable this(this); // Not copyable
@@ -879,7 +883,6 @@ public:
 	Params: args = A tuple of D variables to receive the results.
 	Returns: true if there was a (possibly empty) result set.
 	+/
-	//TODO: Unittest: Throws if resultset NOT returned ("Use exec instead!")
 	void queryTuple(T...)(ref T args)
 	{
 		enforceReadyForCommand();
