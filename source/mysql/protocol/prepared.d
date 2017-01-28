@@ -767,18 +767,17 @@ public:
 	
 	Returns: The number of rows affected.
 	+/
-	//TODO: Unittest: Throws if resultset was returned ("Use query instead!")
 	ulong exec()
 	{
 		enforceReadyForCommand();
 
 		ulong rowsAffected;
 		bool receivedResultSet = execImpl(rowsAffected);
-		enforceEx!MYX(
-			!receivedResultSet,
-			"A result set was returned. Use the query functions, not exec, "~
-			"for commands that return result sets."
-		);
+		if(receivedResultSet)
+		{
+			_conn.purgeResult();
+			throw new MYXResultRecieved();
+		}
 		
 		return rowsAffected;
 	}
@@ -796,15 +795,12 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSet.
 	+/
-	//TODO: Unittest: Throws if resultset NOT returned ("Use exec instead!")
 	ResultSet queryResult(ColumnSpecialization[] csa = null)
 	{
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYX(execImpl(ra),
-			"The executed query did not produce a result set. Use the exec "~
-			"functions, not query, for commands that don't produce result sets.");
+		enforceEx!MYXNoResultRecieved(execImpl(ra));
 
 		uint alloc = 20;
 		Row[] rra;
@@ -854,16 +850,13 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
-	//TODO: Unittest: Throws if resultset NOT returned ("Use exec instead!")
 	//TODO: This needs unittested
 	ResultSequence querySequence(ColumnSpecialization[] csa = null)
 	{
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYX(execImpl(ra),
-			"The executed query did not produce a result set. Use the exec "~
-			"functions, not query, for commands that don't produce result sets.");
+		enforceEx!MYXNoResultRecieved(execImpl(ra));
 
 		uint alloc = 20;
 		Row[] rra;
@@ -892,9 +885,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYX(execImpl(ra),
-			"The executed query did not produce a result set. Use the exec "~
-			"functions, not query, for commands that don't produce result sets.");
+		enforceEx!MYXNoResultRecieved(execImpl(ra));
 		Row rr = _conn.getNextRow();
 		// enforceEx!MYX(rr._valid, "The result set was empty.");
 		enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");

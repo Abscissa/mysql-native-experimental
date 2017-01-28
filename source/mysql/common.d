@@ -76,6 +76,123 @@ class MySQLNotPreparedException: MySQLException
 }
 alias MYXNotPrepared = MySQLNotPreparedException;
 
+/++
+Common base class of MySQLResultRecievedException and MySQLNoResultRecievedException.
+
+Thrown when making the wrong choice between exec or query.
+
+The query functions (queryResult, querySequence, etc.) are for SQL statements
+such as SELECT that return results (even if the result set has zero elements.)
+
+The exec functions are for SQL statements, such as INSERT, that never return
+result sets, but may return rowsAffected.
+
+Using one of those functions, when the other should have been used instead,
+results in an exception derived from this.
++/
+class MySQLWrongFunctionException: MySQLException
+{
+	this(string msg, string file = __FILE__, size_t line = __LINE__) pure
+	{
+		super(msg, file, line);
+	}
+}
+alias MYXWrongFunction = MySQLWrongFunctionException;
+
+/++
+Thrown when a result set was returned unexpectedly. Use the query functions
+(queryResult, querySequence, etc.), not exec for commands that return
+result sets (such as SELECT), even if the result set has zero elements.
+
+Thrown when calling exec (instead of one of the query functions) with an SQL
+statement that DOES return a result set.
+
+The query functions (queryResult, querySequence, etc.) are for SQL statements
+such as SELECT that return results (even if the result set has zero elements.)
+
+The exec functions are for SQL statements, such as INSERT, that never return
+result sets, but may return rowsAffected.
+
+Using exec, when query should have been used instead, results in this exception.
++/
+class MySQLResultRecievedException: MySQLWrongFunctionException
+{
+	this(string file = __FILE__, size_t line = __LINE__) pure
+	{
+		super(
+			"A result set was returned. Use the query functions, not exec, "~
+			"for commands that return result sets.",
+			file, line
+		);
+	}
+}
+alias MYXResultRecieved = MySQLResultRecievedException;
+
+/++
+Thrown when the executed query, unexpectedly, did not produce a result set.
+Use the exec functions, not query (queryResult, querySequence, etc.),
+for commands that don't produce result sets (such as INSERT).
+
+Thrown when calling one of the query functions (queryResult, querySequence,
+etc.) instead of exec with an SQL statement that DOES NOT return a result set.
+
+The query functions are for SQL statements such as SELECT that return results
+(even if the result set has zero elements.)
+
+The exec functions are for SQL statements, such as INSERT, that never return
+result sets, but may return rowsAffected.
+
+Using query, when exec should have been used instead, results in this exception.
++/
+class MySQLNoResultRecievedException: MySQLWrongFunctionException
+{
+	this(string msg, string file = __FILE__, size_t line = __LINE__) pure
+	{
+		super(
+			"The executed query did not produce a result set. Use the exec "~
+			"functions, not query, for commands that don't produce result sets.",
+			file, line
+		);
+	}
+}
+alias MYXNoResultRecieved = MySQLNoResultRecievedException;
+
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
+writeln(__FILE__,":",__LINE__);
+	import mysql.protocol.prepared;
+	import mysql.protocol.commands;
+	import mysql.test.common : scopedCn, createCn;
+	mixin(scopedCn);
+
+	cn.exec("DROP TABLE IF EXISTS `wrongFunctionException`");
+	cn.exec("CREATE TABLE `wrongFunctionException` (
+		`val` INTEGER
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
+	immutable insertSQL = "INSERT INTO `wrongFunctionException` VALUES (1), (2)";
+	immutable selectSQL = "SELECT * FROM `wrongFunctionException`";
+	Prepared preparedInsert;
+	Prepared preparedSelect;
+	assertNotThrown!MYXWrongFunction(cn.exec(insertSQL));
+	assertNotThrown!MYXWrongFunction(cn.queryResult(selectSQL));
+	assertNotThrown!MYXWrongFunction(cn.querySequence(selectSQL).each());
+	assertNotThrown!MYXWrongFunction(preparedInsert = cn.prepare(insertSQL));
+	assertNotThrown!MYXWrongFunction(preparedSelect = cn.prepare(selectSQL));
+	assertNotThrown!MYXWrongFunction(preparedInsert.exec());
+	assertNotThrown!MYXWrongFunction(preparedSelect.queryResult());
+	assertNotThrown!MYXWrongFunction(preparedSelect.querySequence().each());
+
+	assertThrown!MYXResultRecieved(cn.exec(selectSQL));
+	assertThrown!MYXNoResultRecieved(cn.queryResult(insertSQL));
+	assertThrown!MYXNoResultRecieved(cn.querySequence(insertSQL).each());
+	assertThrown!MYXResultRecieved(preparedSelect.exec());
+	assertThrown!MYXNoResultRecieved(preparedInsert.queryResult());
+	assertThrown!MYXNoResultRecieved(preparedInsert.querySequence().each());
+}
+
+
 // Phobos/Vibe.d type aliases
 package alias PlainPhobosSocket = std.socket.TcpSocket;
 version(Have_vibe_d_core)

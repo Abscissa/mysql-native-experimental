@@ -90,17 +90,16 @@ using execSQLResult() or execSQLSequence() for such queries.
 Params: ra = An out parameter to receive the number of rows affected.
 Returns: true if there was a (possibly empty) result set.
 +/
-//TODO: Unittest: Throws if resultset was returned ("Use query instead!")
 //TODO: Can/Should I merge the implementation of this with Prepared.exec?
 ulong exec(Connection conn, string sql)
 {
 	ulong rowsAffected;
 	bool receivedResultSet = execImpl(conn, sql, rowsAffected);
-	enforceEx!MYX(
-		!receivedResultSet,
-		"A result set was returned. Use the query functions, not exec, "~
-		"for commands that return result sets."
-	);
+	if(receivedResultSet)
+	{
+		conn.purgeResult();
+		throw new MYXResultRecieved();
+	}
 
 	return rowsAffected;
 }
@@ -118,14 +117,11 @@ that they are to be subject to chunked transfer via a delegate.
 Params: csa = An optional array of ColumnSpecialization structs.
 Returns: A (possibly empty) ResultSet.
 +/
-//TODO: Unittest: Throws if resultset NOT returned ("Use exec instead!")
 //TODO: Can I merge the implementation of this with Prepared.queryResult?
 ResultSet queryResult(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
 	ulong ra;
-	enforceEx!MYX(execImpl(conn, sql, ra),
-		"The executed query did not produce a result set. Use the exec "~
-		"functions, not query, for commands that don't produce result sets.");
+	enforceEx!MYXNoResultRecieved(execImpl(conn, sql, ra));
 
 	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
 	if (csa !is null)
@@ -164,7 +160,6 @@ WARNING: This function is not currently unittested.
 Params: csa = An optional array of ColumnSpecialization structs.
 Returns: A (possibly empty) ResultSequence.
 +/
-//TODO: Unittest: Throws if resultset NOT returned ("Use exec instead!")
 //TODO: Can I merge the implementation of this with Prepared.querySequence?
 //TODO: This needs unittested
 ResultSequence querySequence(Connection conn, string sql, ColumnSpecialization[] csa = null)
@@ -174,9 +169,7 @@ ResultSequence querySequence(Connection conn, string sql, ColumnSpecialization[]
 	rra.length = alloc;
 	uint cr = 0;
 	ulong ra;
-	enforceEx!MYX(execImpl(conn, sql, ra),
-		"The executed query did not produce a result set. Use the exec "~
-		"functions, not query, for commands that don't produce result sets.");
+	enforceEx!MYXNoResultRecieved(execImpl(conn, sql, ra));
 	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
 	if (csa !is null)
 		conn._rsh.addSpecializations(csa);
@@ -200,9 +193,7 @@ Returns: true if there was a (possibly empty) result set.
 void queryTuple(T...)(Connection conn, string sql, ref T args)
 {
 	ulong ra;
-	enforceEx!MYX(execImpl(conn, sql, ra),
-		"The executed query did not produce a result set. Use the exec "~
-		"functions, not query, for commands that don't produce result sets.");
+	enforceEx!MYXNoResultRecieved(execImpl(conn, sql, ra));
 	Row rr = conn.getNextRow();
 	/+if (!rr._valid)   // The result set was empty - not a crime.
 		return;+/
