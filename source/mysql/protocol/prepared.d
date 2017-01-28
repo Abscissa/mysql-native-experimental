@@ -815,7 +815,7 @@ public:
 		enforceEx!MYX(args.length == _psParams, "Argument list supplied does not match the number of parameters.");
 
 		foreach (size_t i, dummy; args)
-			_inParams[i] = &args[i];
+			_inParams[i] = args[i];
 		fixupNulls();
 	}
 
