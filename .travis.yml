@@ -65,7 +65,7 @@ matrix:
           addons:
             mariadb: '10.1'
 
-        - d: gdc-6.3.0
+        - d: gdc-4.8.5
           addons:
             mariadb: '10.1'
 
