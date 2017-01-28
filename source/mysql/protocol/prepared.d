@@ -91,7 +91,7 @@ unittest
 		`);
 
 		auto preparedHello = prepareFunction(cn, "hello", 1);
-		preparedHello.setParams("World");
+		preparedHello.setArgs("World");
 		ResultSet rs = preparedHello.queryResult();
 		assert(rs.length == 1);
 		assert(rs[0][0] == "Hello World!");
@@ -135,7 +135,7 @@ unittest
 		`);
 
 		auto preparedInsert2 = prepareProcedure(cn, "insert2", 2);
-		preparedInsert2.setParams(2001, "inserted string 1");
+		preparedInsert2.setArgs(2001, "inserted string 1");
 		preparedInsert2.exec();
 
 		ResultSet rs = queryResult(cn, "SELECT stringcol FROM basetest WHERE intcol=2001");
@@ -890,7 +890,7 @@ public:
 	Params: index = The zero based index
 	+/
 	//TODO? Change "ref Variant" to "Nullable!Variant"
-	void setParam(T)(size_t index, T val, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
+	void setArg(T)(size_t index, T val, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
 	{
 		// Now in theory we should be able to check the parameter type here, since the
 		// protocol is supposed to send us type information for the parameters, but this
@@ -918,7 +918,7 @@ public:
 	The tuple must match the required number of parameters, and it is the programmer's
 	responsibility to ensure that they are of appropriate types.
 	+/
-	void setParams(T...)(T args)
+	void setArgs(T...)(T args)
 		if(T.length == 0 || !is(T[0] == Variant[]))
 	{
 		enforceNotReleased();
@@ -958,7 +958,7 @@ public:
 	               psnList = any required specializations
 	+/
 	//TODO? Overload with "Variant" to "Nullable!Variant"
-	void setParams(Variant[] va, ParameterSpecialization[] psnList= null)
+	void setArgs(Variant[] va, ParameterSpecialization[] psnList= null)
 	{
 		enforceNotReleased();
 		enforceEx!MYX(va.length == _psParams, "Param count supplied does not match prepared statement");
@@ -977,7 +977,7 @@ public:
 	Params: index = The zero based index
 	+/
 	//TODO? Change "ref Variant" to "Nullable!Variant"
-	Variant getParam(size_t index)
+	Variant getArg(size_t index)
 	{
 		enforceNotReleased();
 		enforceEx!MYX(index < _psParams, "Parameter index out of range.");
@@ -989,11 +989,11 @@ public:
 	
 	Params: index = The zero based index
 	+/
-	void setNullParam(size_t index)
+	void setNullArg(size_t index)
 	{
 		enforceNotReleased();
-		setParam(index, null);
-		//setParam(index, Variant(null));
+		setArg(index, null);
+		//setArg(index, Variant(null));
 		/+
 		//TODO: Encapsulate this and check for it on ALL access to Prepared
 		enforceEx!MYX(_hStmt, "The prepared statement has already been released.");

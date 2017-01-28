@@ -358,11 +358,11 @@ public:
 	To bind to some D variable, we set the corrsponding variant with its
 	address, so there is no need to rebind between calls to execPreparedXXX.
 	+/
-	deprecated("Use Prepared.setParam instead")
+	deprecated("Use Prepared.setArg instead")
 	void bindParameter(T)(ref T val, size_t pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared before parameters are bound.");
-		_prepared.setParam(pIndex, &val, psn);
+		_prepared.setArg(pIndex, &val, psn);
 	}
 
 	/++
@@ -374,13 +374,13 @@ public:
 	The tuple must match the required number of parameters, and it is the programmer's
 	responsibility to ensure that they are of appropriate types.
 	+/
-	deprecated("Use Prepared.setParams instead")
+	deprecated("Use Prepared.setArgs instead")
 	void bindParameterTuple(T...)(ref T args)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared before parameters are bound.");
 		enforceEx!MYX(args.length == _prepared.numParams, "Argument list supplied does not match the number of parameters.");
 		foreach (size_t i, dummy; args)
-			_prepared.setParam(&args[i], i);
+			_prepared.setArg(&args[i], i);
 		fixupNulls();
 	}
 
@@ -412,10 +412,10 @@ public:
 	Params: va = External list of Variants to be used as parameters
 	               psnList = any required specializations
 	+/
-	deprecated("Use Prepared.setParams instead")
+	deprecated("Use Prepared.setArgs instead")
 	void bindParameters(Variant[] va, ParameterSpecialization[] psnList= null)
 	{
-		_prepared.setParams(va, psnList);
+		_prepared.setArgs(va, psnList);
 	}
 
 	/++
@@ -431,7 +431,7 @@ public:
 	+/
 	//TODO: Move to struct Prepared
 	//TODO: Change "ref Variant" to "Nullable!Variant"
-	deprecated("Use Prepared.getParam to get and Prepared.setParam to set.")
+	deprecated("Use Prepared.getArg to get and Prepared.setArg to set.")
 	ref Variant param(size_t index) pure
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared before parameters are bound.");
@@ -445,11 +445,11 @@ public:
 	Params: index = The zero based index
 	+/
 	//TODO? Change "ref Variant" to "Nullable!Variant"
-	deprecated("Use Prepared.getParam instead.")
-	Variant getParam(size_t index)
+	deprecated("Use Prepared.getArg instead.")
+	Variant getArg(size_t index)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared before parameters are bound.");
-		return _prepared.getParam(index);
+		return _prepared.getArg(index);
 	}
 
 	/++
@@ -457,11 +457,11 @@ public:
 	
 	Params: index = The zero based index
 	+/
-	deprecated("Use Prepared.setNullParam instead.")
+	deprecated("Use Prepared.setNullArg instead.")
 	void setNullParam(size_t index)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared before parameters are bound.");
-		_prepared.setNullParam(index);
+		_prepared.setNullArg(index);
 	}
 
 	/++
@@ -689,7 +689,7 @@ public:
 			_prevFunc = name;
 		}
 
-		_prepared.setParams(args);
+		_prepared.setArgs(args);
 		ulong ra;
 		enforceEx!MYX(_prepared.execImpl(ra), "The executed query did not produce a result set.");
 		Row rr = _con.getNextRow();
@@ -744,7 +744,7 @@ public:
 			_prevFunc = name;
 		}
 
-		_prepared.setParams(args);
+		_prepared.setArgs(args);
 		ulong ra;
 		return _prepared.execImpl(ra);
 	}

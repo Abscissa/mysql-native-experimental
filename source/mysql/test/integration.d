@@ -277,8 +277,8 @@ unittest
 	{
 		c1.execPrepared(ra);
 
-		va[0] = c1.getParam(0).get!int + 1;
-		va[1] = c1.getParam(1).get!string ~ "x";
+		va[0] = c1.getArg(0).get!int + 1;
+		va[1] = c1.getArg(1).get!string ~ "x";
 		c1.bindParameters(va);
 	}
 
