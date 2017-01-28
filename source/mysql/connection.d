@@ -141,24 +141,33 @@ package:
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 		cn.exec("INSERT INTO `enforceNothingPending` VALUES (1), (2)");
 
+		immutable insertSQL = "INSERT INTO `enforceNothingPending` VALUES (1), (2)";
 		immutable selectSQL = "SELECT * FROM `enforceNothingPending`";
-		Prepared prepared;
+		Prepared preparedInsert;
+		Prepared preparedSelect;
+		assertNotThrown!MYXDataPending(cn.exec(insertSQL));
 		assertNotThrown!MYXDataPending(cn.queryResult(selectSQL));
-		assertNotThrown!MYXDataPending(prepared = cn.prepare(selectSQL));
-		assertNotThrown!MYXDataPending(prepared.queryResult());
+		assertNotThrown!MYXDataPending(preparedInsert = cn.prepare(insertSQL));
+		assertNotThrown!MYXDataPending(preparedSelect = cn.prepare(selectSQL));
+		assertNotThrown!MYXDataPending(preparedInsert.exec());
+		assertNotThrown!MYXDataPending(preparedSelect.queryResult());
 		
 		auto resultSeq = cn.querySequence(selectSQL);
 		
+		assertThrown!MYXDataPending(cn.exec(insertSQL));
 		assertThrown!MYXDataPending(cn.queryResult(selectSQL));
 		assertThrown!MYXDataPending(cn.querySequence(selectSQL));
 		assertThrown!MYXDataPending(cn.prepare(selectSQL));
-		assertThrown!MYXDataPending(prepared.queryResult());
+		assertThrown!MYXDataPending(preparedInsert.exec());
+		assertThrown!MYXDataPending(preparedSelect.queryResult());
 
 		resultSeq.each(); // Consume range
 
+		assertNotThrown!MYXDataPending(cn.exec(insertSQL));
 		assertNotThrown!MYXDataPending(cn.queryResult(selectSQL));
 		assertNotThrown!MYXDataPending(cn.prepare(selectSQL));
-		assertNotThrown!MYXDataPending(prepared.queryResult());
+		assertNotThrown!MYXDataPending(preparedInsert.exec());
+		assertNotThrown!MYXDataPending(preparedSelect.queryResult());
 	}
 
 	ubyte[] getPacket()
