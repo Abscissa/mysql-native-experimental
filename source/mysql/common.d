@@ -64,6 +64,18 @@ class MySQLProtocolException: MySQLException
 }
 alias MYXProtocol = MySQLProtocolException;
 
+/++
+Thrown when attempting to use a prepared statement which had already been released.
++/
+class MySQLNotPreparedException: MySQLException
+{
+	this(string file = __FILE__, size_t line = __LINE__) pure
+	{
+		super("The prepared statement has already been released.", file, line);
+	}
+}
+alias MYXNotPrepared = MySQLNotPreparedException;
+
 // Phobos/Vibe.d type aliases
 package alias PlainPhobosSocket = std.socket.TcpSocket;
 version(Have_vibe_d_core)

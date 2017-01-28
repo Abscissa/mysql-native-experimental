@@ -203,17 +203,48 @@ private:
 	Connection _conn;
 	QuerySpecialization _qsn;
 
-	//TODO: Test usages of enforceNotReleased
 	void enforceNotReleased()
 	{
-		enforceEx!MYX(_hStmt, "The prepared statement has already been released.");
+		enforceEx!MYXNotPrepared(_hStmt);
 	}
 
-	//TODO: Test usages of enforceReadyForCommand/enforceNothingPending
 	void enforceReadyForCommand()
 	{
 		enforceNotReleased();
 		_conn.enforceNothingPending();
+	}
+
+	debug(MYSQL_INTEGRATION_TESTS)
+	unittest
+	{
+		import mysql.protocol.prepared;
+		import mysql.test.common : scopedCn;
+		mixin(scopedCn);
+
+		cn.exec("DROP TABLE IF EXISTS `enforceNotReleased`");
+		cn.exec("CREATE TABLE `enforceNotReleased` (
+			`val` INTEGER
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
+		immutable insertSQL = "INSERT INTO `enforceNotReleased` VALUES (1), (2)";
+		immutable selectSQL = "SELECT * FROM `enforceNotReleased`";
+		Prepared preparedInsert;
+		Prepared preparedSelect;
+		assertNotThrown!MYXNotPrepared(preparedInsert = cn.prepare(insertSQL));
+		assertNotThrown!MYXNotPrepared(preparedSelect = cn.prepare(selectSQL));
+		assertNotThrown!MYXNotPrepared(preparedInsert.exec());
+		assertNotThrown!MYXNotPrepared(preparedSelect.queryResult());
+		assertNotThrown!MYXNotPrepared(preparedSelect.querySequence().each());
+		
+		preparedInsert.release();
+		assertThrown!MYXNotPrepared(preparedInsert.exec());
+		assertNotThrown!MYXNotPrepared(preparedSelect.queryResult());
+		assertNotThrown!MYXNotPrepared(preparedSelect.querySequence().each());
+
+		preparedSelect.release();
+		assertThrown!MYXNotPrepared(preparedInsert.exec());
+		assertThrown!MYXNotPrepared(preparedSelect.queryResult());
+		assertThrown!MYXNotPrepared(preparedSelect.querySequence().each());
 	}
 
 	@disable this(this); // Not copyable
