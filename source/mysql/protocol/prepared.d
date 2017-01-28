@@ -209,6 +209,7 @@ private:
 		enforceEx!MYX(_hStmt, "The prepared statement has already been released.");
 	}
 
+	//TODO: Test usages of enforceReadyForCommand/enforceNothingPending
 	void enforceReadyForCommand()
 	{
 		enforceNotReleased();
@@ -697,9 +698,9 @@ package:
 public:
 	/+ ******************************************
 
-	//TODO: Returns rowsAffected
-	//TODO: Throws if resultset was returned ("Use query insetad!")
-	//TODO: Throws if already in the middle of receiving a resultset
+	// Returns rowsAffected
+	// Throws if resultset was returned ("Use query insetad!")
+	// Throws if already in the middle of receiving a resultset
 	ulong exec()
 	ulong exec(Params...)(Params params)
 
@@ -994,14 +995,6 @@ public:
 		enforceNotReleased();
 		setArg(index, null);
 		//setArg(index, Variant(null));
-		/+
-		//TODO: Encapsulate this and check for it on ALL access to Prepared
-		enforceEx!MYX(_hStmt, "The prepared statement has already been released.");
-
-		enforceEx!MYX(index < _psParams, "Parameter index out of range.");
-		_inParams[index] = Variant(null);
-		fixupNulls();
-		+/
 	}
 
 	/++
@@ -1030,8 +1023,8 @@ public:
 		_hStmt = 0;
 	}
 
-	/// Gets the number of parameters in this Command
-	@property ushort numParams() pure const nothrow
+	/// Gets the number of arguments this prepared statement expects to be passed in.
+	@property ushort numArgs() pure const nothrow
 	{
 		return _psParams;
 	}

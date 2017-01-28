@@ -378,7 +378,7 @@ public:
 	void bindParameterTuple(T...)(ref T args)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared before parameters are bound.");
-		enforceEx!MYX(args.length == _prepared.numParams, "Argument list supplied does not match the number of parameters.");
+		enforceEx!MYX(args.length == _prepared.numArgs, "Argument list supplied does not match the number of parameters.");
 		foreach (size_t i, dummy; args)
 			_prepared.setArg(&args[i], i);
 		fixupNulls();
@@ -429,13 +429,12 @@ public:
 	------------
 	Params: index = The zero based index
 	+/
-	//TODO: Move to struct Prepared
 	//TODO: Change "ref Variant" to "Nullable!Variant"
 	deprecated("Use Prepared.getArg to get and Prepared.setArg to set.")
 	ref Variant param(size_t index) pure
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared before parameters are bound.");
-		enforceEx!MYX(index < _prepared.numParams, "Parameter index out of range.");
+		enforceEx!MYX(index < _prepared.numArgs, "Parameter index out of range.");
 		return _prepared._inParams[index];
 	}
 
@@ -755,10 +754,10 @@ public:
 	@property ulong lastInsertID() pure const nothrow { return _con.lastInsertID; }
 
 	/// Gets the number of parameters in this Command
-	deprecated("Use Prepared.numParams instead")
+	deprecated("Use Prepared.numArgs instead")
 	@property ushort numParams() pure const nothrow
 	{
-		return _prepared.numParams;
+		return _prepared.numArgs;
 	}
 
 	/// Gets whether rows are pending
