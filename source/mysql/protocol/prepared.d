@@ -173,24 +173,6 @@ unittest
 	assert(preparedPlaceholderArgs(0) == "()");
 }
 
-//TODO: Move this next to ColumnSpecialization definition
-struct QuerySpecialization
-{
-	ColumnSpecialization[] csn;
-	
-	// Same notes apply
-	//TODO: ulong exec(Connection cn, string sql)
-	//TODO: ulong exec(Params...)(Connection cn, string sql, Params params)
-
-	// Same notes apply
-	//TODO: ResultSet query(Connection cn, string sql)
-	//TODO: ResultSet query(Params...)(Connection cn, string sql, Params params)
-	//querySingle/queryScalar/etc...
-
-	// Same notes apply
-	//TODO: Prepared prepare(Connection cn, string sql)
-}
-
 /++
 Encapsulation of a prepared statement.
 
@@ -202,7 +184,6 @@ struct PreparedImpl
 {
 private:
 	Connection _conn;
-	QuerySpecialization _qsn;
 
 	void enforceNotReleased()
 	{
