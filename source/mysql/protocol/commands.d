@@ -194,13 +194,17 @@ that they are to be subject to chunked transfer via a delegate.
 Params: csa = An optional array of ColumnSpecialization structs.
 Returns: A (possibly empty) ResultSequence.
 +/
-ResultSequence querySequence(Connection conn, string sql, ColumnSpecialization[] csa = null)
+ResultSequence query(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
-	return querySequenceImpl(csa, conn, ExecQueryImplInfo(false, sql));
+	return queryImpl(csa, conn, ExecQueryImplInfo(false, sql));
 }
 
-/// Common implementation for mysql.protocol.commands.querySequence and Prepared.querySequence
-package ResultSequence querySequenceImpl(ColumnSpecialization[] csa,
+///ditto
+deprecated("Use query instead.")
+alias querySequence = query;
+
+/// Common implementation for mysql.protocol.commands.query and Prepared.query
+package ResultSequence queryImpl(ColumnSpecialization[] csa,
 	Connection conn, ExecQueryImplInfo info)
 {
 	ulong ra;
@@ -551,10 +555,10 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
-	deprecated("Use the free-standing function .querySequence instead")
+	deprecated("Use the free-standing function .query instead")
 	ResultSequence execSQLSequence(ColumnSpecialization[] csa = null)
 	{
-		return .querySequence(_con, _sql, csa);
+		return .query(_con, _sql, csa);
 	}
 
 	/++
@@ -626,11 +630,11 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
-	deprecated("Use Prepared.querySequence instead")
+	deprecated("Use Prepared.query instead")
 	ResultSequence execPreparedSequence(ColumnSpecialization[] csa = null)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared.");
-		return _prepared.querySequence(csa);
+		return _prepared.query(csa);
 	}
 
 	/++

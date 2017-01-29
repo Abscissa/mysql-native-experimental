@@ -598,7 +598,7 @@ unittest
 	/+
 	try
 	{
-		cn.query("SELECT TRUE", 1);
+		cn.query_("SELECT TRUE", 1);
 		assert(0);
 	}
 	catch(Exception ex) {}
@@ -612,10 +612,10 @@ unittest
 		auto val = 2;
 		cmd.bind(0, val);
 	}
-	//ds = cmd.query();
+	//ds = cmd.query_();
 	//assert(ds.length == 1);
 	//assert(ds[0].length == 0);
-	rs = cmd.query();
+	rs = cmd.query_();
 	assert(rs.length == 0);
 
 	// Bind single primitive value
@@ -669,7 +669,7 @@ unittest
 	cn.exec("INSERT INTO manytypes (i, f) VALUES (1, NULL)");
 	cmd = cn.prepareCmd("SELECT i FROM manytypes WHERE f <=> ?");
 	cmd.bind(0, 1);
-	tbl = cmd.query()[0];
+	tbl = cmd.query_()[0];
 	assert(tbl.length == 0);
 	cmd.bind(0, null);
 	assert(cmd.queryScalar().get!int == 1);
@@ -799,7 +799,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
 	mixin(scopedCn);
-	auto ds = cn.query("SELECT 1");
+	auto ds = cn.query_("SELECT 1");
 	assert(ds.length == 1);
 	//auto rs = ds[0];
 	//assert(rs.rows.length == 1);
@@ -818,7 +818,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
 	mixin(scopedCn);
-	auto ds = cn.query("SELECT 1; SELECT 2;");
+	auto ds = cn.query_("SELECT 1; SELECT 2;");
 	assert(ds.length == 2);
 	auto rs = ds[0];
 	assert(rs.rows.length == 1);
@@ -848,8 +848,8 @@ unittest
 		// Missing and NULL
 		cn.exec("TRUNCATE "~tablename);
 		immutable selectOneSql = "SELECT value FROM "~tablename~" LIMIT 1";
-		//assert(cn.query(selectOneSql)[0].length == 0);
-		assert(cn.query(selectOneSql).length == 0);
+		//assert(cn.query_(selectOneSql)[0].length == 0);
+		assert(cn.query_(selectOneSql).length == 0);
 
 		immutable insertNullSql = "INSERT INTO "~tablename~" VALUES (NULL)";
 		auto okp = cn.exec(insertNullSql);
@@ -992,8 +992,8 @@ unittest
 	assert(rs[2][1] == "ccc");
 	
 	{
-		// Test querySequence
-		ResultSequence rseq = cn.querySequence(selectSQL);
+		// Test query
+		ResultSequence rseq = cn.query(selectSQL);
 		assert(!rseq.empty);
 		assert(rseq.front.length == 2);
 		assert(rseq.front[0] == 11);
@@ -1013,8 +1013,8 @@ unittest
 	}
 
 	{
-		// Test prepared querySequence
-		ResultSequence rseq = prepared.querySequence();
+		// Test prepared query
+		ResultSequence rseq = prepared.query();
 		assert(!rseq.empty);
 		assert(rseq.front.length == 2);
 		assert(rseq.front[0] == 11);
@@ -1035,11 +1035,11 @@ unittest
 
 	{
 		// Test reusing the same ResultSequence
-		ResultSequence rseq = cn.querySequence(selectSQL);
+		ResultSequence rseq = cn.query(selectSQL);
 		assert(!rseq.empty);
 		rseq.each();
 		assert(rseq.empty);
-		rseq = cn.querySequence(selectSQL);
+		rseq = cn.query(selectSQL);
 		//assert(!rseq.empty); //TODO: Why does this fail???
 		rseq.each();
 		assert(rseq.empty);
@@ -1063,17 +1063,17 @@ unittest
 
 	{
 		// Issue new command before old command was purged
-		ResultSequence rseq1 = cn.querySequence(selectSQL);
+		ResultSequence rseq1 = cn.query(selectSQL);
 		rseq1.popFront();
 		assert(!rseq1.empty);
 		assert(rseq1.front[0] == 22);
 
-		assertThrown!MYXDataPending(cn.querySequence(selectSQL2));
+		assertThrown!MYXDataPending(cn.query(selectSQL2));
 	}
 
 	{
 		// Test using outdated ResultSequence
-		ResultSequence rseq1 = cn.querySequence(selectSQL);
+		ResultSequence rseq1 = cn.query(selectSQL);
 		rseq1.popFront();
 		assert(!rseq1.empty);
 		assert(rseq1.front[0] == 22);
@@ -1085,7 +1085,7 @@ unittest
 		assertThrown!MYXInvalidatedRange(rseq1.popFront());
 		assertThrown!MYXInvalidatedRange(rseq1.asAA());
 
-		ResultSequence rseq2 = cn.querySequence(selectSQL2);
+		ResultSequence rseq2 = cn.query(selectSQL2);
 		assert(!rseq2.empty);
 		assert(rseq2.front.length == 2);
 		assert(rseq2.front[0] == "ccc");

@@ -117,7 +117,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 		return cmd.execCmd();
 	}
 	
-	ResultSet query()(Connection cn, string sql)
+	ResultSet query_()(Connection cn, string sql)
 	{
 		auto cmd = Command(cn);
 		cmd.sql = sql;
@@ -125,31 +125,31 @@ debug(MYSQL_INTEGRATION_TESTS)
 		return cmd.execSQLResult();
 	}
 	
-	ResultSet query(Params...)(Connection cn, string sql, ref Params params)
+	ResultSet query_(Params...)(Connection cn, string sql, ref Params params)
 	{
 		auto cmd = cn.prepareCmd(sql);
 		cmd.bindAll(params);
-		return cmd.query();
+		return cmd.query_();
 	}
 
 	Row querySingle()(Connection cn, string sql)
 	{
-		return cn.query(sql)[0];
+		return cn.query_(sql)[0];
 	}
 
 	Row querySingle(Params...)(Connection cn, string sql, ref Params params)
 	{
-		return cn.query(sql, params)[0];
+		return cn.query_(sql, params)[0];
 	}
 
 	Variant queryScalar()(Connection cn, string sql)
 	{
-		return cn.query(sql)[0][0];
+		return cn.query_(sql)[0][0];
 	}
 	
 	Variant queryScalar(Params...)(Connection cn, string sql, ref Params params)
 	{
-		return cn.query(sql, params)[0][0];
+		return cn.query_(sql, params)[0][0];
 	}
 
 	Command prepareCmd(Connection cn, string sql)
@@ -167,14 +167,14 @@ debug(MYSQL_INTEGRATION_TESTS)
 		return rowsAffected;
 	}
 	
-	ResultSet query()(Command cmd)
+	ResultSet query_()(Command cmd)
 	{
 		return cmd.execPreparedResult();
 	}
 	
 	Row querySingle()(Command cmd)
 	{
-		return cmd.query()[0];
+		return cmd.query_()[0];
 	}
 	
 	void bind(T)(ref Command cmd, ushort index, ref T value)

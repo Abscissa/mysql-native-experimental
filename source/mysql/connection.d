@@ -155,11 +155,11 @@ package:
 		assertNotThrown!MYXDataPending(preparedInsert.exec());
 		assertNotThrown!MYXDataPending(preparedSelect.queryResult());
 		
-		auto resultSeq = cn.querySequence(selectSQL);
+		auto resultSeq = cn.query(selectSQL);
 		
 		assertThrown!MYXDataPending(cn.exec(insertSQL));
 		assertThrown!MYXDataPending(cn.queryResult(selectSQL));
-		assertThrown!MYXDataPending(cn.querySequence(selectSQL));
+		assertThrown!MYXDataPending(cn.query(selectSQL));
 		assertThrown!MYXDataPending(cn.prepare(selectSQL));
 		assertThrown!MYXDataPending(preparedInsert.exec());
 		assertThrown!MYXDataPending(preparedSelect.queryResult());

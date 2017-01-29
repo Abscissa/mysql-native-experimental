@@ -227,19 +227,19 @@ private:
 		assertNotThrown!MYXNotPrepared(preparedSelect = cn.prepare(selectSQL));
 		assertNotThrown!MYXNotPrepared(preparedInsert.exec());
 		assertNotThrown!MYXNotPrepared(preparedSelect.queryResult());
-		assertNotThrown!MYXNotPrepared(preparedSelect.querySequence().each());
+		assertNotThrown!MYXNotPrepared(preparedSelect.query().each());
 		assertNotThrown!MYXNotPrepared(preparedSelect.queryTuple(queryTupleResult));
 		
 		preparedInsert.release();
 		assertThrown!MYXNotPrepared(preparedInsert.exec());
 		assertNotThrown!MYXNotPrepared(preparedSelect.queryResult());
-		assertNotThrown!MYXNotPrepared(preparedSelect.querySequence().each());
+		assertNotThrown!MYXNotPrepared(preparedSelect.query().each());
 		assertNotThrown!MYXNotPrepared(preparedSelect.queryTuple(queryTupleResult));
 
 		preparedSelect.release();
 		assertThrown!MYXNotPrepared(preparedInsert.exec());
 		assertThrown!MYXNotPrepared(preparedSelect.queryResult());
-		assertThrown!MYXNotPrepared(preparedSelect.querySequence().each());
+		assertThrown!MYXNotPrepared(preparedSelect.query().each());
 		assertThrown!MYXNotPrepared(preparedSelect.queryTuple(queryTupleResult));
 	}
 
@@ -743,14 +743,18 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
-	ResultSequence querySequence(ColumnSpecialization[] csa = null)
+	ResultSequence query(ColumnSpecialization[] csa = null)
 	{
 		enforceReadyForCommand();
-		return querySequenceImpl(
+		return queryImpl(
 			csa, _conn,
 			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa)
 		);
 	}
+
+	///ditto
+	deprecated("Use query instead.")
+	alias querySequence = query;
 
 	/++
 	Execute a prepared SQL command to place result values into a set of D variables.

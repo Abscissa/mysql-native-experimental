@@ -169,22 +169,22 @@ unittest
 	int queryTupleResult;
 	assertNotThrown!MYXWrongFunction(cn.exec(insertSQL));
 	assertNotThrown!MYXWrongFunction(cn.queryResult(selectSQL));
-	assertNotThrown!MYXWrongFunction(cn.querySequence(selectSQL).each());
+	assertNotThrown!MYXWrongFunction(cn.query(selectSQL).each());
 	assertNotThrown!MYXWrongFunction(cn.queryTuple(selectSQL, queryTupleResult));
 	assertNotThrown!MYXWrongFunction(preparedInsert = cn.prepare(insertSQL));
 	assertNotThrown!MYXWrongFunction(preparedSelect = cn.prepare(selectSQL));
 	assertNotThrown!MYXWrongFunction(preparedInsert.exec());
 	assertNotThrown!MYXWrongFunction(preparedSelect.queryResult());
-	assertNotThrown!MYXWrongFunction(preparedSelect.querySequence().each());
+	assertNotThrown!MYXWrongFunction(preparedSelect.query().each());
 	assertNotThrown!MYXWrongFunction(preparedSelect.queryTuple(queryTupleResult));
 
 	assertThrown!MYXResultRecieved(cn.exec(selectSQL));
 	assertThrown!MYXNoResultRecieved(cn.queryResult(insertSQL));
-	assertThrown!MYXNoResultRecieved(cn.querySequence(insertSQL).each());
+	assertThrown!MYXNoResultRecieved(cn.query(insertSQL).each());
 	assertThrown!MYXNoResultRecieved(cn.queryTuple(insertSQL, queryTupleResult));
 	assertThrown!MYXResultRecieved(preparedSelect.exec());
 	assertThrown!MYXNoResultRecieved(preparedInsert.queryResult());
-	assertThrown!MYXNoResultRecieved(preparedInsert.querySequence().each());
+	assertThrown!MYXNoResultRecieved(preparedInsert.query().each());
 	assertThrown!MYXNoResultRecieved(preparedInsert.queryTuple(queryTupleResult));
 }
 
