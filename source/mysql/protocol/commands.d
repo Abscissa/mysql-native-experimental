@@ -10,6 +10,7 @@ import std.socket;
 import std.stdio;
 import std.string;
 import std.traits;
+import std.typecons;
 import std.variant;
 
 import mysql.common;
@@ -223,6 +224,41 @@ package ResultSequence queryImpl(ColumnSpecialization[] csa,
 }
 
 /++
+Executes a one-off SQL command and returns the first row received, or null
+if none. Useful for the case where you expect a (possibly empty) result set,
+and you're either only expecting one row, or only care about the first row.
+
+Use this method when you are not going to be using the same command repeatedly.
+This method will throw if the SQL command does not produce a result set.
+
+If there are long data items among the expected result columns you can specify
+that they are to be subject to chunked transfer via a delegate.
+
+Params: csa = An optional array of ColumnSpecialization structs.
+Returns: Nullable!Row: This will be null (check via Nullable.isNull) if the
+query resulted in an empty result set.
++/
+Nullable!Row queryRow(Connection conn, string sql, ColumnSpecialization[] csa = null)
+{
+	return queryRowImpl(csa, conn, ExecQueryImplInfo(false, sql));
+}
+
+/// Common implementation for mysql.protocol.commands.querySet and Prepared.querySet
+package Nullable!Row queryRowImpl(ColumnSpecialization[] csa, Connection conn,
+	ExecQueryImplInfo info)
+{
+	auto results = queryImpl(csa, conn, info);
+	if(results.empty)
+		return Nullable!Row();
+	else
+	{
+		auto row = results.front;
+		results.close();
+		return Nullable!Row(row);
+	}
+}
+
+/++
 Execute a one-off SQL command to place result values into a set of D variables.
 
 Use this method when you are not going to be using the same command repeatedly.
@@ -230,7 +266,6 @@ It will throw if the specified command does not produce a result set, or if
 any column type is incompatible with the corresponding D variable.
 
 Params: args = A tuple of D variables to receive the results.
-Returns: true if there was a (possibly empty) result set.
 +/
 void queryRowTuple(T...)(Connection conn, string sql, ref T args)
 {

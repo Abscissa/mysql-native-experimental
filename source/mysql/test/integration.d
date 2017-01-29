@@ -10,6 +10,7 @@ import std.socket;
 import std.stdio;
 import std.string;
 import std.traits;
+import std.typecons;
 import std.variant;
 
 import mysql.common;
@@ -960,9 +961,11 @@ unittest
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 	cn.exec("INSERT INTO `coupleTypes` VALUES (11, 'aaa'), (22, 'bbb'), (33, 'ccc')");
 
-	immutable selectSQL  = "SELECT * FROM `coupleTypes` ORDER BY i ASC";
-	immutable selectSQL2 = "SELECT `s`,`i` FROM `coupleTypes` ORDER BY i DESC";
+	immutable selectSQL          = "SELECT * FROM `coupleTypes` ORDER BY i ASC";
+	immutable selectBackwardsSQL = "SELECT `s`,`i` FROM `coupleTypes` ORDER BY i DESC";
+	immutable selectNothingSQL   = "SELECT * FROM `coupleTypes` WHERE s='no such match'";
 	auto prepared = cn.prepare(selectSQL);
+	auto preparedSelectNothing = cn.prepare(selectNothingSQL);
 	
 	// Test querySet
 	ResultSet rs = cn.querySet(selectSQL);
@@ -1045,21 +1048,50 @@ unittest
 		assert(rseq.empty);
 	}
 
-	// Test queryRowTuple
-	int resultI;
-	string resultS;
-	cn.queryRowTuple(selectSQL, resultI, resultS);
-	assert(resultI == 11);
-	assert(resultS == "aaa");
-	// Were all results correctly purged? Can I still issue another command?
-	cn.querySet(selectSQL);
+	{
+		Nullable!Row nullableRow;
 
-	// Test prepared queryRowTuple
-	prepared.queryRowTuple(resultI, resultS);
-	assert(resultI == 11);
-	assert(resultS == "aaa");
-	// Were all results correctly purged? Can I still issue another command?
-	cn.querySet(selectSQL);
+		// Test queryRow
+		nullableRow = cn.queryRow(selectSQL);
+		assert(!nullableRow.isNull);
+		assert(nullableRow[0] == 11);
+		assert(nullableRow[1] == "aaa");
+		// Were all results correctly purged? Can I still issue another command?
+		cn.querySet(selectSQL);
+
+		nullableRow = cn.queryRow(selectNothingSQL);
+		assert(nullableRow.isNull);
+
+		// Test prepared queryRow
+		nullableRow = prepared.queryRow();
+		assert(!nullableRow.isNull);
+		assert(nullableRow[0] == 11);
+		assert(nullableRow[1] == "aaa");
+		// Were all results correctly purged? Can I still issue another command?
+		cn.querySet(selectSQL);
+
+		nullableRow = preparedSelectNothing.queryRow();
+		assert(nullableRow.isNull);
+	}
+
+	{
+		int resultI;
+		string resultS;
+
+		// Test queryRowTuple
+		cn.queryRowTuple(selectSQL, resultI, resultS);
+		assert(resultI == 11);
+		assert(resultS == "aaa");
+		// Were all results correctly purged? Can I still issue another command?
+		cn.querySet(selectSQL);
+
+		// Test prepared queryRowTuple
+		prepared.queryRowTuple(resultI, resultS);
+		assert(resultI == 11);
+		assert(resultS == "aaa");
+		// Were all results correctly purged? Can I still issue another command?
+		cn.querySet(selectSQL);
+	}
 
 	{
 		// Issue new command before old command was purged
@@ -1068,7 +1100,7 @@ unittest
 		assert(!rseq1.empty);
 		assert(rseq1.front[0] == 22);
 
-		assertThrown!MYXDataPending(cn.query(selectSQL2));
+		assertThrown!MYXDataPending(cn.query(selectBackwardsSQL));
 	}
 
 	{
@@ -1085,7 +1117,7 @@ unittest
 		assertThrown!MYXInvalidatedRange(rseq1.popFront());
 		assertThrown!MYXInvalidatedRange(rseq1.asAA());
 
-		ResultSequence rseq2 = cn.query(selectSQL2);
+		ResultSequence rseq2 = cn.query(selectBackwardsSQL);
 		assert(!rseq2.empty);
 		assert(rseq2.front.length == 2);
 		assert(rseq2.front[0] == "ccc");
