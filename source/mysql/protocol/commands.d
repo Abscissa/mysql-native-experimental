@@ -145,13 +145,17 @@ that they are to be subject to chunked transfer via a delegate.
 Params: csa = An optional array of ColumnSpecialization structs.
 Returns: A (possibly empty) ResultSet.
 +/
-ResultSet queryResult(Connection conn, string sql, ColumnSpecialization[] csa = null)
+ResultSet querySet(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
-	return queryResultImpl(csa, false, conn, ExecQueryImplInfo(false, sql));
+	return querySetImpl(csa, false, conn, ExecQueryImplInfo(false, sql));
 }
 
-/// Common implementation for mysql.protocol.commands.queryResult and Prepared.queryResult
-package ResultSet queryResultImpl(ColumnSpecialization[] csa, bool binary,
+///ditto
+deprecated("Use querySet instead.")
+alias queryResult = querySet;
+
+/// Common implementation for mysql.protocol.commands.querySet and Prepared.querySet
+package ResultSet querySetImpl(ColumnSpecialization[] csa, bool binary,
 	Connection conn, ExecQueryImplInfo info)
 {
 	ulong ra;
@@ -228,13 +232,17 @@ any column type is incompatible with the corresponding D variable.
 Params: args = A tuple of D variables to receive the results.
 Returns: true if there was a (possibly empty) result set.
 +/
-void queryTuple(T...)(Connection conn, string sql, ref T args)
+void queryRowTuple(T...)(Connection conn, string sql, ref T args)
 {
-	return queryTupleImpl(conn, ExecQueryImplInfo(false, sql), args);
+	return queryRowTupleImpl(conn, ExecQueryImplInfo(false, sql), args);
 }
 
-/// Common implementation for mysql.protocol.commands.queryTuple and Prepared.queryTuple
-void queryTupleImpl(T...)(Connection conn, ExecQueryImplInfo info, ref T args)
+///ditto
+deprecated("Use queryRowTuple instead.")
+alias queryTuple = queryRowTuple;
+
+/// Common implementation for mysql.protocol.commands.queryRowTuple and Prepared.queryRowTuple
+void queryRowTupleImpl(T...)(Connection conn, ExecQueryImplInfo info, ref T args)
 {
 	ulong ra;
 	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, info, ra));
@@ -536,10 +544,10 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSet.
 	+/
-	deprecated("Use the free-standing function .queryResult instead")
+	deprecated("Use the free-standing function .querySet instead")
 	ResultSet execSQLResult(ColumnSpecialization[] csa = null)
 	{
-		return .queryResult(_con, _sql, csa);
+		return .querySet(_con, _sql, csa);
 	}
 
 	/++
@@ -571,10 +579,10 @@ public:
 	Params: args = A tuple of D variables to receive the results.
 	Returns: true if there was a (possibly empty) result set.
 	+/
-	deprecated("Use the free-standing function .queryTuple instead")
+	deprecated("Use the free-standing function .queryRowTuple instead")
 	void execSQLTuple(T...)(ref T args)
 	{
-		.queryTuple(_con, _sql, args);
+		.queryRowTuple(_con, _sql, args);
 	}
 
 	/++
@@ -610,11 +618,11 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSet.
 	+/
-	deprecated("Use Prepared.queryResult instead")
+	deprecated("Use Prepared.querySet instead")
 	ResultSet execPreparedResult(ColumnSpecialization[] csa = null)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared.");
-		return _prepared.queryResult(csa);
+		return _prepared.querySet(csa);
 	}
 
 	/++
@@ -647,11 +655,11 @@ public:
 	Params: args = A tuple of D variables to receive the results.
 	Returns: true if there was a (possibly empty) result set.
 	+/
-	deprecated("Use Prepared.queryTuple instead")
+	deprecated("Use Prepared.queryRowTuple instead")
 	void execPreparedTuple(T...)(ref T args)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared.");
-		_prepared.queryTuple(args);
+		_prepared.queryRowTuple(args);
 	}
 
 	/++

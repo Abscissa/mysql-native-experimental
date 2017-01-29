@@ -319,7 +319,7 @@ unittest
 		RETURN CONCAT('Hello ',s,'!')
 	`);
 
-	rs = queryResult(cn, "select hello ('World')");
+	rs = querySet(cn, "select hello ('World')");
 	assert(rs.length == 1);
 	assert(rs[0][0] == "Hello World!");
 
@@ -964,8 +964,8 @@ unittest
 	immutable selectSQL2 = "SELECT `s`,`i` FROM `coupleTypes` ORDER BY i DESC";
 	auto prepared = cn.prepare(selectSQL);
 	
-	// Test queryResult
-	ResultSet rs = cn.queryResult(selectSQL);
+	// Test querySet
+	ResultSet rs = cn.querySet(selectSQL);
 	assert(rs.length == 3);
 	assert(rs[0].length == 2);
 	assert(rs[0][0] == 11);
@@ -978,8 +978,8 @@ unittest
 	assert(rs[2][1] == "ccc");
 	assert(rs[2][$-1] == "ccc");
 
-	// Test prepared queryResult
-	rs = prepared.queryResult();
+	// Test prepared querySet
+	rs = prepared.querySet();
 	assert(rs.length == 3);
 	assert(rs[0].length == 2);
 	assert(rs[0][0] == 11);
@@ -1045,21 +1045,21 @@ unittest
 		assert(rseq.empty);
 	}
 
-	// Test queryTuple
+	// Test queryRowTuple
 	int resultI;
 	string resultS;
-	cn.queryTuple(selectSQL, resultI, resultS);
+	cn.queryRowTuple(selectSQL, resultI, resultS);
 	assert(resultI == 11);
 	assert(resultS == "aaa");
 	// Were all results correctly purged? Can I still issue another command?
-	cn.queryResult(selectSQL);
+	cn.querySet(selectSQL);
 
-	// Test prepared queryTuple
-	prepared.queryTuple(resultI, resultS);
+	// Test prepared queryRowTuple
+	prepared.queryRowTuple(resultI, resultS);
 	assert(resultI == 11);
 	assert(resultS == "aaa");
 	// Were all results correctly purged? Can I still issue another command?
-	cn.queryResult(selectSQL);
+	cn.querySet(selectSQL);
 
 	{
 		// Issue new command before old command was purged

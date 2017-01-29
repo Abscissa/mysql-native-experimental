@@ -92,7 +92,7 @@ unittest
 
 		auto preparedHello = prepareFunction(cn, "hello", 1);
 		preparedHello.setArgs("World");
-		ResultSet rs = preparedHello.queryResult();
+		ResultSet rs = preparedHello.querySet();
 		assert(rs.length == 1);
 		assert(rs[0][0] == "Hello World!");
 	}
@@ -139,7 +139,7 @@ unittest
 		preparedInsert2.setArgs(2001, "inserted string 1");
 		preparedInsert2.exec();
 
-		ResultSet rs = queryResult(cn, "SELECT stringcol FROM basetest WHERE intcol=2001");
+		ResultSet rs = querySet(cn, "SELECT stringcol FROM basetest WHERE intcol=2001");
 		assert(rs.length == 1);
 		assert(rs[0][0] == "inserted string 1");
 	}
@@ -226,21 +226,21 @@ private:
 		assertNotThrown!MYXNotPrepared(preparedInsert = cn.prepare(insertSQL));
 		assertNotThrown!MYXNotPrepared(preparedSelect = cn.prepare(selectSQL));
 		assertNotThrown!MYXNotPrepared(preparedInsert.exec());
-		assertNotThrown!MYXNotPrepared(preparedSelect.queryResult());
+		assertNotThrown!MYXNotPrepared(preparedSelect.querySet());
 		assertNotThrown!MYXNotPrepared(preparedSelect.query().each());
-		assertNotThrown!MYXNotPrepared(preparedSelect.queryTuple(queryTupleResult));
+		assertNotThrown!MYXNotPrepared(preparedSelect.queryRowTuple(queryTupleResult));
 		
 		preparedInsert.release();
 		assertThrown!MYXNotPrepared(preparedInsert.exec());
-		assertNotThrown!MYXNotPrepared(preparedSelect.queryResult());
+		assertNotThrown!MYXNotPrepared(preparedSelect.querySet());
 		assertNotThrown!MYXNotPrepared(preparedSelect.query().each());
-		assertNotThrown!MYXNotPrepared(preparedSelect.queryTuple(queryTupleResult));
+		assertNotThrown!MYXNotPrepared(preparedSelect.queryRowTuple(queryTupleResult));
 
 		preparedSelect.release();
 		assertThrown!MYXNotPrepared(preparedInsert.exec());
-		assertThrown!MYXNotPrepared(preparedSelect.queryResult());
+		assertThrown!MYXNotPrepared(preparedSelect.querySet());
 		assertThrown!MYXNotPrepared(preparedSelect.query().each());
-		assertThrown!MYXNotPrepared(preparedSelect.queryTuple(queryTupleResult));
+		assertThrown!MYXNotPrepared(preparedSelect.queryRowTuple(queryTupleResult));
 	}
 
 	@disable this(this); // Not copyable
@@ -721,14 +721,18 @@ public:
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSet.
 	+/
-	ResultSet queryResult(ColumnSpecialization[] csa = null)
+	ResultSet querySet(ColumnSpecialization[] csa = null)
 	{
 		enforceReadyForCommand();
-		return queryResultImpl(
+		return querySetImpl(
 			csa, true, _conn,
 			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa)
 		);
 	}
+
+	///ditto
+	deprecated("Use querySet instead.")
+	alias queryResult = querySet;
 
 	/++
 	Execute a prepared SQL command for the case where you expect a result set,
@@ -766,15 +770,19 @@ public:
 	Params: args = A tuple of D variables to receive the results.
 	Returns: true if there was a (possibly empty) result set.
 	+/
-	void queryTuple(T...)(ref T args)
+	void queryRowTuple(T...)(ref T args)
 	{
 		enforceReadyForCommand();
-		return queryTupleImpl(
+		return queryRowTupleImpl(
 			_conn,
 			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa),
 			args
 		);
 	}
+
+	///ditto
+	deprecated("Use queryRowTuple instead.")
+	alias queryTuple = queryRowTuple;
 
 	/++
 	Prepared statement parameter setter.
@@ -940,13 +948,13 @@ public:
 
 		preparedInsert.setArg(0, 5);
 		preparedInsert.exec();
-		rs = cn.queryResult(selectSQL);
+		rs = cn.querySet(selectSQL);
 		assert(rs.length == 1);
 		assert(rs[0][0] == 5);
 
 		preparedInsert.setArg(0, null);
 		preparedInsert.exec();
-		rs = cn.queryResult(selectSQL);
+		rs = cn.querySet(selectSQL);
 		assert(rs.length == 2);
 		assert(rs[0][0] == 5);
 		assert(rs[1].isNull(0));
@@ -954,7 +962,7 @@ public:
 
 		preparedInsert.setArg(0, Variant(null));
 		preparedInsert.exec();
-		rs = cn.queryResult(selectSQL);
+		rs = cn.querySet(selectSQL);
 		assert(rs.length == 3);
 		assert(rs[0][0] == 5);
 		assert(rs[1].isNull(0));

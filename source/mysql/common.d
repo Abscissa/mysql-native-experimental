@@ -81,7 +81,7 @@ Common base class of MySQLResultRecievedException and MySQLNoResultRecievedExcep
 
 Thrown when making the wrong choice between exec or query.
 
-The query functions (queryResult, querySequence, etc.) are for SQL statements
+The query functions (query, querySet, queryRow, etc.) are for SQL statements
 such as SELECT that return results (even if the result set has zero elements.)
 
 The exec functions are for SQL statements, such as INSERT, that never return
@@ -101,7 +101,7 @@ alias MYXWrongFunction = MySQLWrongFunctionException;
 
 /++
 Thrown when a result set was returned unexpectedly. Use the query functions
-(queryResult, querySequence, etc.), not exec for commands that return
+(query, querySet, queryRow, etc.), not exec for commands that return
 result sets (such as SELECT), even if the result set has zero elements.
 +/
 class MySQLResultRecievedException: MySQLWrongFunctionException
@@ -119,7 +119,7 @@ alias MYXResultRecieved = MySQLResultRecievedException;
 
 /++
 Thrown when the executed query, unexpectedly, did not produce a result set.
-Use the exec functions, not query (queryResult, querySequence, etc.),
+Use the exec functions, not query (query, querySet, queryRow, etc.),
 for commands that don't produce result sets (such as INSERT).
 +/
 class MySQLNoResultRecievedException: MySQLWrongFunctionException
@@ -168,24 +168,24 @@ unittest
 	Prepared preparedSelect;
 	int queryTupleResult;
 	assertNotThrown!MYXWrongFunction(cn.exec(insertSQL));
-	assertNotThrown!MYXWrongFunction(cn.queryResult(selectSQL));
+	assertNotThrown!MYXWrongFunction(cn.querySet(selectSQL));
 	assertNotThrown!MYXWrongFunction(cn.query(selectSQL).each());
-	assertNotThrown!MYXWrongFunction(cn.queryTuple(selectSQL, queryTupleResult));
+	assertNotThrown!MYXWrongFunction(cn.queryRowTuple(selectSQL, queryTupleResult));
 	assertNotThrown!MYXWrongFunction(preparedInsert = cn.prepare(insertSQL));
 	assertNotThrown!MYXWrongFunction(preparedSelect = cn.prepare(selectSQL));
 	assertNotThrown!MYXWrongFunction(preparedInsert.exec());
-	assertNotThrown!MYXWrongFunction(preparedSelect.queryResult());
+	assertNotThrown!MYXWrongFunction(preparedSelect.querySet());
 	assertNotThrown!MYXWrongFunction(preparedSelect.query().each());
-	assertNotThrown!MYXWrongFunction(preparedSelect.queryTuple(queryTupleResult));
+	assertNotThrown!MYXWrongFunction(preparedSelect.queryRowTuple(queryTupleResult));
 
 	assertThrown!MYXResultRecieved(cn.exec(selectSQL));
-	assertThrown!MYXNoResultRecieved(cn.queryResult(insertSQL));
+	assertThrown!MYXNoResultRecieved(cn.querySet(insertSQL));
 	assertThrown!MYXNoResultRecieved(cn.query(insertSQL).each());
-	assertThrown!MYXNoResultRecieved(cn.queryTuple(insertSQL, queryTupleResult));
+	assertThrown!MYXNoResultRecieved(cn.queryRowTuple(insertSQL, queryTupleResult));
 	assertThrown!MYXResultRecieved(preparedSelect.exec());
-	assertThrown!MYXNoResultRecieved(preparedInsert.queryResult());
+	assertThrown!MYXNoResultRecieved(preparedInsert.querySet());
 	assertThrown!MYXNoResultRecieved(preparedInsert.query().each());
-	assertThrown!MYXNoResultRecieved(preparedInsert.queryTuple(queryTupleResult));
+	assertThrown!MYXNoResultRecieved(preparedInsert.queryRowTuple(queryTupleResult));
 }
 
 

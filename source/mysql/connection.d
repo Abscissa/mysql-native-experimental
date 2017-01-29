@@ -149,28 +149,28 @@ package:
 		Prepared preparedInsert;
 		Prepared preparedSelect;
 		assertNotThrown!MYXDataPending(cn.exec(insertSQL));
-		assertNotThrown!MYXDataPending(cn.queryResult(selectSQL));
+		assertNotThrown!MYXDataPending(cn.querySet(selectSQL));
 		assertNotThrown!MYXDataPending(preparedInsert = cn.prepare(insertSQL));
 		assertNotThrown!MYXDataPending(preparedSelect = cn.prepare(selectSQL));
 		assertNotThrown!MYXDataPending(preparedInsert.exec());
-		assertNotThrown!MYXDataPending(preparedSelect.queryResult());
+		assertNotThrown!MYXDataPending(preparedSelect.querySet());
 		
 		auto resultSeq = cn.query(selectSQL);
 		
 		assertThrown!MYXDataPending(cn.exec(insertSQL));
-		assertThrown!MYXDataPending(cn.queryResult(selectSQL));
+		assertThrown!MYXDataPending(cn.querySet(selectSQL));
 		assertThrown!MYXDataPending(cn.query(selectSQL));
 		assertThrown!MYXDataPending(cn.prepare(selectSQL));
 		assertThrown!MYXDataPending(preparedInsert.exec());
-		assertThrown!MYXDataPending(preparedSelect.queryResult());
+		assertThrown!MYXDataPending(preparedSelect.querySet());
 
 		resultSeq.each(); // Consume range
 
 		assertNotThrown!MYXDataPending(cn.exec(insertSQL));
-		assertNotThrown!MYXDataPending(cn.queryResult(selectSQL));
+		assertNotThrown!MYXDataPending(cn.querySet(selectSQL));
 		assertNotThrown!MYXDataPending(cn.prepare(selectSQL));
 		assertNotThrown!MYXDataPending(preparedInsert.exec());
-		assertNotThrown!MYXDataPending(preparedSelect.queryResult());
+		assertNotThrown!MYXDataPending(preparedSelect.querySet());
 	}
 
 	ubyte[] getPacket()
