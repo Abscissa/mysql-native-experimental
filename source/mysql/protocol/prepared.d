@@ -766,8 +766,7 @@ public:
 	and you're either only expecting one row, or only care about the first row.
 
 	Use this method when you will use the same command repeatedly.
-	It will throw if the specified command does not produce a result set, or
-	if any column type is incompatible with the corresponding D variable
+	It will throw if the specified command does not produce a result set.
 
 	If there are long data items among the expected result columns you can specify
 	that they are to be subject to chunked transfer via a delegate.
@@ -805,6 +804,35 @@ public:
 	///ditto
 	deprecated("Use queryRowTuple instead.")
 	alias queryTuple = queryRowTuple;
+
+	/++
+	Executes a one-off SQL command and returns a single value: The the first column
+	of the first row received. Useful for the case where you expect a
+	(possibly empty) result set, and you're either only expecting one value, or
+	only care about the first value.
+
+	If the query did not produce any rows, OR the rows it produced have zero columns,
+	this will return `Nullable!Variant()`, ie, null. Test for this with `result.isNull`.
+
+	If the query DID produce a result, but the value actually received is NULL,
+	then `result.isNull` will be FALSE, and `result.get` will produce a Variant
+	which CONTAINS null. Check for this with `result.get.type == typeid(typeof(null))`.
+
+	Use this method when you will use the same command repeatedly.
+	It will throw if the specified command does not produce a result set.
+
+	If there are long data items among the expected result columns you can specify
+	that they are to be subject to chunked transfer via a delegate.
+
+	Params: csa = An optional array of ColumnSpecialization structs.
+	Returns: Nullable!Variant: This will be null (check via Nullable.isNull) if the
+	query resulted in an empty result set.
+	+/
+	Nullable!Variant queryValue(ColumnSpecialization[] csa = null)
+	{
+		return queryValueImpl(csa, _conn,
+			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa));
+	}
 
 	/++
 	Prepared statement parameter setter.

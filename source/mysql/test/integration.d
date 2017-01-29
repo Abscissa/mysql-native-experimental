@@ -963,9 +963,9 @@ unittest
 
 	immutable selectSQL          = "SELECT * FROM `coupleTypes` ORDER BY i ASC";
 	immutable selectBackwardsSQL = "SELECT `s`,`i` FROM `coupleTypes` ORDER BY i DESC";
-	immutable selectNothingSQL   = "SELECT * FROM `coupleTypes` WHERE s='no such match'";
+	immutable selectNoRowsSQL    = "SELECT * FROM `coupleTypes` WHERE s='no such match'";
 	auto prepared = cn.prepare(selectSQL);
-	auto preparedSelectNothing = cn.prepare(selectNothingSQL);
+	auto preparedSelectNoRows = cn.prepare(selectNoRowsSQL);
 	
 	// Test querySet
 	ResultSet rs = cn.querySet(selectSQL);
@@ -1059,7 +1059,7 @@ unittest
 		// Were all results correctly purged? Can I still issue another command?
 		cn.querySet(selectSQL);
 
-		nullableRow = cn.queryRow(selectNothingSQL);
+		nullableRow = cn.queryRow(selectNoRowsSQL);
 		assert(nullableRow.isNull);
 
 		// Test prepared queryRow
@@ -1070,7 +1070,7 @@ unittest
 		// Were all results correctly purged? Can I still issue another command?
 		cn.querySet(selectSQL);
 
-		nullableRow = preparedSelectNothing.queryRow();
+		nullableRow = preparedSelectNoRows.queryRow();
 		assert(nullableRow.isNull);
 	}
 
@@ -1091,6 +1091,30 @@ unittest
 		assert(resultS == "aaa");
 		// Were all results correctly purged? Can I still issue another command?
 		cn.querySet(selectSQL);
+	}
+
+	{
+		Nullable!Variant result;
+
+		// Test queryValue
+		result = cn.queryValue(selectSQL);
+		assert(!result.isNull);
+		assert(result == 11);
+		// Were all results correctly purged? Can I still issue another command?
+		cn.querySet(selectSQL);
+
+		result = cn.queryValue(selectNoRowsSQL);
+		assert(result.isNull);
+
+		// Test prepared queryValue
+		result = prepared.queryValue();
+		assert(!result.isNull);
+		assert(result == 11);
+		// Were all results correctly purged? Can I still issue another command?
+		cn.querySet(selectSQL);
+
+		result = preparedSelectNoRows.queryValue();
+		assert(result.isNull);
 	}
 
 	{
