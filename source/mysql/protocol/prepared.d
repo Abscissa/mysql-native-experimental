@@ -329,14 +329,14 @@ package:
 	Variant[] _inParams;  //TODO? Convert to Nullable!Variant
 	ParameterSpecialization[] _psa;
 
-	static ubyte[] makeBitmap(in ParameterSpecialization[] psa) pure nothrow
+	static ubyte[] makeBitmap(in Variant[] inParams)
 	{
-		size_t bml = (psa.length+7)/8;
+		size_t bml = (inParams.length+7)/8;
 		ubyte[] bma;
 		bma.length = bml;
-		foreach (size_t i, PSN psn; psa)
+		foreach (i; 0..inParams.length)
 		{
-			if (!psn.isNull)
+			if(inParams[i].type != typeid(typeof(null)))
 				continue;
 			size_t bn = i/8;
 			size_t bb = i%8;
@@ -361,17 +361,6 @@ package:
 		prefix[13] = 0;
 
 		return prefix;
-	}
-
-	// Set ParameterSpecialization.isNull for all null values.
-	// This may not be the best way to handle it, but it'll do for now.
-	static void fixupNulls(ref Variant[] inParams, ref ParameterSpecialization[] psa)
-	{
-		foreach (size_t i; 0..inParams.length)
-		{
-			if (inParams[i].type == typeid(typeof(null)))
-				psa[i].isNull = true;
-		}
 	}
 
 	static ubyte[] analyseParams(Variant[] inParams, ParameterSpecialization[] psa,
@@ -402,7 +391,7 @@ package:
 			enum SIGNED    = 0;
 			if (psa[i].chunkSize)
 				longData= true;
-			if (psa[i].isNull)
+			if (inParams[i].type == typeid(typeof(null)))
 			{
 				types[ct++] = SQLType.NULL;
 				types[ct++] = SIGNED;
@@ -683,7 +672,7 @@ package:
 	Returns: true if there was a (possibly empty) result set.
 	+/
 	static bool execQueryImpl(Connection conn, uint hStmt, PreparedStmtHeaders psh,
-		Variant[] inParams, ParameterSpecialization[] psa, out ulong ra)
+		ref Variant[] inParams, ref ParameterSpecialization[] psa, out ulong ra)
 	{
 		enforceReadyForCommand(conn, hStmt);
 		scope(failure) conn.kill();
@@ -699,9 +688,8 @@ package:
 		{
 			ubyte[] one = [ 1 ];
 			ubyte[] vals;
-			fixupNulls(inParams, psa);
 			ubyte[] types = analyseParams(inParams, psa, vals, longData);
-			ubyte[] nbm = makeBitmap(psa);
+			ubyte[] nbm = makeBitmap(inParams);
 			packet = prefix ~ nbm ~ one ~ types ~ vals;
 		}
 		else
@@ -869,7 +857,7 @@ public:
 	Params: index = The zero based index
 	+/
 	//TODO? Change "ref Variant" to "Nullable!Variant"
-	void setArg(T)(size_t index, T val, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
+	void setArg(T)(size_t index, T val, ParameterSpecialization psn = PSN(0, SQLType.INFER_FROM_D_TYPE, 0, null))
 	{
 		// Now in theory we should be able to check the parameter type here, since the
 		// protocol is supposed to send us type information for the parameters, but this
@@ -885,7 +873,6 @@ public:
 		_inParams[index] = val;
 		psn.pIndex = index;
 		_psa[index] = psn;
-		fixupNulls(_inParams, _psa);
 	}
 
 	/++
@@ -905,7 +892,6 @@ public:
 
 		foreach (size_t i, dummy; args)
 			_inParams[i] = args[i];
-		fixupNulls(_inParams, _psa);
 	}
 
 	/++
@@ -947,7 +933,6 @@ public:
 			foreach (PSN psn; psnList)
 				_psa[psn.pIndex] = psn;
 		}
-		fixupNulls(_inParams, _psa);
 	}
 
 	/++

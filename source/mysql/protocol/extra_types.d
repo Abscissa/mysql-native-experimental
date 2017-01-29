@@ -127,6 +127,9 @@ struct LCS
 /++
 A struct to represent specializations of prepared statement parameters.
 
+Strongly considering the removal of the isNull field, now that Prepared
+can handle `null` as a value just fine.
+
 There are two specializations. First you can set an isNull flag to indicate that the
 parameter is to have the SQL NULL value.
 
@@ -142,7 +145,6 @@ struct ParameterSpecialization
 	import mysql.protocol.constants;
 	
 	size_t pIndex;    //parameter number 0 - number of params-1
-	bool isNull;
 	SQLType type = SQLType.INFER_FROM_D_TYPE;
 	uint chunkSize;
 	uint delegate(ubyte[]) chunkDelegate;

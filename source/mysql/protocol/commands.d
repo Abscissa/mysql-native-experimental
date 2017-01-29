@@ -373,7 +373,7 @@ public:
 	address, so there is no need to rebind between calls to execPreparedXXX.
 	+/
 	deprecated("Use Prepared.setArg instead")
-	void bindParameter(T)(ref T val, size_t pIndex, ParameterSpecialization psn = PSN(0, false, SQLType.INFER_FROM_D_TYPE, 0, null))
+	void bindParameter(T)(ref T val, size_t pIndex, ParameterSpecialization psn = PSN(0, SQLType.INFER_FROM_D_TYPE, 0, null))
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared before parameters are bound.");
 		_prepared.setArg(pIndex, &val, psn);
@@ -395,7 +395,6 @@ public:
 		enforceEx!MYX(args.length == _prepared.numArgs, "Argument list supplied does not match the number of parameters.");
 		foreach (size_t i, dummy; args)
 			_prepared.setArg(&args[i], i);
-		fixupNulls();
 	}
 
 	/++
