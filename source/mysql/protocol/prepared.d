@@ -637,29 +637,9 @@ package:
 		}
 	}
 
-	/++
-	Internal implementation for the exec and query functions.
-
-	Execute a prepared command.
-
-	Use this method when you will use the same SQL command repeatedly.
-	It can be used with commands that don't produce a result set, or those that
-	do. If there is a result set its existence will be indicated by the return value.
-
-	Any result set can be accessed vis Connection.getNextRow(), but you should really be
-	using execPreparedResult() or execPreparedSequence() for such queries.
-
-	Params: ra = An out parameter to receive the number of rows affected.
-	Returns: true if there was a (possibly empty) result set.
-	+/
-	//TODO? Merge with commands.execQueryImpl? The "handle response" sections appear to be mostly the same
-	static bool execQueryImpl(Connection conn, uint hStmt, PreparedStmtHeaders psh,
-		Variant[] inParams, ParameterSpecialization[] psa, out ulong ra)
+	static void sendCommand(Connection conn, uint hStmt, PreparedStmtHeaders psh,
+		Variant[] inParams, ParameterSpecialization[] psa)
 	{
-		enforceReadyForCommand(conn, hStmt);
-		scope(failure) conn.kill();
-
-		// Send data
 		ubyte[] packet;
 		conn.resetPacket();
 
@@ -685,37 +665,14 @@ package:
 		packet.setPacketHeader(conn.pktNumber);
 		conn.bumpPacket();
 		conn.send(packet);
-
-		// Handle response
-		packet = conn.getPacket();
-		bool rv;
-		if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
-		{
-			conn.resetPacket();
-			auto okp = OKErrorPacket(packet);
-			enforcePacketOK(okp);
-			ra = okp.affected;
-			conn._serverStatus = okp.serverStatus;
-			conn._insertID = okp.insertID;
-			rv = false;
-		}
-		else
-		{
-			// There was presumably a result set
-			conn._headersPending = conn._rowsPending = conn._binaryPending = true;
-			auto lcb = packet.consumeIfComplete!LCB();
-			assert(!lcb.isIncomplete);
-			conn._fieldCount = cast(ushort)lcb.value;
-			rv = true;
-		}
-		return rv;
 	}
-	
+
 	//TODO: This awkward func is only needed by the deprecated Command struct.
 	//      Remove this once Command struct is finally deleted.
 	bool execQueryImpl2(out ulong ra)
 	{
-		return execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra);
+		return execQueryImpl(_conn,
+			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa), ra);
 	}
 
 	/// Has this statement been released?
@@ -745,7 +702,10 @@ public:
 	ulong exec()
 	{
 		enforceReadyForCommand();
-		return execImpl(&execQueryImpl, _conn, _hStmt, _psh, _inParams, _psa);
+		return execImpl(
+			_conn,
+			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa)
+		);
 	}
 
 	/++
@@ -764,7 +724,10 @@ public:
 	ResultSet queryResult(ColumnSpecialization[] csa = null)
 	{
 		enforceReadyForCommand();
-		return queryResultImpl(&execQueryImpl, csa, true, _conn, _hStmt, _psh, _inParams, _psa);
+		return queryResultImpl(
+			csa, true, _conn,
+			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa)
+		);
 	}
 
 	/++
@@ -783,7 +746,10 @@ public:
 	ResultSequence querySequence(ColumnSpecialization[] csa = null)
 	{
 		enforceReadyForCommand();
-		return querySequenceImpl(&execQueryImpl, csa, _conn, _hStmt, _psh, _inParams, _psa);
+		return querySequenceImpl(
+			csa, _conn,
+			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa)
+		);
 	}
 
 	/++
@@ -801,7 +767,11 @@ public:
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYXNoResultRecieved(execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra));
+		enforceEx!MYXNoResultRecieved(execQueryImpl(
+			_conn, 
+			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa),
+			ra
+		));
 
 		return queryTupleImpl(_conn, args);
 	}

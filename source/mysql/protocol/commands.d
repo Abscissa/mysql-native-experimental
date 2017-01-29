@@ -20,6 +20,20 @@ import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
 import mysql.protocol.prepared;
 
+package struct ExecQueryImplInfo
+{
+	bool isPrepared;
+
+	// For non-prepared statements:
+	string sql;
+
+	// For prepared statements:
+	uint hStmt;
+	PreparedStmtHeaders psh;
+	Variant[] inParams;
+	ParameterSpecialization[] psa;
+}
+
 /++
 Internal implementation for the exec and query functions.
 
@@ -35,15 +49,19 @@ using execSQLResult() or execSQLSequence() for such queries.
 Params: ra = An out parameter to receive the number of rows affected.
 Returns: true if there was a (possibly empty) result set.
 +/
-//TODO? Merge with Prepared.execQueryImpl? The "handle response" sections appear to be mostly the same
-package bool execQueryImpl(Connection conn, string sql, out ulong ra)
+package bool execQueryImpl(Connection conn, ExecQueryImplInfo info, out ulong ra)
 {
 	conn.enforceNothingPending();
 	scope(failure) conn.kill();
 
 	// Send data
-	conn.sendCmd(CommandType.QUERY, sql);
-	conn._fieldCount = 0;
+	if(info.isPrepared)
+		Prepared.sendCommand(conn, info.hStmt, info.psh, info.inParams, info.psa);
+	else
+	{
+		conn.sendCmd(CommandType.QUERY, info.sql);
+		conn._fieldCount = 0;
+	}
 
 	// Handle response
 	ubyte[] packet = conn.getPacket();
@@ -63,7 +81,7 @@ package bool execQueryImpl(Connection conn, string sql, out ulong ra)
 		// There was presumably a result set
 		assert(packet.front >= 1 && packet.front <= 250); // ResultSet packet header should have this value
 		conn._headersPending = conn._rowsPending = true;
-		conn._binaryPending = false;
+		conn._binaryPending = info.isPrepared;
 		auto lcb = packet.consumeIfComplete!LCB();
 		assert(!lcb.isNull);
 		assert(!lcb.isIncomplete);
@@ -76,10 +94,10 @@ package bool execQueryImpl(Connection conn, string sql, out ulong ra)
 }
 
 ///ditto
-package bool execQueryImpl(Connection conn, string sql)
+package bool execQueryImpl(Connection conn, ExecQueryImplInfo info)
 {
 	ulong rowsAffected;
-	return execQueryImpl(conn, sql, rowsAffected);
+	return execQueryImpl(conn, info, rowsAffected);
 }
 
 /++
@@ -97,14 +115,14 @@ Returns: true if there was a (possibly empty) result set.
 +/
 ulong exec(Connection conn, string sql)
 {
-	return execImpl(&execQueryImpl, conn, sql);
+	return execImpl(conn, ExecQueryImplInfo(false, sql));
 }
 
 /// Common implementation for mysql.protocol.commands.exec and Prepared.exec
-package ulong execImpl(TImpl, TArgs...)(TImpl impl, Connection conn, TArgs args)
+package ulong execImpl(Connection conn, ExecQueryImplInfo info)
 {
 	ulong rowsAffected;
-	bool receivedResultSet = impl(conn, args, rowsAffected);
+	bool receivedResultSet = execQueryImpl(conn, info, rowsAffected);
 	if(receivedResultSet)
 	{
 		conn.purgeResult();
@@ -129,15 +147,15 @@ Returns: A (possibly empty) ResultSet.
 +/
 ResultSet queryResult(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
-	return queryResultImpl(&execQueryImpl, csa, false, conn, sql);
+	return queryResultImpl(csa, false, conn, ExecQueryImplInfo(false, sql));
 }
 
 /// Common implementation for mysql.protocol.commands.queryResult and Prepared.queryResult
-package ResultSet queryResultImpl(TImpl, TArgs...)
-	(TImpl impl, ColumnSpecialization[] csa, bool binary, Connection conn, TArgs args)
+package ResultSet queryResultImpl(ColumnSpecialization[] csa, bool binary,
+	Connection conn, ExecQueryImplInfo info)
 {
 	ulong ra;
-	enforceEx!MYXNoResultRecieved(impl(conn, args, ra));
+	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, info, ra));
 
 	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
 	if (csa !is null)
@@ -178,15 +196,15 @@ Returns: A (possibly empty) ResultSequence.
 +/
 ResultSequence querySequence(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
-	return querySequenceImpl(&execQueryImpl, csa, conn, sql);
+	return querySequenceImpl(csa, conn, ExecQueryImplInfo(false, sql));
 }
 
 /// Common implementation for mysql.protocol.commands.querySequence and Prepared.querySequence
-package ResultSequence querySequenceImpl(TImpl, TArgs...)
-	(TImpl impl, ColumnSpecialization[] csa, Connection conn, TArgs args)
+package ResultSequence querySequenceImpl(ColumnSpecialization[] csa,
+	Connection conn, ExecQueryImplInfo info)
 {
 	ulong ra;
-	enforceEx!MYXNoResultRecieved(impl(conn, args, ra));
+	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, info, ra));
 
 	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
 	if (csa !is null)
@@ -209,7 +227,7 @@ Returns: true if there was a (possibly empty) result set.
 void queryTuple(T...)(Connection conn, string sql, ref T args)
 {
 	ulong ra;
-	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, sql, ra));
+	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, ExecQueryImplInfo(false, sql), ra));
 
 	return queryTupleImpl(conn, args);
 }
@@ -490,7 +508,7 @@ public:
 	deprecated("Use the free-standing function .exec instead")
 	bool execSQL(out ulong ra)
 	{
-		return .execQueryImpl(_con, _sql, ra);
+		return .execQueryImpl(_con, ExecQueryImplInfo(false, _sql), ra);
 	}
 
 	///ditto
@@ -498,7 +516,7 @@ public:
 	bool execSQL()
 	{
 		ulong ra;
-		return .execQueryImpl(_con, _sql, ra);
+		return .execQueryImpl(_con, ExecQueryImplInfo(false, _sql), ra);
 	}
 	
 	/++
