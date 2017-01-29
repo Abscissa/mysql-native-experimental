@@ -966,13 +966,57 @@ public:
 	/++
 	Sets a prepared statement parameter to NULL.
 	
+	This is here mainly for legacy reasons. You can set a field to null
+	simply by saying `prepared.setArg(index, null);`
+
 	Params: index = The zero based index
 	+/
 	void setNullArg(size_t index)
 	{
 		enforceNotReleased();
 		setArg(index, null);
-		//setArg(index, Variant(null));
+	}
+
+	debug(MYSQL_INTEGRATION_TESTS)
+	unittest
+	{
+		import mysql.protocol.prepared;
+		import mysql.test.common : scopedCn;
+		mixin(scopedCn);
+
+		cn.exec("DROP TABLE IF EXISTS `setNullArg`");
+		cn.exec("CREATE TABLE `setNullArg` (
+			`val` INTEGER
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
+		immutable insertSQL = "INSERT INTO `setNullArg` VALUES (?)";
+		immutable selectSQL = "SELECT * FROM `setNullArg`";
+		auto preparedInsert = cn.prepare(insertSQL);
+		ResultSet rs;
+
+		preparedInsert.setArg(0, 5);
+		preparedInsert.exec();
+		rs = cn.queryResult(selectSQL);
+		assert(rs.length == 1);
+		assert(rs[0][0] == 5);
+
+		preparedInsert.setArg(0, null);
+		preparedInsert.exec();
+		rs = cn.queryResult(selectSQL);
+		assert(rs.length == 2);
+		assert(rs[0][0] == 5);
+		assert(rs[1].isNull(0));
+		//assert(rs[1][0].type == typeid(typeof(null)));
+
+		preparedInsert.setArg(0, Variant(null));
+		preparedInsert.exec();
+		rs = cn.queryResult(selectSQL);
+		assert(rs.length == 3);
+		assert(rs[0][0] == 5);
+		assert(rs[1].isNull(0));
+		assert(rs[2].isNull(0));
+		//assert(rs[1][0].type == typeid(typeof(null)));
+		//assert(rs[2][0].type == typeid(typeof(null)));
 	}
 
 	/++
