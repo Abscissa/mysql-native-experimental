@@ -168,8 +168,8 @@ public:
 	/++
 	Simplify retrieval of a column value by index.
 	
-	If the table you are working with does not allow NULL columns, this may
-	be all you need. Otherwise you will have to use isNull(i) as well.
+	To check for null, use Variant's .type property:
+	`row[index].type == typeid(typeof(null))`
 	
 	Params: i = the zero based index of the column whose value is required.
 	Returns: A Variant holding the column value.

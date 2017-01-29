@@ -1,9 +1,26 @@
 TBD - TBD
 =====================
+- **New:**
+	Major API overhaul to simplify usage and fix various fundamental problems.
+	Most noticeably, the entire Command struct is deprecated. Its functionality
+	has been split and moved (as appropriate) into Connection, various
+	free-functions, and a new reference-counted `Prepared` struct exclusively
+	for prepared statements.
+- **New:**
+	Various new subclasses of MySQLException added, for better fine-grained control.
 - **Change:**
 	Drop support for DMDFE 2.067.x and below. Compiles on
 	DMDFE 2.068.2 through 2.072.0. See [.travis.yml](https://github.com/mysql-d/mysql-native/blob/master/.travis.yml)
 	for full list of supported compilers.
+- **Change:**
+	`Row.opIndex` no longer throws if the value is null. Instead, it returns `Variant(null)`.
+- **Change:**
+	Values bound to prepared statement parameters are now taken by value, not by
+	reference (but only when using the new `Prepared` struct, not the
+	now-deprecated `Command` struct).
+- **Fixed:** More unittests.
+- **Fixed:**
+	Better safety against new commands being issued before an earlier command is complete.
 
 v0.1.7 - 2016-10-20
 =====================
