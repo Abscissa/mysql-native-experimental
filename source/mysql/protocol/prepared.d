@@ -826,9 +826,13 @@ public:
 	/++
 	Prepared statement parameter setter.
 
-	The value may, but doesn't have to be, wrapped in a Variant.
+	The value may, but doesn't have to be, wrapped in a Variant. If so,
+	null is handled correctly.
 	
 	The value may, but doesn't have to be, a pointer to the desired value.
+
+	The value may, but doesn't have to be, wrapped in a Nullable!T. If so,
+	null is handled correctly.
 
 	The value can be null.
 
@@ -836,6 +840,7 @@ public:
 	+/
 	//TODO? Change "ref Variant" to "Nullable!Variant"
 	void setArg(T)(size_t index, T val, ParameterSpecialization psn = PSN(0, SQLType.INFER_FROM_D_TYPE, 0, null))
+		if(!isInstanceOf!(Nullable, T))
 	{
 		// Now in theory we should be able to check the parameter type here, since the
 		// protocol is supposed to send us type information for the parameters, but this
@@ -853,6 +858,15 @@ public:
 		_psa[index] = psn;
 	}
 
+	void setArg(T)(size_t index, Nullable!T val, ParameterSpecialization psn = PSN(0, SQLType.INFER_FROM_D_TYPE, 0, null))
+	{
+		enforceNotReleased();
+		if(val.isNull)
+			setArg(index, null, psn);
+		else
+			setArg(index, val.get(), psn);
+	}
+
 	/++
 	Bind a tuple of D variables to the parameters of a prepared statement.
 	
@@ -868,8 +882,8 @@ public:
 		enforceNotReleased();
 		enforceEx!MYX(args.length == _psParams, "Argument list supplied does not match the number of parameters.");
 
-		foreach (size_t i, dummy; args)
-			_inParams[i] = args[i];
+		foreach (size_t i, arg; args)
+			setArg(i, arg);
 	}
 
 	/++
@@ -956,6 +970,23 @@ public:
 		immutable selectSQL = "SELECT * FROM `setNullArg`";
 		auto preparedInsert = cn.prepare(insertSQL);
 		ResultSet rs;
+
+		{
+			Nullable!int nullableInt;
+			nullableInt.nullify();
+			preparedInsert.setArg(0, nullableInt);
+			assert(preparedInsert.getArg(0).type == typeid(typeof(null)));
+			nullableInt = 7;
+			preparedInsert.setArg(0, nullableInt);
+			assert(preparedInsert.getArg(0) == 7);
+
+			nullableInt.nullify();
+			preparedInsert.setArgs(nullableInt);
+			assert(preparedInsert.getArg(0).type == typeid(typeof(null)));
+			nullableInt = 7;
+			preparedInsert.setArgs(nullableInt);
+			assert(preparedInsert.getArg(0) == 7);
+		}
 
 		preparedInsert.setArg(0, 5);
 		preparedInsert.exec();

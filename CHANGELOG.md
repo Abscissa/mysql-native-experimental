@@ -14,6 +14,10 @@ TBD - TBD
 	Various new subclasses of MySQLException added, for better fine-grained control.
 - **New:**
 	Add `length` property and `opDollar` to struct Row.
+- **New:**
+	Can use `null` or `Nullable!T` when setting arguments for prepared statements.
+	The null condition is correctly handled. Using `setNullParam` (now `setNullArg`)
+	is no longer necessary.
 - **Change:**
 	Drop support for DMDFE 2.067.x and below. Compiles on
 	DMDFE 2.068.2 through 2.072.0. See [.travis.yml](https://github.com/mysql-d/mysql-native/blob/master/.travis.yml)
