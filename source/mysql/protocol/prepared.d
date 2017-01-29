@@ -641,23 +641,25 @@ package:
 	Internal implementation for the exec and query functions.
 
 	Execute a prepared command.
-	
+
 	Use this method when you will use the same SQL command repeatedly.
 	It can be used with commands that don't produce a result set, or those that
 	do. If there is a result set its existence will be indicated by the return value.
-	
+
 	Any result set can be accessed vis Connection.getNextRow(), but you should really be
 	using execPreparedResult() or execPreparedSequence() for such queries.
-	
+
 	Params: ra = An out parameter to receive the number of rows affected.
 	Returns: true if there was a (possibly empty) result set.
 	+/
+	//TODO? Merge with commands.execQueryImpl? The "handle response" sections appear to be mostly the same
 	static bool execQueryImpl(Connection conn, uint hStmt, PreparedStmtHeaders psh,
 		ref Variant[] inParams, ref ParameterSpecialization[] psa, out ulong ra)
 	{
 		enforceReadyForCommand(conn, hStmt);
 		scope(failure) conn.kill();
 
+		// Send data
 		ubyte[] packet;
 		conn.resetPacket();
 
@@ -683,6 +685,8 @@ package:
 		packet.setPacketHeader(conn.pktNumber);
 		conn.bumpPacket();
 		conn.send(packet);
+
+		// Handle response
 		packet = conn.getPacket();
 		bool rv;
 		if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
@@ -707,6 +711,8 @@ package:
 		return rv;
 	}
 	
+	//TODO: This awkward func is only needed by the deprecated Command struct.
+	//      Remove this once Command struct is finally deleted.
 	bool execQueryImpl2(out ulong ra)
 	{
 		return execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra);

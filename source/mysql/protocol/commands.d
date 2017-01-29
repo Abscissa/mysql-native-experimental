@@ -35,14 +35,17 @@ using execSQLResult() or execSQLSequence() for such queries.
 Params: ra = An out parameter to receive the number of rows affected.
 Returns: true if there was a (possibly empty) result set.
 +/
-//TODO? Merge with Prepared.execQueryImpl?
+//TODO? Merge with Prepared.execQueryImpl? The "handle response" sections appear to be mostly the same
 package bool execQueryImpl(Connection conn, string sql, out ulong ra)
 {
 	conn.enforceNothingPending();
 	scope(failure) conn.kill();
 
+	// Send data
 	conn.sendCmd(CommandType.QUERY, sql);
 	conn._fieldCount = 0;
+
+	// Handle response
 	ubyte[] packet = conn.getPacket();
 	bool rv;
 	if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
