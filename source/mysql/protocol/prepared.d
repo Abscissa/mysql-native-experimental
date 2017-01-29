@@ -326,7 +326,7 @@ package:
 	uint _hStmt; // Server's identifier for this prepared statement. This is 0 when released.
 	ushort _psParams, _psWarnings;
 	PreparedStmtHeaders _psh;
-	Variant[] _inParams;  //TODO? Convert to Nullable!Variant
+	Variant[] _inParams;
 	ParameterSpecialization[] _psa;
 
 	static ubyte[] makeBitmap(in Variant[] inParams)

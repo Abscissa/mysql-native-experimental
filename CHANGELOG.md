@@ -1,6 +1,10 @@
 TBD - TBD
 =====================
 - **New:**
+	[#75](https://github.com/mysql-d/mysql-native/issues/75),
+	[#85](https://github.com/mysql-d/mysql-native/issues/85),
+	[#86](https://github.com/mysql-d/mysql-native/issues/86),
+	[#87](https://github.com/mysql-d/mysql-native/issues/87):
 	Major API overhaul to simplify usage and fix various fundamental problems.
 	Most noticeably, the entire Command struct is deprecated. Its functionality
 	has been split and moved (as appropriate) into Connection, various
@@ -15,12 +19,16 @@ TBD - TBD
 - **Change:**
 	`Row.opIndex` no longer throws if the value is null. Instead, it returns `Variant(null)`.
 - **Change:**
+	[#89](https://github.com/mysql-d/mysql-native/issues/89):
 	Values bound to prepared statement parameters are now taken by value, not by
 	reference (but only when using the new `Prepared` struct, not the
 	now-deprecated `Command` struct).
 - **Fixed:** More unittests.
 - **Fixed:**
 	Better safety against new commands being issued before an earlier command is complete.
+- **Fixed:**
+	[#76](https://github.com/mysql-d/mysql-native/issues/76)
+	Prepared statements are auto-released when their reference count reaches zero.
 
 v0.1.7 - 2016-10-20
 =====================
