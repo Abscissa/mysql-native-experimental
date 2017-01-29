@@ -226,15 +226,15 @@ Returns: true if there was a (possibly empty) result set.
 +/
 void queryTuple(T...)(Connection conn, string sql, ref T args)
 {
-	ulong ra;
-	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, ExecQueryImplInfo(false, sql), ra));
-
-	return queryTupleImpl(conn, args);
+	return queryTupleImpl(conn, ExecQueryImplInfo(false, sql), args);
 }
 
 /// Common implementation for mysql.protocol.commands.queryTuple and Prepared.queryTuple
-void queryTupleImpl(T...)(Connection conn, ref T args)
+void queryTupleImpl(T...)(Connection conn, ExecQueryImplInfo info, ref T args)
 {
+	ulong ra;
+	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, info, ra));
+
 	Row rr = conn.getNextRow();
 	/+if (!rr._valid)   // The result set was empty - not a crime.
 		return;+/

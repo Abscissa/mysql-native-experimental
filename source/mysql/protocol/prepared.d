@@ -765,15 +765,11 @@ public:
 	void queryTuple(T...)(ref T args)
 	{
 		enforceReadyForCommand();
-
-		ulong ra;
-		enforceEx!MYXNoResultRecieved(execQueryImpl(
-			_conn, 
+		return queryTupleImpl(
+			_conn,
 			ExecQueryImplInfo(true, null, _hStmt, _psh, _inParams, _psa),
-			ra
-		));
-
-		return queryTupleImpl(_conn, args);
+			args
+		);
 	}
 
 	/++
