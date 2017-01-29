@@ -719,29 +719,6 @@ package:
 	}
 
 public:
-	/+ ******************************************
-
-	// Returns rowsAffected
-	// Throws if resultset was returned ("Use query insetad!")
-	// Throws if already in the middle of receiving a resultset
-	ulong exec()
-	ulong exec(Params...)(Params params)
-
-	// Throws if no result set returned ("Use exec insetad!")
-	// Throws if already in the middle of receiving a resultset
-	ResultSet query()
-	ResultSet query(Params...)(Params params)
-
-	ResultSequence query()()
-	ResultSequence query(Params...)(Params params)
-	ResultSet querySet()()
-	ResultSet querySet(Params...)(Params params)
-	//TODO: querySingle/queryScalar/etc...
-
-	//bindParameters/bindParameterTuple... // TODO
-
-	****************************************** +/
-
 	~this()
 	{
 		release();
@@ -838,7 +815,6 @@ public:
 
 	Params: index = The zero based index
 	+/
-	//TODO? Change "ref Variant" to "Nullable!Variant"
 	void setArg(T)(size_t index, T val, ParameterSpecialization psn = PSN(0, SQLType.INFER_FROM_D_TYPE, 0, null))
 		if(!isInstanceOf!(Nullable, T))
 	{
@@ -914,7 +890,6 @@ public:
 	Params: va = External list of Variants to be used as parameters
 	               psnList = any required specializations
 	+/
-	//TODO? Overload with "Variant" to "Nullable!Variant"
 	void setArgs(Variant[] va, ParameterSpecialization[] psnList= null)
 	{
 		enforceNotReleased();
@@ -932,7 +907,6 @@ public:
 
 	Params: index = The zero based index
 	+/
-	//TODO? Change "ref Variant" to "Nullable!Variant"
 	Variant getArg(size_t index)
 	{
 		enforceNotReleased();

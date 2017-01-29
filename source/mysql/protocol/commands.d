@@ -439,7 +439,6 @@ public:
 	------------
 	Params: index = The zero based index
 	+/
-	//TODO? Change "ref Variant" to "Nullable!Variant"
 	deprecated("Use Prepared.getArg to get and Prepared.setArg to set.")
 	ref Variant param(size_t index) pure
 	{
@@ -453,7 +452,6 @@ public:
 
 	Params: index = The zero based index
 	+/
-	//TODO? Change "ref Variant" to "Nullable!Variant"
 	deprecated("Use Prepared.getArg instead.")
 	Variant getArg(size_t index)
 	{
