@@ -189,6 +189,14 @@ public:
 	@property bool isNull(size_t i) const pure nothrow { return _nulls[i]; }
 
 	/++
+	Get the number of elements (columns) in this row.
+	+/
+	@property size_t length() const pure nothrow { return _values.length; }
+
+	///ditto
+	alias opDollar = length;
+
+	/++
 	Move the content of the row into a compatible struct
 	
 	This method takes no account of NULL column values. If a column was NULL,

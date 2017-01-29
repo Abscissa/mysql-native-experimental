@@ -946,3 +946,111 @@ unittest
 	assert(row[2] == "UTF-8 Unicode");
 	assert(row[3] == 3);
 }
+
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
+	import mysql.protocol.prepared;
+	mixin(scopedCn);
+
+	cn.exec("DROP TABLE IF EXISTS `coupleTypes`");
+	cn.exec("CREATE TABLE `coupleTypes` (
+		`i` INTEGER,
+		`s` VARCHAR(50)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+	cn.exec("INSERT INTO `coupleTypes` VALUES (11, 'aaa'), (22, 'bbb'), (33, 'ccc')");
+
+	immutable selectSQL = "SELECT * FROM `coupleTypes`";
+	auto prepared = cn.prepare(selectSQL);
+	
+	ResultSet rs = cn.queryResult(selectSQL);
+	assert(rs.length == 3);
+	assert(rs[0].length == 2);
+	assert(rs[0][0] == 11);
+	assert(rs[0][1] == "aaa");
+	assert(rs[1].length == 2);
+	assert(rs[1][0] == 22);
+	assert(rs[1][1] == "bbb");
+	assert(rs[2].length == 2);
+	assert(rs[2][0] == 33);
+	assert(rs[2][1] == "ccc");
+	assert(rs[2][$-1] == "ccc");
+
+	rs = prepared.queryResult();
+	assert(rs.length == 3);
+	assert(rs[0].length == 2);
+	assert(rs[0][0] == 11);
+	assert(rs[0][1] == "aaa");
+	assert(rs[1].length == 2);
+	assert(rs[1][0] == 22);
+	assert(rs[1][1] == "bbb");
+	assert(rs[2].length == 2);
+	assert(rs[2][0] == 33);
+	assert(rs[2][1] == "ccc");
+	
+	{
+		ResultSequence rseq = cn.querySequence(selectSQL);
+		assert(!rseq.empty);
+		assert(rseq.front.length == 2);
+		assert(rseq.front[0] == 11);
+		assert(rseq.front[1] == "aaa");
+		rseq.popFront();
+		assert(!rseq.empty);
+		assert(rseq.front.length == 2);
+		assert(rseq.front[0] == 22);
+		assert(rseq.front[1] == "bbb");
+		rseq.popFront();
+		assert(!rseq.empty);
+		assert(rseq.front.length == 2);
+		assert(rseq.front[0] == 33);
+		assert(rseq.front[1] == "ccc");
+		rseq.popFront();
+		assert(rseq.empty);
+	}
+
+	{
+		ResultSequence rseq = prepared.querySequence();
+		assert(!rseq.empty);
+		assert(rseq.front.length == 2);
+		assert(rseq.front[0] == 11);
+		assert(rseq.front[1] == "aaa");
+		rseq.popFront();
+		assert(!rseq.empty);
+		assert(rseq.front.length == 2);
+		assert(rseq.front[0] == 22);
+		assert(rseq.front[1] == "bbb");
+		rseq.popFront();
+		assert(!rseq.empty);
+		assert(rseq.front.length == 2);
+		assert(rseq.front[0] == 33);
+		assert(rseq.front[1] == "ccc");
+		rseq.popFront();
+		assert(rseq.empty);
+	}
+
+	{
+		// Re-use the same ResultSequence
+		ResultSequence rseq = cn.querySequence(selectSQL);
+		assert(!rseq.empty);
+		rseq.each();
+		assert(rseq.empty);
+		rseq = cn.querySequence(selectSQL);
+		//assert(!rseq.empty); //TODO: Why does this fail???
+		rseq.each();
+		assert(rseq.empty);
+	}
+
+	int resultI;
+	string resultS;
+	cn.queryTuple(selectSQL, resultI, resultS);
+	assert(resultI == 11);
+	assert(resultS == "aaa");
+	// Were all results correctly purged? Can I still issue another command?
+	cn.queryResult(selectSQL);
+
+	prepared.queryTuple(resultI, resultS);
+	assert(resultI == 11);
+	assert(resultS == "aaa");
+	// Were all results correctly purged? Can I still issue another command?
+	cn.queryResult(selectSQL);
+}

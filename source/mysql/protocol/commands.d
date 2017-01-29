@@ -170,12 +170,9 @@ This method will throw if the SQL command does not produce a result set.
 If there are long data items among the expected result columns you can specify
 that they are to be subject to chunked transfer via a delegate.
 
-WARNING: This function is not currently unittested.
-
 Params: csa = An optional array of ColumnSpecialization structs.
 Returns: A (possibly empty) ResultSequence.
 +/
-//TODO: This needs unittested
 ResultSequence querySequence(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
 	return querySequenceImpl(&execQueryImpl, csa, conn, sql);
@@ -531,13 +528,10 @@ public:
 	
 	If there are long data items among the expected result columns you can specify
 	that they are to be subject to chunked transfer via a delegate.
-	
-	WARNING: This function is not currently unittested.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
-	//TODO: This needs unittested
 	deprecated("Use the free-standing function .querySequence instead")
 	ResultSequence execSQLSequence(ColumnSpecialization[] csa = null)
 	{
@@ -609,13 +603,10 @@ public:
 	
 	If there are long data items among the expected result columns you can
 	specify that they are to be subject to chunked transfer via a delegate.
-	
-	WARNING: This function is not currently unittested.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSequence.
 	+/
-	//TODO: This needs unittested
 	deprecated("Use Prepared.querySequence instead")
 	ResultSequence execPreparedSequence(ColumnSpecialization[] csa = null)
 	{
