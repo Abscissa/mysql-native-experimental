@@ -460,7 +460,9 @@ public:
 	/// Make the ResultSequence behave as an input range - empty
 	@property bool empty() const pure nothrow
 	{
-		//TODO: Ensure that this is the most recent ResultSequence received on this connection
+		if(!isValid)
+			return true;
+
 		return !_con._rowsPending;
 	}
 

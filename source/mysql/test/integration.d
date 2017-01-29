@@ -1080,6 +1080,7 @@ unittest
 
 		cn.purgeResult();
 
+		assert(rseq1.empty);
 		assertThrown!MYXInvalidatedRange(rseq1.front);
 		assertThrown!MYXInvalidatedRange(rseq1.popFront());
 		assertThrown!MYXInvalidatedRange(rseq1.asAA());
@@ -1090,6 +1091,7 @@ unittest
 		assert(rseq2.front[0] == "ccc");
 		assert(rseq2.front[1] == 33);
 
+		assert(rseq1.empty);
 		assertThrown!MYXInvalidatedRange(rseq1.front);
 		assertThrown!MYXInvalidatedRange(rseq1.popFront());
 		assertThrown!MYXInvalidatedRange(rseq1.asAA());
