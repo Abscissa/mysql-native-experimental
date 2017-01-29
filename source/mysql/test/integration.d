@@ -960,9 +960,11 @@ unittest
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 	cn.exec("INSERT INTO `coupleTypes` VALUES (11, 'aaa'), (22, 'bbb'), (33, 'ccc')");
 
-	immutable selectSQL = "SELECT * FROM `coupleTypes`";
+	immutable selectSQL  = "SELECT * FROM `coupleTypes` ORDER BY i ASC";
+	immutable selectSQL2 = "SELECT `s`,`i` FROM `coupleTypes` ORDER BY i DESC";
 	auto prepared = cn.prepare(selectSQL);
 	
+	// Test queryResult
 	ResultSet rs = cn.queryResult(selectSQL);
 	assert(rs.length == 3);
 	assert(rs[0].length == 2);
@@ -976,6 +978,7 @@ unittest
 	assert(rs[2][1] == "ccc");
 	assert(rs[2][$-1] == "ccc");
 
+	// Test prepared queryResult
 	rs = prepared.queryResult();
 	assert(rs.length == 3);
 	assert(rs[0].length == 2);
@@ -989,6 +992,7 @@ unittest
 	assert(rs[2][1] == "ccc");
 	
 	{
+		// Test querySequence
 		ResultSequence rseq = cn.querySequence(selectSQL);
 		assert(!rseq.empty);
 		assert(rseq.front.length == 2);
@@ -1009,6 +1013,7 @@ unittest
 	}
 
 	{
+		// Test prepared querySequence
 		ResultSequence rseq = prepared.querySequence();
 		assert(!rseq.empty);
 		assert(rseq.front.length == 2);
@@ -1029,7 +1034,7 @@ unittest
 	}
 
 	{
-		// Re-use the same ResultSequence
+		// Test reusing the same ResultSequence
 		ResultSequence rseq = cn.querySequence(selectSQL);
 		assert(!rseq.empty);
 		rseq.each();
@@ -1040,6 +1045,7 @@ unittest
 		assert(rseq.empty);
 	}
 
+	// Test queryTuple
 	int resultI;
 	string resultS;
 	cn.queryTuple(selectSQL, resultI, resultS);
@@ -1048,9 +1054,34 @@ unittest
 	// Were all results correctly purged? Can I still issue another command?
 	cn.queryResult(selectSQL);
 
+	// Test prepared queryTuple
 	prepared.queryTuple(resultI, resultS);
 	assert(resultI == 11);
 	assert(resultS == "aaa");
 	// Were all results correctly purged? Can I still issue another command?
 	cn.queryResult(selectSQL);
+
+	{
+		// Test using outdated ResultSequence
+		ResultSequence rseq1 = cn.querySequence(selectSQL);
+		rseq1.popFront();
+		assert(!rseq1.empty);
+		assert(rseq1.front[0] == 22);
+
+		cn.purgeResult();
+
+		assertThrown!MYXInvalidatedRange(rseq1.front);
+		assertThrown!MYXInvalidatedRange(rseq1.popFront());
+		assertThrown!MYXInvalidatedRange(rseq1.asAA());
+
+		ResultSequence rseq2 = cn.querySequence(selectSQL2);
+		assert(!rseq2.empty);
+		assert(rseq2.front.length == 2);
+		assert(rseq2.front[0] == "ccc");
+		assert(rseq2.front[1] == 33);
+
+		assertThrown!MYXInvalidatedRange(rseq1.front);
+		assertThrown!MYXInvalidatedRange(rseq1.popFront());
+		assertThrown!MYXInvalidatedRange(rseq1.asAA());
+	}
 }

@@ -427,13 +427,21 @@ private:
 	string[]         _colNames;
 	size_t[string]   _colNameIndicies;
 	ulong            _numRowsFetched;
+	ulong            _commandId; // So we can keep track of when this is invalidated
+
+	void ensureValid() const pure
+	{
+		enforceEx!MYXInvalidatedRange(isValid,
+			"This ResultSequence has been invalidated and can no longer be used.");
+	}
 
 package:
 	this (Connection con, ResultSetHeaders rsh, string[] colNames)
 	{
-		_con      = con;
-		_rsh      = rsh;
-		_colNames = colNames;
+		_con       = con;
+		_rsh       = rsh;
+		_colNames  = colNames;
+		_commandId = con.lastCommandId;
 		popFront();
 	}
 
@@ -441,6 +449,12 @@ public:
 	~this()
 	{
 		close();
+	}
+
+	/// Check whether the range can still we used, or has been invalidated
+	@property bool isValid() const pure nothrow
+	{
+		return _commandId == _con.lastCommandId;
 	}
 
 	/// Make the ResultSequence behave as an input range - empty
@@ -457,6 +471,7 @@ public:
 	+/
 	@property inout(Row) front() pure inout
 	{
+		ensureValid();
 		enforceEx!MYX(!empty, "Attempted 'front' on exhausted result sequence.");
 		return _row;
 	}
@@ -468,7 +483,7 @@ public:
 	+/
 	void popFront()
 	{
-		//TODO: Ensure that this is the most recent ResultSequence received on this connection
+		ensureValid();
 		enforceEx!MYX(!empty, "Attempted 'popFront' when no more rows available");
 		_row = _con.getNextRow();
 		_numRowsFetched++;
@@ -479,6 +494,7 @@ public:
 	+/
 	 DBValue[string] asAA()
 	 {
+		ensureValid();
 		enforceEx!MYX(!empty, "Attempted 'front' on exhausted result sequence.");
 		DBValue[string] aa;
 		foreach (size_t i, string s; _colNames)
@@ -508,10 +524,11 @@ public:
 
 	/// Explicitly clean up the MySQL resources and cancel pending results
 	void close()
+	out{ assert(!isValid); }
+	body
 	{
-		//TODO: Ensure that this is the most recent ResultSequence received on this connection
-		_con.purgeResult();
-		//TODO: Make certain that, at this point, this ResultSequence can no longer be used
+		if(isValid)
+			_con.purgeResult();
 	}
 
 	/++

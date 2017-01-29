@@ -3,6 +3,7 @@ TBD - TBD
 - **Summary:**
 	API overhauled for better safety, reliability and ease-of-use. Deprecated and
 	replaced entire Command struct with better design. Better handling of null.
+	Various bugs fixed and more rigorously tested.
 - **New:**
 	[#75](https://github.com/mysql-d/mysql-native/issues/75),
 	[#85](https://github.com/mysql-d/mysql-native/issues/85),
@@ -38,6 +39,10 @@ TBD - TBD
 - **Fixed:**
 	[#76](https://github.com/mysql-d/mysql-native/issues/76)
 	Prepared statements are auto-released when their reference count reaches zero.
+- **Fixed:**
+	Now get an MySQLInvalidatedRangeException instead of undefined behavior
+	when using a ResultSequence after it's been invalidated by either a new
+	command being issued or the results being purged.
 
 v0.1.7 - 2016-10-20
 =====================

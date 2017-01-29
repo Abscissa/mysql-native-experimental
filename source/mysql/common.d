@@ -135,6 +135,20 @@ class MySQLNoResultRecievedException: MySQLWrongFunctionException
 }
 alias MYXNoResultRecieved = MySQLNoResultRecievedException;
 
+/++
+Thrown when attempting to use a range that's been invalidated.
+In particular, when using a ResultSequence after a new command
+has been issued on the same connection.
++/
+class MySQLInvalidatedRangeException: MySQLException
+{
+	this(string msg, string file = __FILE__, size_t line = __LINE__) pure
+	{
+		super(msg, file, line);
+	}
+}
+alias MYXInvalidatedRange = MySQLInvalidatedRangeException;
+
 debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
