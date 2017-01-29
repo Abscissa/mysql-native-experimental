@@ -1062,6 +1062,16 @@ unittest
 	cn.queryResult(selectSQL);
 
 	{
+		// Issue new command before old command was purged
+		ResultSequence rseq1 = cn.querySequence(selectSQL);
+		rseq1.popFront();
+		assert(!rseq1.empty);
+		assert(rseq1.front[0] == 22);
+
+		assertThrown!MYXDataPending(cn.querySequence(selectSQL2));
+	}
+
+	{
 		// Test using outdated ResultSequence
 		ResultSequence rseq1 = cn.querySequence(selectSQL);
 		rseq1.popFront();
