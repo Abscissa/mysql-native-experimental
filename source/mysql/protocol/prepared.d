@@ -654,7 +654,7 @@ package:
 	+/
 	//TODO? Merge with commands.execQueryImpl? The "handle response" sections appear to be mostly the same
 	static bool execQueryImpl(Connection conn, uint hStmt, PreparedStmtHeaders psh,
-		ref Variant[] inParams, ref ParameterSpecialization[] psa, out ulong ra)
+		Variant[] inParams, ParameterSpecialization[] psa, out ulong ra)
 	{
 		enforceReadyForCommand(conn, hStmt);
 		scope(failure) conn.kill();
