@@ -793,81 +793,38 @@ public:
 	ulong exec()
 	{
 		enforceReadyForCommand();
-
-		ulong rowsAffected;
-		bool receivedResultSet = execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, rowsAffected);
-		if(receivedResultSet)
-		{
-			_conn.purgeResult();
-			throw new MYXResultRecieved();
-		}
-		
-		return rowsAffected;
+		return execImpl(&execQueryImpl, _conn, _hStmt, _psh, _inParams, _psa);
 	}
 
 	/++
 	Execute a prepared SQL command for the case where you expect a result set,
 	and want it all at once.
-	
+
 	Use this method when you will use the same command repeatedly.
 	This method will throw if the SQL command does not produce a result set.
-	
+
 	If there are long data items among the expected result columns you can specify
 	that they are to be subject to chunked transfer via a delegate.
-	
+
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSet.
 	+/
 	ResultSet queryResult(ColumnSpecialization[] csa = null)
 	{
 		enforceReadyForCommand();
-
-		ulong ra;
-		enforceEx!MYXNoResultRecieved(execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra));
-
-		uint alloc = 20;
-		Row[] rra;
-		rra.length = alloc;
-		uint cr = 0;
-		_conn._rsh = ResultSetHeaders(_conn, _conn._fieldCount);
-		if (csa !is null)
-			_conn._rsh.addSpecializations(csa);
-		_conn._headersPending = false;
-
-		ubyte[] packet;
-		for (size_t i = 0;; i++)
-		{
-			scope(failure) _conn.kill();
-			
-			packet = _conn.getPacket();
-			if (packet.isEOFPacket())
-				break;
-			Row row = Row(_conn, packet, _conn._rsh, true);
-			if (cr >= alloc)
-			{
-				alloc = (alloc*3)/2;
-				rra.length = alloc;
-			}
-			rra[cr++] = row;
-			if (!packet.empty && packet.isEOFPacket())
-				break;
-		}
-		_conn._rowsPending = _conn._binaryPending = false;
-		rra.length = cr;
-		ResultSet rs = ResultSet(rra, _conn._rsh.fieldNames);
-		return rs;
+		return queryResultImpl(&execQueryImpl, csa, true, _conn, _hStmt, _psh, _inParams, _psa);
 	}
 
 	/++
 	Execute a prepared SQL command for the case where you expect a result set,
 	and want to deal with it one row at a time.
-	
+
 	Use this method when you will use the same command repeatedly.
 	This method will throw if the SQL command does not produce a result set.
-	
+
 	If there are long data items among the expected result columns you can
 	specify that they are to be subject to chunked transfer via a delegate.
-	
+
 	WARNING: This function is not currently unittested.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
@@ -877,19 +834,7 @@ public:
 	ResultSequence querySequence(ColumnSpecialization[] csa = null)
 	{
 		enforceReadyForCommand();
-
-		ulong ra;
-		enforceEx!MYXNoResultRecieved(execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra));
-
-		uint alloc = 20;
-		Row[] rra;
-		rra.length = alloc;
-		uint cr = 0;
-		_conn._rsh = ResultSetHeaders(_conn, _conn._fieldCount);
-		if (csa !is null)
-			_conn._rsh.addSpecializations(csa);
-		_conn._headersPending = false;
-		return ResultSequence(_conn, _conn._rsh, _conn._rsh.fieldNames);
+		return querySequenceImpl(&execQueryImpl, csa, _conn, _hStmt, _psh, _inParams, _psa);
 	}
 
 	/++
@@ -908,19 +853,8 @@ public:
 
 		ulong ra;
 		enforceEx!MYXNoResultRecieved(execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra));
-		Row rr = _conn.getNextRow();
-		// enforceEx!MYX(rr._valid, "The result set was empty.");
-		enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");
-		foreach (size_t i, dummy; args)
-		{
-			enforceEx!MYX(typeid(args[i]).toString() == rr._values[i].type.toString(),
-				"Tuple "~to!string(i)~" type and column type are not compatible.");
-			args[i] = rr._values[i].get!(typeof(args[i]));
-		}
-		// If there were more rows, flush them away
-		// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
-		// allow sloppy SQL that does not ensure just one row!
-		_conn.purgeResult();
+
+		return queryTupleImpl(_conn, args);
 	}
 
 	/++

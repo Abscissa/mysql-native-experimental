@@ -92,11 +92,16 @@ using execSQLResult() or execSQLSequence() for such queries.
 Params: ra = An out parameter to receive the number of rows affected.
 Returns: true if there was a (possibly empty) result set.
 +/
-//TODO: Can/Should I merge the implementation of this with Prepared.exec?
 ulong exec(Connection conn, string sql)
 {
+	return execImpl(&execQueryImpl, conn, sql);
+}
+
+/// Common implementation for mysql.protocol.commands.exec and Prepared.exec
+package ulong execImpl(TImpl, TArgs...)(TImpl impl, Connection conn, TArgs args)
+{
 	ulong rowsAffected;
-	bool receivedResultSet = execQueryImpl(conn, sql, rowsAffected);
+	bool receivedResultSet = impl(conn, args, rowsAffected);
 	if(receivedResultSet)
 	{
 		conn.purgeResult();
@@ -119,11 +124,17 @@ that they are to be subject to chunked transfer via a delegate.
 Params: csa = An optional array of ColumnSpecialization structs.
 Returns: A (possibly empty) ResultSet.
 +/
-//TODO: Can I merge the implementation of this with Prepared.queryResult?
 ResultSet queryResult(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
+	return queryResultImpl(&execQueryImpl, csa, false, conn, sql);
+}
+
+/// Common implementation for mysql.protocol.commands.queryResult and Prepared.queryResult
+package ResultSet queryResultImpl(TImpl, TArgs...)
+	(TImpl impl, ColumnSpecialization[] csa, bool binary, Connection conn, TArgs args)
+{
 	ulong ra;
-	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, sql, ra));
+	enforceEx!MYXNoResultRecieved(impl(conn, args, ra));
 
 	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
 	if (csa !is null)
@@ -133,10 +144,12 @@ ResultSet queryResult(Connection conn, string sql, ColumnSpecialization[] csa = 
 	Row[] rows;
 	while(true)
 	{
+		scope(failure) conn.kill();
+
 		auto packet = conn.getPacket();
 		if(packet.isEOFPacket())
 			break;
-		rows ~= Row(conn, packet, conn._rsh, false);
+		rows ~= Row(conn, packet, conn._rsh, binary);
 		// As the row fetches more data while incomplete, it might already have
 		// fetched the EOF marker, so we have to check it again
 		if(!packet.empty && packet.isEOFPacket())
@@ -162,16 +175,19 @@ WARNING: This function is not currently unittested.
 Params: csa = An optional array of ColumnSpecialization structs.
 Returns: A (possibly empty) ResultSequence.
 +/
-//TODO: Can I merge the implementation of this with Prepared.querySequence?
 //TODO: This needs unittested
 ResultSequence querySequence(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
-	uint alloc = 20;
-	Row[] rra;
-	rra.length = alloc;
-	uint cr = 0;
+	return querySequenceImpl(&execQueryImpl, csa, conn, sql);
+}
+
+/// Common implementation for mysql.protocol.commands.querySequence and Prepared.querySequence
+package ResultSequence querySequenceImpl(TImpl, TArgs...)
+	(TImpl impl, ColumnSpecialization[] csa, Connection conn, TArgs args)
+{
 	ulong ra;
-	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, sql, ra));
+	enforceEx!MYXNoResultRecieved(impl(conn, args, ra));
+
 	conn._rsh = ResultSetHeaders(conn, conn._fieldCount);
 	if (csa !is null)
 		conn._rsh.addSpecializations(csa);
@@ -190,11 +206,17 @@ any column type is incompatible with the corresponding D variable.
 Params: args = A tuple of D variables to receive the results.
 Returns: true if there was a (possibly empty) result set.
 +/
-//TODO: Can I merge the implementation of this with Prepared.queryTuple?
 void queryTuple(T...)(Connection conn, string sql, ref T args)
 {
 	ulong ra;
 	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, sql, ra));
+
+	return queryTupleImpl(conn, args);
+}
+
+/// Common implementation for mysql.protocol.commands.queryTuple and Prepared.queryTuple
+void queryTupleImpl(T...)(Connection conn, ref T args)
+{
 	Row rr = conn.getNextRow();
 	/+if (!rr._valid)   // The result set was empty - not a crime.
 		return;+/
