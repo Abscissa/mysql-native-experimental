@@ -139,7 +139,6 @@ package:
 		cn.exec("CREATE TABLE `enforceNothingPending` (
 			`val` INTEGER
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8");
-		cn.exec("INSERT INTO `enforceNothingPending` VALUES (1), (2)");
 
 		immutable insertSQL = "INSERT INTO `enforceNothingPending` VALUES (1), (2)";
 		immutable selectSQL = "SELECT * FROM `enforceNothingPending`";
