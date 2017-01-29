@@ -206,13 +206,23 @@ private:
 
 	void enforceNotReleased()
 	{
-		enforceEx!MYXNotPrepared(_hStmt);
+		enforceNotReleased(_hStmt);
+	}
+
+	static void enforceNotReleased(uint hStmt)
+	{
+		enforceEx!MYXNotPrepared(hStmt);
 	}
 
 	void enforceReadyForCommand()
 	{
-		enforceNotReleased();
-		_conn.enforceNothingPending();
+		enforceReadyForCommand(_conn, _hStmt);
+	}
+
+	static void enforceReadyForCommand(Connection conn, uint hStmt)
+	{
+		enforceNotReleased(hStmt);
+		conn.enforceNothingPending();
 	}
 
 	debug(MYSQL_INTEGRATION_TESTS)
@@ -364,7 +374,7 @@ package:
 		}
 	}
 
-	ubyte[] analyseParams(Variant[] inParams, ParameterSpecialization[] psa,
+	static ubyte[] analyseParams(Variant[] inParams, ParameterSpecialization[] psa,
 		out ubyte[] vals, out bool longData)
 	{
 		size_t pc = inParams.length;
@@ -672,59 +682,65 @@ package:
 	Params: ra = An out parameter to receive the number of rows affected.
 	Returns: true if there was a (possibly empty) result set.
 	+/
-	bool execQueryImpl(out ulong ra)
+	static bool execQueryImpl(Connection conn, uint hStmt, PreparedStmtHeaders psh,
+		Variant[] inParams, ParameterSpecialization[] psa, out ulong ra)
 	{
-		enforceReadyForCommand();
-		scope(failure) _conn.kill();
+		enforceReadyForCommand(conn, hStmt);
+		scope(failure) conn.kill();
 
 		ubyte[] packet;
-		_conn.resetPacket();
+		conn.resetPacket();
 
-		ubyte[] prefix = makePSPrefix(_hStmt, 0);
+		ubyte[] prefix = makePSPrefix(hStmt, 0);
 		size_t len = prefix.length;
 		bool longData;
 
-		if (_psh._paramCount)
+		if (psh._paramCount)
 		{
 			ubyte[] one = [ 1 ];
 			ubyte[] vals;
-			fixupNulls(_inParams, _psa);
-			ubyte[] types = analyseParams(_inParams, _psa, vals, longData);
-			ubyte[] nbm = makeBitmap(_psa);
+			fixupNulls(inParams, psa);
+			ubyte[] types = analyseParams(inParams, psa, vals, longData);
+			ubyte[] nbm = makeBitmap(psa);
 			packet = prefix ~ nbm ~ one ~ types ~ vals;
 		}
 		else
 			packet = prefix;
 
 		if (longData)
-			sendLongData(_conn, _hStmt, _psa);
+			sendLongData(conn, hStmt, psa);
 
 		assert(packet.length <= uint.max);
-		packet.setPacketHeader(_conn.pktNumber);
-		_conn.bumpPacket();
-		_conn.send(packet);
-		packet = _conn.getPacket();
+		packet.setPacketHeader(conn.pktNumber);
+		conn.bumpPacket();
+		conn.send(packet);
+		packet = conn.getPacket();
 		bool rv;
 		if (packet.front == ResultPacketMarker.ok || packet.front == ResultPacketMarker.error)
 		{
-			_conn.resetPacket();
+			conn.resetPacket();
 			auto okp = OKErrorPacket(packet);
 			enforcePacketOK(okp);
 			ra = okp.affected;
-			_conn._serverStatus = okp.serverStatus;
-			_conn._insertID = okp.insertID;
+			conn._serverStatus = okp.serverStatus;
+			conn._insertID = okp.insertID;
 			rv = false;
 		}
 		else
 		{
 			// There was presumably a result set
-			_conn._headersPending = _conn._rowsPending = _conn._binaryPending = true;
+			conn._headersPending = conn._rowsPending = conn._binaryPending = true;
 			auto lcb = packet.consumeIfComplete!LCB();
 			assert(!lcb.isIncomplete);
-			_conn._fieldCount = cast(ushort)lcb.value;
+			conn._fieldCount = cast(ushort)lcb.value;
 			rv = true;
 		}
 		return rv;
+	}
+	
+	bool execQueryImpl2(out ulong ra)
+	{
+		return execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra);
 	}
 
 	/// Has this statement been released?
@@ -779,7 +795,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong rowsAffected;
-		bool receivedResultSet = execQueryImpl(rowsAffected);
+		bool receivedResultSet = execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, rowsAffected);
 		if(receivedResultSet)
 		{
 			_conn.purgeResult();
@@ -807,7 +823,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYXNoResultRecieved(execQueryImpl(ra));
+		enforceEx!MYXNoResultRecieved(execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra));
 
 		uint alloc = 20;
 		Row[] rra;
@@ -863,7 +879,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYXNoResultRecieved(execQueryImpl(ra));
+		enforceEx!MYXNoResultRecieved(execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra));
 
 		uint alloc = 20;
 		Row[] rra;
@@ -891,7 +907,7 @@ public:
 		enforceReadyForCommand();
 
 		ulong ra;
-		enforceEx!MYXNoResultRecieved(execQueryImpl(ra));
+		enforceEx!MYXNoResultRecieved(execQueryImpl(_conn, _hStmt, _psh, _inParams, _psa, ra));
 		Row rr = _conn.getNextRow();
 		// enforceEx!MYX(rr._valid, "The result set was empty.");
 		enforceEx!MYX(rr._values.length == args.length, "Result column count does not match the target tuple.");

@@ -556,7 +556,7 @@ public:
 	bool execPrepared(out ulong ra)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared.");
-		return _prepared.execQueryImpl(ra);
+		return _prepared.execQueryImpl2(ra);
 	}
 
 	/++
@@ -682,7 +682,7 @@ public:
 
 		_prepared.setArgs(args);
 		ulong ra;
-		enforceEx!MYX(_prepared.execQueryImpl(ra), "The executed query did not produce a result set.");
+		enforceEx!MYX(_prepared.execQueryImpl2(ra), "The executed query did not produce a result set.");
 		Row rr = _con.getNextRow();
 		/+enforceEx!MYX(rr._valid, "The result set was empty.");+/
 		enforceEx!MYX(rr._values.length == 1, "Result was not a single column.");
@@ -737,7 +737,7 @@ public:
 
 		_prepared.setArgs(args);
 		ulong ra;
-		return _prepared.execQueryImpl(ra);
+		return _prepared.execQueryImpl2(ra);
 	}
 
 	/// After a command that inserted a row into a table with an auto-increment
