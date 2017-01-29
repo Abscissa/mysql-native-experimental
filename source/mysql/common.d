@@ -47,7 +47,7 @@ class MySQLDataPendingException: MySQLException
 			"with the server.", file, line);
 	}
 }
-alias MYXDataPending = MySQLProtocolException;
+alias MYXDataPending = MySQLDataPendingException;
 
 /++
 Received invalid data from the server which violates the MySQL network protocol.
