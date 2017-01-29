@@ -1,5 +1,8 @@
 TBD - TBD
 =====================
+- **Summary:**
+	API overhauled for better safety, reliability and ease-of-use. Deprecated and
+	replaced entire Command struct with better design. Better handling of null.
 - **New:**
 	[#75](https://github.com/mysql-d/mysql-native/issues/75),
 	[#85](https://github.com/mysql-d/mysql-native/issues/85),
