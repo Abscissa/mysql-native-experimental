@@ -991,7 +991,7 @@ public:
 		assert(rs.length == 2);
 		assert(rs[0][0] == 5);
 		assert(rs[1].isNull(0));
-		//assert(rs[1][0].type == typeid(typeof(null)));
+		assert(rs[1][0].type == typeid(typeof(null)));
 
 		preparedInsert.setArg(0, Variant(null));
 		preparedInsert.exec();
@@ -1000,8 +1000,8 @@ public:
 		assert(rs[0][0] == 5);
 		assert(rs[1].isNull(0));
 		assert(rs[2].isNull(0));
-		//assert(rs[1][0].type == typeid(typeof(null)));
-		//assert(rs[2][0].type == typeid(typeof(null)));
+		assert(rs[1][0].type == typeid(typeof(null)));
+		assert(rs[2][0].type == typeid(typeof(null)));
 	}
 
 	/++

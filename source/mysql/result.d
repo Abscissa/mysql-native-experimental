@@ -110,6 +110,9 @@ public:
 	
 	I have been agitating for some kind of null indicator that can be set for a Variant without destroying
 	its inherent type information. If this were the case, then the bool array could disappear.
+	However, this inherent type information was never actually used, or even tracked, by struct Row for null fields.
+	So this is may be nothing to be concerned about. If such info is needed later, perhaps
+	`_values` could store its elements as `Nullable!T`?
 	+/
 	this(Connection con, ref ubyte[] packet, ResultSetHeaders rh, bool binary)
 	in
@@ -153,6 +156,7 @@ public:
 				assert(!binary);
 				assert(!_nulls[i]);
 				_nulls[i] = true;
+				_values[i] = null;
 			}
 			else
 			{
@@ -174,7 +178,6 @@ public:
 	{
 		enforceEx!MYX(_nulls.length > 0, format("Cannot get column index %d. There are no columns", i));
 		enforceEx!MYX(i < _nulls.length, format("Cannot get column index %d. The last available index is %d", i, _nulls.length-1));
-		enforceEx!MYX(!_nulls[i], format("Column %s is null, check for isNull", i));
 		return _values[i];
 	}
 
