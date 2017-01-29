@@ -337,13 +337,13 @@ package:
 		return bma;
 	}
 
-	ubyte[] makePSPrefix(ubyte flags = 0) pure const nothrow
+	static ubyte[] makePSPrefix(uint hStmt, ubyte flags = 0) pure nothrow
 	{
 		ubyte[] prefix;
 		prefix.length = 14;
 
 		prefix[4] = CommandType.STMT_EXECUTE;
-		_hStmt.packInto(prefix[5..9]);
+		hStmt.packInto(prefix[5..9]);
 		prefix[9] = flags;   // flags, no cursor
 		prefix[10] = 1; // iteration count - currently always 1
 		prefix[11] = 0;
@@ -355,20 +355,19 @@ package:
 
 	// Set ParameterSpecialization.isNull for all null values.
 	// This may not be the best way to handle it, but it'll do for now.
-	void fixupNulls()
+	static void fixupNulls(ref Variant[] inParams, ref ParameterSpecialization[] psa)
 	{
-		foreach (size_t i; 0.._inParams.length)
+		foreach (size_t i; 0..inParams.length)
 		{
-			if (_inParams[i].type == typeid(typeof(null)))
-				_psa[i].isNull = true;
+			if (inParams[i].type == typeid(typeof(null)))
+				psa[i].isNull = true;
 		}
 	}
 
-	ubyte[] analyseParams(out ubyte[] vals, out bool longData)
+	ubyte[] analyseParams(Variant[] inParams, ParameterSpecialization[] psa,
+		out ubyte[] vals, out bool longData)
 	{
-		fixupNulls();
-
-		size_t pc = _inParams.length;
+		size_t pc = inParams.length;
 		ubyte[] types;
 		types.length = pc*2;
 		size_t alloc = pc*20;
@@ -391,16 +390,16 @@ package:
 		{
 			enum UNSIGNED  = 0x80;
 			enum SIGNED    = 0;
-			if (_psa[i].chunkSize)
+			if (psa[i].chunkSize)
 				longData= true;
-			if (_psa[i].isNull)
+			if (psa[i].isNull)
 			{
 				types[ct++] = SQLType.NULL;
 				types[ct++] = SIGNED;
 				continue;
 			}
-			Variant v = _inParams[i];
-			SQLType ext = _psa[i].type;
+			Variant v = inParams[i];
+			SQLType ext = psa[i].type;
 			string ts = v.type.toString();
 			bool isRef;
 			if (ts[$-1] == '*')
@@ -623,10 +622,10 @@ package:
 		return types;
 	}
 
-	void sendLongData()
+	static void sendLongData(Connection conn, uint hStmt, ParameterSpecialization[] psa)
 	{
-		assert(_psa.length <= ushort.max); // parameter number is sent as short
-		foreach (ushort i, PSN psn; _psa)
+		assert(psa.length <= ushort.max); // parameter number is sent as short
+		foreach (ushort i, PSN psn; psa)
 		{
 			if (!psn.chunkSize) continue;
 			uint cs = psn.chunkSize;
@@ -636,7 +635,7 @@ package:
 			chunk.length = cs+11;
 			chunk.setPacketHeader(0 /*each chunk is separate cmd*/);
 			chunk[4] = CommandType.STMT_SEND_LONG_DATA;
-			_hStmt.packInto(chunk[5..9]); // statement handle
+			hStmt.packInto(chunk[5..9]); // statement handle
 			packInto(i, chunk[9..11]); // parameter number
 
 			// byte 11 on is payload
@@ -650,10 +649,10 @@ package:
 					sent += 7;        // adjust for non-payload bytes
 					chunk.length = chunk.length - (cs-sent);     // trim the chunk
 					packInto!(uint, true)(cast(uint)sent, chunk[0..3]);
-					_conn.send(chunk);
+					conn.send(chunk);
 					break;
 				}
-				_conn.send(chunk);
+				conn.send(chunk);
 			}
 		}
 	}
@@ -681,7 +680,7 @@ package:
 		ubyte[] packet;
 		_conn.resetPacket();
 
-		ubyte[] prefix = makePSPrefix(0);
+		ubyte[] prefix = makePSPrefix(_hStmt, 0);
 		size_t len = prefix.length;
 		bool longData;
 
@@ -689,7 +688,8 @@ package:
 		{
 			ubyte[] one = [ 1 ];
 			ubyte[] vals;
-			ubyte[] types = analyseParams(vals, longData);
+			fixupNulls(_inParams, _psa);
+			ubyte[] types = analyseParams(_inParams, _psa, vals, longData);
 			ubyte[] nbm = makeBitmap(_psa);
 			packet = prefix ~ nbm ~ one ~ types ~ vals;
 		}
@@ -697,7 +697,7 @@ package:
 			packet = prefix;
 
 		if (longData)
-			sendLongData();
+			sendLongData(_conn, _hStmt, _psa);
 
 		assert(packet.length <= uint.max);
 		packet.setPacketHeader(_conn.pktNumber);
@@ -935,7 +935,7 @@ public:
 		_inParams[index] = val;
 		psn.pIndex = index;
 		_psa[index] = psn;
-		fixupNulls();
+		fixupNulls(_inParams, _psa);
 	}
 
 	/++
@@ -955,7 +955,7 @@ public:
 
 		foreach (size_t i, dummy; args)
 			_inParams[i] = args[i];
-		fixupNulls();
+		fixupNulls(_inParams, _psa);
 	}
 
 	/++
@@ -997,7 +997,7 @@ public:
 			foreach (PSN psn; psnList)
 				_psa[psn.pIndex] = psn;
 		}
-		fixupNulls();
+		fixupNulls(_inParams, _psa);
 	}
 
 	/++
