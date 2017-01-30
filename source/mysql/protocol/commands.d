@@ -277,7 +277,7 @@ deprecated("Use queryRowTuple instead.")
 alias queryTuple = queryRowTuple;
 
 /// Common implementation for mysql.protocol.commands.queryRowTuple and Prepared.queryRowTuple
-void queryRowTupleImpl(T...)(Connection conn, ExecQueryImplInfo info, ref T args)
+package void queryRowTupleImpl(T...)(Connection conn, ExecQueryImplInfo info, ref T args)
 {
 	ulong ra;
 	enforceEx!MYXNoResultRecieved(execQueryImpl(conn, info, ra));
