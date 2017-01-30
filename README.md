@@ -8,23 +8,23 @@ directly with the server via the
 [published client/server protocol](LINK http://dev.mysql.com/doc/internals/en/client-server-protocol.html).
 
 The primary interfaces:
-- Connection: Connection to the server, and querying and setting of server parameters.
-- exec(): Plain old SQL query, returns number of rows affected
-- query(): Execute an SQL statement and handle the rows one at a time, as an input range.
-- querySet(): Execute an SQL statement and get a complete result set.
-- queryRow(): Execute an SQL statement and get the first row.
-- queryRowTuple(): Execute an SQL statement and get the first row into a matching tuple of D variables.
-- queryValue(): Execute an SQL statement and get the first value in the first row.
-- prepare(): Create a prepared statement
-- Prepared: A prepared statement, with principal methods:
-	- exec()/query()/querySet()/etc.: Just like above, but using a prepared statement.
-	- setArg(): Set one argument to pass into the prepared statement.
-	- setArgs(): Set all arguments to pass in.
-	- getArg(): Get an argument that's been set.
-	- release(): Optional. Prepared is refcounted.
-- Row: One "row" of results, used much like an array of Variant.
-- ResultRange: An input range of rows.
-- ResultSet: A random access range of rows.
+- [Connection](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/connection/Connection.html): Connection to the server, and querying and setting of server parameters.
+- [exec()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/exec.html): Plain old SQL query, returns number of rows affected
+- [query()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/query.html): Execute an SQL statement and handle the rows one at a time, as an input range.
+- [querySet()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/querySet.html): Execute an SQL statement and get a complete result set.
+- [queryRow()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/queryRow.html): Execute an SQL statement and get the first row.
+- [queryRowTuple()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/queryRowTuple.html): Execute an SQL statement and get the first row into a matching tuple of D variables.
+- [queryValue()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/queryValue.html): Execute an SQL statement and get the first value in the first row.
+- [prepare()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/prepared/prepare.html): Create a prepared statement
+- [Prepared](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/prepared/PreparedImpl.html): A prepared statement, with principal methods:
+	- [exec()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/prepared/PreparedImpl.exec.html)/[query()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/prepared/PreparedImpl.query.html)/[querySet()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/prepared/PreparedImpl.querySet.html)/etc.: Just like above, but using a prepared statement.
+	- [setArg()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/prepared/PreparedImpl.setArg.html): Set one argument to pass into the prepared statement.
+	- [setArgs()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/prepared/PreparedImpl.setArgs.html): Set all arguments to pass in.
+	- [getArg()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/prepared/PreparedImpl.getArg.html): Get an argument that's been set.
+	- [release()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/prepared/PreparedImpl.release.html): Optional. Prepared is refcounted.
+- [Row](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/result/Row.html): One "row" of results, used much like an array of Variant.
+- [ResultRange](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/result/ResultRange.html): An input range of rows.
+- [ResultSet](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/result/ResultSet.html): A random access range of rows.
 
 Basic example:
 ```d
