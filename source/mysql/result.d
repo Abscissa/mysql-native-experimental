@@ -418,7 +418,7 @@ execPreparedSequence
 MySQL result sets can be up to 2^^64 rows. This interface allows for iteration
 through a result set of that size.
 +/
-struct ResultSequence
+struct ResultRange
 {
 private:
 	Connection       _con;
@@ -432,7 +432,7 @@ private:
 	void ensureValid() const pure
 	{
 		enforceEx!MYXInvalidatedRange(isValid,
-			"This ResultSequence has been invalidated and can no longer be used.");
+			"This ResultRange has been invalidated and can no longer be used.");
 	}
 
 package:
@@ -457,7 +457,7 @@ public:
 		return _commandId == _con.lastCommandId;
 	}
 
-	/// Make the ResultSequence behave as an input range - empty
+	/// Make the ResultRange behave as an input range - empty
 	@property bool empty() const pure nothrow
 	{
 		if(!isValid)
@@ -467,7 +467,7 @@ public:
 	}
 
 	/++
-	Make the ResultSequence behave as an input range - front
+	Make the ResultRange behave as an input range - front
 	
 	Gets the current row
 	+/
@@ -479,7 +479,7 @@ public:
 	}
 
 	/++
-	Make the ResultSequence behave as am input range - popFront()
+	Make the ResultRange behave as am input range - popFront()
 	
 	Progresses to the next row of the result set - that will then be 'front'
 	+/
@@ -540,3 +540,7 @@ public:
 	+/
 	@property ulong rowCount() const pure nothrow { return _numRowsFetched; }
 }
+
+///ditto
+deprecated("Use ResultRange instead.")
+alias ResultSequence = ResultRange;

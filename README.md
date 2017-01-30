@@ -23,7 +23,7 @@ The primary interfaces:
 	- getArg(): Get an argument that's been set.
 	- release(): Optional. Prepared is refcounted.
 - Row: One "row" of results, used much like an array of Variant.
-- ResultSequence: An input range of rows.
+- ResultRange: An input range of rows.
 - ResultSet: A random access range of rows.
 
 Basic example:
@@ -43,7 +43,7 @@ void main(string[] args)
 		"INSERT INTO `tablename` (`id`, `name`) VALUES (1, `Ann`), (2, `Bob`)");
 
 	// Query
-	ResultSequence range = query(conn, "SELECT * FROM `tablename`");
+	ResultRange range = query(conn, "SELECT * FROM `tablename`");
 	Row row = range.front;
 	Variant id = row[0];
 	Variant name = row[1];
@@ -57,7 +57,7 @@ void main(string[] args)
 	// Prepared statements
 	Prepared prepared = prepare(conn, "SELECT * FROM `tablename` WHERE `name`=? OR `name`=?");
 	prepared.setArgs("Bob", "Bobby");
-	ResultSequence bobs = prepared.query();
+	ResultRange bobs = prepared.query();
 	bobs.close(); // Skip them
 	
 	prepared.setArgs("Bob", "Ann");

@@ -996,7 +996,7 @@ unittest
 	
 	{
 		// Test query
-		ResultSequence rseq = cn.query(selectSQL);
+		ResultRange rseq = cn.query(selectSQL);
 		assert(!rseq.empty);
 		assert(rseq.front.length == 2);
 		assert(rseq.front[0] == 11);
@@ -1017,7 +1017,7 @@ unittest
 
 	{
 		// Test prepared query
-		ResultSequence rseq = prepared.query();
+		ResultRange rseq = prepared.query();
 		assert(!rseq.empty);
 		assert(rseq.front.length == 2);
 		assert(rseq.front[0] == 11);
@@ -1037,8 +1037,8 @@ unittest
 	}
 
 	{
-		// Test reusing the same ResultSequence
-		ResultSequence rseq = cn.query(selectSQL);
+		// Test reusing the same ResultRange
+		ResultRange rseq = cn.query(selectSQL);
 		assert(!rseq.empty);
 		rseq.each();
 		assert(rseq.empty);
@@ -1119,7 +1119,7 @@ unittest
 
 	{
 		// Issue new command before old command was purged
-		ResultSequence rseq1 = cn.query(selectSQL);
+		ResultRange rseq1 = cn.query(selectSQL);
 		rseq1.popFront();
 		assert(!rseq1.empty);
 		assert(rseq1.front[0] == 22);
@@ -1128,8 +1128,8 @@ unittest
 	}
 
 	{
-		// Test using outdated ResultSequence
-		ResultSequence rseq1 = cn.query(selectSQL);
+		// Test using outdated ResultRange
+		ResultRange rseq1 = cn.query(selectSQL);
 		rseq1.popFront();
 		assert(!rseq1.empty);
 		assert(rseq1.front[0] == 22);
@@ -1141,7 +1141,7 @@ unittest
 		assertThrown!MYXInvalidatedRange(rseq1.popFront());
 		assertThrown!MYXInvalidatedRange(rseq1.asAA());
 
-		ResultSequence rseq2 = cn.query(selectBackwardsSQL);
+		ResultRange rseq2 = cn.query(selectBackwardsSQL);
 		assert(!rseq2.empty);
 		assert(rseq2.front.length == 2);
 		assert(rseq2.front[0] == "ccc");

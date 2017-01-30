@@ -98,7 +98,7 @@ package:
 	ulong _insertID;
 
 	// This gets incremented every time a command is issued or results are purged,
-	// so a ResultSequence can tell whether it's been invalidated.
+	// so a ResultRange can tell whether it's been invalidated.
 	ulong _lastCommandId;
 
 	// Whether there are rows, headers or bimary data waiting to be retreived.
@@ -923,7 +923,7 @@ public:
 	@property ulong lastInsertID() pure const nothrow { return _insertID; }
 
 	/// This gets incremented every time a command is issued or results are purged,
-	/// so a ResultSequence can tell whether it's been invalidated.
+	/// so a ResultRange can tell whether it's been invalidated.
 	@property ulong lastCommandId() pure const nothrow { return _lastCommandId; }
 
 	/// Gets whether rows are pending

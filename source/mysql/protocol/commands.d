@@ -197,9 +197,9 @@ If there are long data items among the expected result columns you can specify
 that they are to be subject to chunked transfer via a delegate.
 
 Params: csa = An optional array of ColumnSpecialization structs.
-Returns: A (possibly empty) ResultSequence.
+Returns: A (possibly empty) ResultRange.
 +/
-ResultSequence query(Connection conn, string sql, ColumnSpecialization[] csa = null)
+ResultRange query(Connection conn, string sql, ColumnSpecialization[] csa = null)
 {
 	return queryImpl(csa, conn, ExecQueryImplInfo(false, sql));
 }
@@ -209,7 +209,7 @@ deprecated("Use query instead.")
 alias querySequence = query;
 
 /// Common implementation for mysql.protocol.commands.query and Prepared.query
-package ResultSequence queryImpl(ColumnSpecialization[] csa,
+package ResultRange queryImpl(ColumnSpecialization[] csa,
 	Connection conn, ExecQueryImplInfo info)
 {
 	ulong ra;
@@ -220,7 +220,7 @@ package ResultSequence queryImpl(ColumnSpecialization[] csa,
 		conn._rsh.addSpecializations(csa);
 
 	conn._headersPending = false;
-	return ResultSequence(conn, conn._rsh, conn._rsh.fieldNames);
+	return ResultRange(conn, conn._rsh, conn._rsh.fieldNames);
 }
 
 /++
@@ -643,10 +643,10 @@ public:
 	that they are to be subject to chunked transfer via a delegate.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
-	Returns: A (possibly empty) ResultSequence.
+	Returns: A (possibly empty) ResultRange.
 	+/
 	deprecated("Use the free-standing function .query instead")
-	ResultSequence execSQLSequence(ColumnSpecialization[] csa = null)
+	ResultRange execSQLSequence(ColumnSpecialization[] csa = null)
 	{
 		return .query(_con, _sql, csa);
 	}
@@ -718,10 +718,10 @@ public:
 	specify that they are to be subject to chunked transfer via a delegate.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
-	Returns: A (possibly empty) ResultSequence.
+	Returns: A (possibly empty) ResultRange.
 	+/
 	deprecated("Use Prepared.query instead")
-	ResultSequence execPreparedSequence(ColumnSpecialization[] csa = null)
+	ResultRange execPreparedSequence(ColumnSpecialization[] csa = null)
 	{
 		enforceEx!MYX(_prepared.isPrepared, "The statement must be prepared.");
 		return _prepared.query(csa);

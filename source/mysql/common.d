@@ -35,14 +35,14 @@ alias MYX = MySQLException;
 /++
 Thrown when attempting to communicate with the server (ex: executing SQL or
 creating a new prepared statement) while the server is still sending results
-data. Any ResultSequence must be consumed or purged before anything else
+data. Any ResultRange must be consumed or purged before anything else
 can be done on the connection.
 +/
 class MySQLDataPendingException: MySQLException
 {
 	this(string file = __FILE__, size_t line = __LINE__) pure
 	{
-		super("Data is pending on the connection. Any existing ResultSequence "~
+		super("Data is pending on the connection. Any existing ResultRange "~
 			"must be consumed or purged before performing any other communication "~
 			"with the server.", file, line);
 	}
@@ -137,7 +137,7 @@ alias MYXNoResultRecieved = MySQLNoResultRecievedException;
 
 /++
 Thrown when attempting to use a range that's been invalidated.
-In particular, when using a ResultSequence after a new command
+In particular, when using a ResultRange after a new command
 has been issued on the same connection.
 +/
 class MySQLInvalidatedRangeException: MySQLException

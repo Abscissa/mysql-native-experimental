@@ -745,9 +745,9 @@ public:
 	specify that they are to be subject to chunked transfer via a delegate.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
-	Returns: A (possibly empty) ResultSequence.
+	Returns: A (possibly empty) ResultRange.
 	+/
-	ResultSequence query(ColumnSpecialization[] csa = null)
+	ResultRange query(ColumnSpecialization[] csa = null)
 	{
 		enforceReadyForCommand();
 		return queryImpl(
