@@ -3,35 +3,79 @@ client driver for MySQL and MariaDB.
 
 This package attempts to provide composite objects and methods that will
 allow a wide range of common database operations, but be relatively easy to
-use. The design is a first attempt to illustrate the structure of a set of
-modules to cover popular database systems and ODBC.
-
-It has no dependecies on GPL header files or libraries, instead communicating
+use. It has no dependecies on GPL header files or libraries, instead communicating
 directly with the server via the
 [published client/server protocol](LINK http://dev.mysql.com/doc/internals/en/client-server-protocol.html).
 
-This version is not by any means comprehensive, and there is still a good
-deal of work to do. As a general design position it avoids providing
-wrappers for operations that can be accomplished by simple SQL sommands,
-unless the command produces a result set. There are some instances of the
-latter category to provide simple meta-data for the database.
-
-Its primary objects are:
+The primary interfaces:
 - Connection: Connection to the server, and querying and setting of server parameters.
-- Command: Handling of SQL requests/queries/commands, with principal methods:
-	- execSQL() - plain old SQL query.
-	- execSQLTuple() - get a set of values from a select or similar query into a matching tuple of D variables.
-	- execPrepared() - execute a prepared statement.
-	- execSQLResult() - execute a raw SQL statement and get a complete result set.
-	- execSQLSequence() - execute a raw SQL statement and handle the rows one at a time.
-	- execPreparedResult() - execute a prepared statement and get a complete result set.
-	- execPreparedSequence() - execute a prepared statement and handle the rows one at a time.
-	- execFunction() - execute a stored function with D variables as input and output.
-	- execProcedure() - execute a stored procedure with D variables as input.
-- ResultSet: A random access range of rows, where a Row is basically an array of variant.
-- ResultSequence: An input range of similar rows.
+- exec(): Plain old SQL query, returns number of rows affected
+- query(): Execute an SQL statement and handle the rows one at a time, as an input range.
+- querySet(): Execute an SQL statement and get a complete result set.
+- queryRow(): Execute an SQL statement and get the first row.
+- queryRowTuple(): Execute an SQL statement and get the first row into a matching tuple of D variables.
+- queryValue(): Execute an SQL statement and get the first value in the first row.
+- prepare(): Create a prepared statement
+- Prepared: A prepared statement, with principal methods:
+	- exec()/query()/querySet()/etc.: Just like above, but using a prepared statement.
+	- setArg(): Set one argument to pass into the prepared statement.
+	- setArgs(): Set all arguments to pass in.
+	- getArg(): Get an argument that's been set.
+	- release(): Optional. Prepared is refcounted.
+- Row: One "row" of results, used much like an array of Variant.
+- ResultSequence: An input range of rows.
+- ResultSet: A random access range of rows.
 
-There are numerous examples of usage in the unittest sections.
+Basic example:
+```d
+import std.variant;
+import mysql;
+
+void main(string[] args)
+{
+	// Connect
+	auto connectionStr = args[1];
+	Connection conn = new Connection(connectionStr);
+	scope(exit) con.close();
+
+	// Insert
+	auto rowsAffected = exec(conn,
+		"INSERT INTO `tablename` (`id`, `name`) VALUES (1, `Ann`), (2, `Bob`)");
+
+	// Query
+	ResultSequence range = query(conn, "SELECT * FROM `tablename`");
+	Row row = range.front;
+	Variant id = row[0];
+	Variant name = row[1];
+	assert(id == 1);
+	assert(name == "Ann");
+
+	range.popFront();
+	assert(range.front[0] == 2);
+	assert(range.front[1] == "Bob");
+
+	// Prepared statements
+	Prepared prepared = prepare(conn, "SELECT * FROM `tablename` WHERE `name`=? OR `name`=?");
+	prepared.setArgs("Bob", "Bobby");
+	ResultSequence bobs = prepared.query();
+	bobs.close(); // Skip them
+	
+	prepared.setArgs("Bob", "Ann");
+	ResultSet rs = prepared.querySet();
+	assert(rs.length == 1);
+	assert(rs[0][0] == 1);
+	assert(rs[0][1] == "Ann");
+	assert(rs[1][0] == 2);
+	assert(rs[1][1] == "Bob");
+
+	// Nulls
+	Prepared insert = prepare(conn, "INSERT INTO `tablename` (`id`, `name`) VALUES (?,?)");
+	insert.setArgs(null, "Cam"); // Also takes Nullable!T
+	insert.exec();
+	range = query("SELECT * FROM `tablename` WHERE `name`='Cam'");
+	assert( range.front[0][0].type == typeid(typeof(null)) );
+}
+```
 
 This package supports both Phobos sockets and [Vibe.d](http://vibed.org/)
 sockets. Vibe.d support is disabled by default, to avoid unnecessary
