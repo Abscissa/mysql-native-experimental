@@ -7,6 +7,8 @@ use. It has no dependecies on GPL header files or libraries, instead communicati
 directly with the server via the
 [published client/server protocol](LINK http://dev.mysql.com/doc/internals/en/client-server-protocol.html).
 
+[API Reference](http://semitwist.com/mysql-native-docs/v0.2.0-preview1)
+
 The primary interfaces:
 - [Connection](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/connection/Connection.html): Connection to the server, and querying and setting of server parameters.
 - [exec()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/exec.html): Plain old SQL query, returns number of rows affected
