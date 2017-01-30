@@ -7,5 +7,13 @@
 /bin
 /testConnectionStr.txt
 
+/docs/docs.json
+/docs/public/mysql/
+/docs/public/file_hashes.json
+/docs/public/index.html
+/docs/public/mysql.html
+/docs/public/sitemap.xml
+/docs/public/symbols.js
+
 # Executable file name when 'dub' is run on linux
 mysql-native
