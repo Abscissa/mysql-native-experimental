@@ -38,7 +38,7 @@ void main(string[] args)
 	// Connect
 	auto connectionStr = args[1];
 	Connection conn = new Connection(connectionStr);
-	scope(exit) con.close();
+	scope(exit) conn.close();
 
 	// Insert
 	auto rowsAffected = exec(conn,
@@ -74,7 +74,7 @@ void main(string[] args)
 	Prepared insert = prepare(conn, "INSERT INTO `tablename` (`id`, `name`) VALUES (?,?)");
 	insert.setArgs(null, "Cam"); // Also takes Nullable!T
 	insert.exec();
-	range = query("SELECT * FROM `tablename` WHERE `name`='Cam'");
+	range = query(conn, "SELECT * FROM `tablename` WHERE `name`='Cam'");
 	assert( range.front[0][0].type == typeid(typeof(null)) );
 }
 ```
