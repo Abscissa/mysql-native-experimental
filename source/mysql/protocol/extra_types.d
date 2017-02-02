@@ -13,6 +13,8 @@ import std.traits;
 import std.variant;
 
 import mysql.common;
+import mysql.protocol.commands;
+import mysql.result;
 
 /++
 A simple struct to represent time difference.

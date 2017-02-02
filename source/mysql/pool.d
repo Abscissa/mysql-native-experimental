@@ -6,8 +6,9 @@ If you don't want to, refer to mysql.connection.
 +/
 module mysql.pool;
 
-public import mysql.connection;
 import std.conv;
+import mysql.connection;
+import mysql.protocol.constants;
 
 version(Have_vibe_d_core)
 {

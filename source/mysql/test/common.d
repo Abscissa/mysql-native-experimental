@@ -19,8 +19,9 @@ import std.variant;
 
 import mysql.common;
 import mysql.connection;
+import mysql.protocol.commands;
+import mysql.protocol.extra_types;
 import mysql.result;
-
 /+
 To enable these tests, you have to add the MYSQL_INTEGRATION_TESTS
 debug specifier. The reason it uses debug and not version is because dub

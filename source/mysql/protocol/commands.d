@@ -20,6 +20,7 @@ import mysql.protocol.extra_types;
 import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
 import mysql.protocol.prepared;
+import mysql.result;
 
 package struct ExecQueryImplInfo
 {

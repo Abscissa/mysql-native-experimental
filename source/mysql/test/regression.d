@@ -21,6 +21,7 @@ import std.variant;
 
 import mysql.common;
 import mysql.connection;
+import mysql.protocol.commands;
 import mysql.result;
 import mysql.test.common;
 

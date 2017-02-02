@@ -15,6 +15,10 @@ import std.variant;
 
 import mysql.common;
 import mysql.connection;
+import mysql.protocol.commands;
+import mysql.protocol.constants;
+import mysql.protocol.extra_types;
+import mysql.protocol.packets;
 import mysql.result;
 import mysql.test.common;
 

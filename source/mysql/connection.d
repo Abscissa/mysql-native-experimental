@@ -1,19 +1,13 @@
 ﻿module mysql.connection;
 
-// Publically import rest of package for backwards compatability.
-// These public imports will eventually be phased out.
-public import mysql.common;
-public import mysql.result;
-public import mysql.protocol.commands;
-public import mysql.protocol.constants;
-public import mysql.protocol.extra_types;
-public import mysql.protocol.packet_helpers;
-public import mysql.protocol.packets;
+import mysql.common;
+import mysql.result;
+import mysql.protocol.commands;
+import mysql.protocol.constants;
+import mysql.protocol.packets;
 debug(MYSQL_INTEGRATION_TESTS)
 {
-	public import mysql.test.common;
-	public import mysql.test.integration;
-	public import mysql.test.regression;
+	import mysql.test.common;
 }
 
 version(Have_vibe_d_core)

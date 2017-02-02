@@ -15,10 +15,12 @@ import std.variant;
 
 import mysql.common;
 import mysql.connection;
+import mysql.protocol.commands;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
+import mysql.result;
 
 /++
 Encapsulation of a prepared statement.
@@ -124,6 +126,7 @@ unittest
 	debug(MYSQL_INTEGRATION_TESTS)
 	{
 		import mysql.test.common;
+		import mysql.test.integration;
 		mixin(scopedCn);
 		initBaseTestTables(cn);
 
@@ -210,7 +213,7 @@ private:
 	unittest
 	{
 		import mysql.protocol.prepared;
-		import mysql.test.common : scopedCn;
+		import mysql.test.common;
 		mixin(scopedCn);
 
 		cn.exec("DROP TABLE IF EXISTS `enforceNotReleased`");
@@ -966,7 +969,7 @@ public:
 	unittest
 	{
 		import mysql.protocol.prepared;
-		import mysql.test.common : scopedCn;
+		import mysql.test.common;
 		mixin(scopedCn);
 
 		cn.exec("DROP TABLE IF EXISTS `setNullArg`");

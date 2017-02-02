@@ -1,5 +1,6 @@
 ﻿module mysql.db;
 
+public import mysql.connection;
 public import mysql.pool;
 
 version(Have_vibe_d_core)
