@@ -33,6 +33,8 @@ v0.2.0 - TBD
 	Values bound to prepared statement parameters are now taken by value, not by
 	reference (but only when using the new `Prepared` struct, not the
 	now-deprecated `Command` struct).
+- **Change:**
+	For better clarity, renamed `mysql.db.MysqlDB` to `mysql.pool.MySqlPool`.
 - **Fixed:** More unittests.
 - **Fixed:**
 	Better safety against new commands being issued before an earlier command is complete.

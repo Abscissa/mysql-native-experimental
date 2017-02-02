@@ -33,7 +33,7 @@ void testMySql(string connStr)
 	version(UseConnPool)
 	{
 		import mysql.db;
-		auto mdb = new MysqlDB(connStr);
+		auto mdb = new MySqlPool(connStr);
 		auto c = mdb.lockConnection();
 		scope(exit) c.close();
 	}
