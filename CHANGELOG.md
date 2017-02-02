@@ -37,7 +37,7 @@ v0.2.0 - TBD
 	For better clarity, renamed `mysql.db.MysqlDB` to `mysql.pool.MySqlPool`.
 - **Change:**
 	Package mysql.connection no longer acts as a package.d, publicly importing
-	other modules. To import all of mysql-native, use `import mysql;`
+	other modules. To import all of mysql-native, use `import mysql;`.
 - **Fixed:** More unittests.
 - **Fixed:**
 	Better safety against new commands being issued before an earlier command is complete.
