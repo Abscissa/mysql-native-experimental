@@ -11,8 +11,8 @@ directly with the server via the
 
 The primary interfaces:
 - [Connection](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/connection/Connection.html): Connection to the server, and querying and setting of server parameters.
-- [exec()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/exec.html): Plain old SQL query, returns number of rows affected
-- [query()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/query.html): Execute an SQL statement and handle the rows one at a time, as an input range.
+- [exec()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/exec.html): Plain old SQL statement that does NOT return rows (like INSERT/UPDATE/CREATE/etc), returns number of rows affected
+- [query()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/query.html): Execute an SQL statement that DOES return rows (ie, SELECT) and handle the rows one at a time, as an input range.
 - [querySet()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/querySet.html): Execute an SQL statement and get a complete result set.
 - [queryRow()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/queryRow.html): Execute an SQL statement and get the first row.
 - [queryRowTuple()](http://semitwist.com/mysql-native-docs/v0.2.0-preview1/mysql/protocol/commands/queryRowTuple.html): Execute an SQL statement and get the first row into a matching tuple of D variables.
