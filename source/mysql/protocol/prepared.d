@@ -25,9 +25,17 @@ import mysql.result;
 /++
 Encapsulation of a prepared statement.
 
-Commands that are expected to return a result set - queries - have distinctive methods
-that are enforced. That is it will be an error to call such a method with an SQL command
-that does not produce a result set.
+Commands that are expected to return a result set - queries - have distinctive
+methods that are enforced. That is it will be an error to call such a method
+with an SQL command that does not produce a result set. So for commands like
+SELECT, use the `query` functions. For other commands, like
+INSERT/UPDATE/CREATE/etc, use `exec`.
+
+Internally, `Prepared` simply wraps a `PreparedImpl` with
+$(LINK2 https://dlang.org/phobos/std_typecons.html#.RefCounted, `RefCounted`),
+and offers access to the `PreparedImpl` members via "alias this".
+
+See the `PreparedImpl` documentation for the bulk of the `Prepared` interface.
 +/
 struct Prepared
 {
@@ -177,11 +185,10 @@ unittest
 }
 
 /++
-Encapsulation of a prepared statement.
-
-Commands that are expected to return a result set - queries - have distinctive methods
-that are enforced. That is it will be an error to call such a method with an SQL command
-that does not produce a result set.
+This is the internal implementation of `Prepared`. It is not intended to be
+used directly, as `Prepared` wraps a `PreparedImpl` with
+$(LINK2 https://dlang.org/phobos/std_typecons.html#.RefCounted, `RefCounted`),
+and offers access to the public `PreparedImpl` members via "alias this".
 +/
 struct PreparedImpl
 {

@@ -1,4 +1,12 @@
-﻿module mysql.protocol.commands;
+﻿/++
+Commands that are expected to return a result set - queries - have distinctive
+methods that are enforced. That is it will be an error to call such a method
+with an SQL command that does not produce a result set. So for commands like
+SELECT, use the `query` functions. For other commands, like
+INSERT/UPDATE/CREATE/etc, use `exec`.
++/
+
+module mysql.protocol.commands;
 
 import std.algorithm;
 import std.conv;
