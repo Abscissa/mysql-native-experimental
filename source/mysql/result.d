@@ -259,16 +259,21 @@ struct DBValue
 }
 
 /++
-A Random access range of Rows.
+A $(LINK2 http://dlang.org/phobos/std_range_primitives.html#isRandomAccessRange, random access range)
+of Row.
 
-This is the entity that is returned by the Command methods execSQLResult and
-execPreparedResult
+This is returned by the `mysql.protocol.commands.querySet` and
+`mysql.protocol.prepared.PreparedImpl.querySet` functions.
 
-MySQL result sets can be up to 2^^64 rows, and the 32 bit implementation of the
-MySQL C API accomodates such potential massive result sets by storing the rows in
-a doubly linked list. I have taken the view that users who have a need for result sets
-up to this size should be working with a 64 bit system, and as such the 32 bit
-implementation will throw if the number of rows exceeds the 32 bit size_t.max.
+Unlike `ResultRange`, this offers random access to the individual rows via
+array-like indexing and a `length` member to check the number of rows received
+without having to count them.
+
+However, this random access comes with a downside: Unlike `ResultRange`, using
+`ResultSet` means ALL the rows are downloaded and stored in
+memory before you can access any of them. So use this only if you really need
+random-access and you're not likely to be dealing with large numbers of rows.
+Otherwise, consider using `query` to receive a `ResultRange` instead.
 +/
 struct ResultSet
 {
@@ -411,13 +416,19 @@ public:
 }
 
 /++
-An input range of Rows.
+An $(LINK2 http://dlang.org/phobos/std_range_primitives.html#isInputRange, input range)
+of Row.
 
-This is the entity that is returned by the Command methods execSQLSequence and
-execPreparedSequence
+This is returned by the `mysql.protocol.commands.query` and
+`mysql.protocol.prepared.PreparedImpl.query` functions.
 
-MySQL result sets can be up to 2^^64 rows. This interface allows for iteration
-through a result set of that size.
+The rows are downloaded one-at-a-time, as you iterate the range. This allows
+for low memory usage, and quick access to the results as they are downloaded.
+This is especially ideal in case your query results in a large number of rows.
+
+However, because of that, this `ResultRange` cannot offer random access or
+a `length` member. If you really need random access, use `querySet` to
+obtain a `ResultSet` instead.
 +/
 struct ResultRange
 {
