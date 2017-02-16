@@ -30,6 +30,7 @@ import std.string;
 import std.traits;
 import std.variant;
 
+/// The default `mysql.protocol.constants.SvrCapFlags` used when creating a connection.
 immutable SvrCapFlags defaultClientFlags =
 		SvrCapFlags.OLD_LONG_PASSWORD | SvrCapFlags.ALL_COLUMN_FLAGS |
 		SvrCapFlags.WITH_DB | SvrCapFlags.PROTOCOL41 |
@@ -37,8 +38,28 @@ immutable SvrCapFlags defaultClientFlags =
 		//SvrCapFlags.MULTI_RESULTS;
 
 /++
-A struct representing a database connection.
+A class representing a database connection.
 
+If you are using Vibe.d, consider using `mysql.pool.MySqlPool` instead of
+creating a new Connection directly. That will provide certain benefits,
+such as reusing old connections and automatic cleanup (no need to close
+the connection when done).
+
+------------------
+// Suggested usage:
+
+{
+	auto con = new Connection("host=localhost;user=joe;pwd=pass123;db=myappsdb");
+	scope(exit) con.close();
+
+	// Use the connection
+	...
+}
+------------------
++/
+class Connection
+{
+/+
 The Connection is responsible for handshaking with the server to establish
 authentication. It then passes client preferences to the server, and
 subsequently is the channel for all command packets that are sent, and all
@@ -57,8 +78,6 @@ After login all further sequences are initialized by the client sending a
 command packet with a zero sequence number, to which the server replies with
 zero or more packets with sequential sequence numbers.
 +/
-class Connection
-{
 package:
 	enum OpenState
 	{
@@ -503,22 +522,42 @@ public:
 
 	/++
 	Construct opened connection.
+
+	Throws `mysql.common.MySQLException` upon failure to connect.
 	
-	After the connection is created, and the initial invitation is received from the server
-	client preferences can be set, and authentication can then be attempted.
-	
-	Parameters:
-	   socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos,
-	                unless -version=Have_vibe_d_core is used.
-	   openSocket = Optional callback which should return a newly-opened Phobos
-	                or Vibe.d TCP socket. This allows custom sockets to be used,
-	                subclassed from Phobos's or Vibe.d's sockets.
-	   host = An IP address in numeric dotted form, or as a host  name.
-	   user = The user name to authenticate.
-	   password = Users password.
-	   db = Desired initial database.
-	   capFlags = The set of flag bits from the server's capabilities that the client requires
+	If you are using Vibe.d, consider using `mysql.pool.MySqlPool` instead of
+	creating a new Connection directly. That will provide certain benefits,
+	such as reusing old connections and automatic cleanup (no need to close
+	the connection when done).
+
+	------------------
+	// Suggested usage:
+
+	{
+	    auto con = new Connection("host=localhost;user=joe;pwd=pass123;db=myappsdb");
+	    scope(exit) con.close();
+
+	    // Use the connection
+	    ...
+	}
+	------------------
+
+	Params:
+		cs = A connection string of the form "host=localhost;user=user;pwd=password;db=mysqld"
+			(TBD: The connection string needs work to allow for semicolons in its parts!)
+		socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos,
+			unless -version=Have_vibe_d_core is used.
+		openSocket = Optional callback which should return a newly-opened Phobos
+			or Vibe.d TCP socket. This allows custom sockets to be used,
+			subclassed from Phobos's or Vibe.d's sockets.
+		host = An IP address in numeric dotted form, or as a host  name.
+		user = The user name to authenticate.
+		password = Users password.
+		db = Desired initial database.
+		capFlags = The set of flag bits from the server's capabilities that the client requires
 	+/
+	//After the connection is created, and the initial invitation is received from the server
+	//client preferences can be set, and authentication can then be attempted.
 	this(string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
 	{
 		version(Have_vibe_d_core)
@@ -554,6 +593,7 @@ public:
 		this(MySQLSocketType.vibed, null, openSocket, host, user, pwd, db, port, capFlags);
 	}
 
+	///ditto
 	private this(MySQLSocketType socketType,
 		OpenSocketCallbackPhobos openSocketPhobos, OpenSocketCallbackVibeD openSocketVibeD,
 		string host, string user, string pwd, string db, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
@@ -585,23 +625,9 @@ public:
 		connect(capFlags);
 	}
 
-	/++
-	Construct opened connection.
-	
-	After the connection is created, and the initial invitation is received from
-	the server client preferences are set, and authentication can then be attempted.
-	
-	TBD The connection string needs work to allow for semicolons in its parts!
-	
-	Parameters:
-	   socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos
-	                unless -version=Have_vibe_d_core is used.
-	   openSocket = Optional callback which should return a newly-opened Phobos
-	                or Vibe.d TCP socket. This allows custom sockets to be used,
-	                subclassed from Phobos's or Vibe.d's sockets.
-	   cs = A connection string of the form "host=localhost;user=user;pwd=password;db=mysqld"
-	   capFlags = The set of flag bits from the server's capabilities that the client requires
-	+/
+	///ditto
+	//After the connection is created, and the initial invitation is received from the server
+	//client preferences can be set, and authentication can then be attempted.
 	this(string cs, SvrCapFlags capFlags = defaultClientFlags)
 	{
 		string[] a = parseConnectionString(cs);
@@ -663,7 +689,7 @@ public:
 	Idiomatic use as follows is suggested:
 	------------------
 	{
-	    auto con = Connection("localhost:user:password:mysqld");
+	    auto con = new Connection("localhost:user:password:mysqld");
 	    scope(exit) con.close();
 	    // Use the connection
 	    ...
