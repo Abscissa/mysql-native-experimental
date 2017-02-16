@@ -49,7 +49,7 @@ the connection when done).
 // Suggested usage:
 
 {
-	auto con = new Connection("host=localhost;user=joe;pwd=pass123;db=myappsdb");
+	auto con = new Connection("host=localhost;port=3306;user=joe;pwd=pass123;db=myappsdb");
 	scope(exit) con.close();
 
 	// Use the connection
@@ -534,7 +534,7 @@ public:
 	// Suggested usage:
 
 	{
-	    auto con = new Connection("host=localhost;user=joe;pwd=pass123;db=myappsdb");
+	    auto con = new Connection("host=localhost;port=3306;user=joe;pwd=pass123;db=myappsdb");
 	    scope(exit) con.close();
 
 	    // Use the connection
@@ -544,7 +544,7 @@ public:
 
 	Params:
 		cs = A connection string of the form "host=localhost;user=user;pwd=password;db=mysqld"
-			(TBD: The connection string needs work to allow for semicolons in its parts!)
+			(TODO: The connection string needs work to allow for semicolons in its parts!)
 		socketType = Whether to use a Phobos or Vibe.d socket. Default is Phobos,
 			unless -version=Have_vibe_d_core is used.
 		openSocket = Optional callback which should return a newly-opened Phobos
@@ -667,16 +667,24 @@ public:
 
 	version(Have_vibe_d_core)
 	{
+		/// Used by Vibe.d's ConnectionPool, ignore this.
 		void acquire() { if( _socket ) _socket.acquire(); }
+		///ditto
 		void release() { if( _socket ) _socket.release(); }
+		///ditto
 		bool isOwner() { return _socket ? _socket.isOwner() : false; }
+		///ditto
 		bool amOwner() { return _socket ? _socket.isOwner() : false; }
 	}
 	else
 	{
+		/// Used by Vibe.d's ConnectionPool, ignore this.
 		void acquire() { /+ Do nothing +/ }
+		///ditto
 		void release() { /+ Do nothing +/ }
+		///ditto
 		bool isOwner() { return !!_socket; }
+		///ditto
 		bool amOwner() { return !!_socket; }
 	}
 
@@ -750,6 +758,26 @@ public:
 		_open = OpenState.connected;
 	}
 
+	/++
+	Parses a connection string of the form
+	`"host=localhost;port=3306;user=joe;pwd=pass123;db=myappsdb"`
+
+	Port is optional and defaults to 3306.
+
+	Whitespace surrounding any name or value is automatically stripped.
+
+	Returns a five-element array of strings in this order:
+	$(UL
+	$(LI [0]: host)
+	$(LI [1]: user)
+	$(LI [2]: pwd)
+	$(LI [3]: db)
+	$(LI [4]: port)
+	)
+	
+	(TODO: The connection string needs work to allow for semicolons in its parts!)
+	+/
+	//TODO: Replace the return value with a proper struct.
 	static string[] parseConnectionString(string cs)
 	{
 		string[] rv;
@@ -956,6 +984,7 @@ public:
 
 	/// After a command that inserted a row into a table with an auto-increment
 	/// ID column, this method allows you to retrieve the last insert ID.
+	//TODO: Rename this lastInsertId
 	@property ulong lastInsertID() pure const nothrow { return _insertID; }
 
 	/// This gets incremented every time a command is issued or results are purged,
