@@ -38,6 +38,7 @@ v1.0.0 - TBD
 - **Change:**
 	Package mysql.connection no longer acts as a package.d, publicly importing
 	other modules. To import all of mysql-native, use `import mysql;`.
+- **Fixed:** Many documentation fixes/improvements.
 - **Fixed:** More unittests.
 - **Fixed:**
 	Better safety against new commands being issued before an earlier command is complete.

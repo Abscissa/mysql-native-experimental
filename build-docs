@@ -1,5 +1,5 @@
 #!/bin/sh
-rdmd --build-only -c -Isource -Dddocs_tmp -X -Xfdocs/docs.json --force source/mysql/package.d
+rdmd --build-only -c -Isource -Dddocs_tmp -X -Xfdocs/docs.json -version=MySQLDocs --force source/mysql/package.d
 rm -rf docs_tmp
 rm source/mysql/package
 ddox filter docs/docs.json --min-protection Public

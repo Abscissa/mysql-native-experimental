@@ -1,5 +1,5 @@
 @echo off
-rdmd --build-only -c -Isource -Dddocs_tmp -X -Xfdocs/docs.json --force source/mysql/package.d
+rdmd --build-only -c -Isource -Dddocs_tmp -X -Xfdocs/docs.json -version=MySQLDocs --force source/mysql/package.d
 rmdir /S /Q docs_tmp > NUL 2> NUL
 del source\mysql\package.exe
 ddox filter docs/docs.json --min-protection Public
