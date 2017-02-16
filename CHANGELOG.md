@@ -1,4 +1,4 @@
-v0.2.0 - TBD
+v1.0.0 - TBD
 =====================
 - **Summary:**
 	API overhauled for better safety, reliability and ease-of-use. Deprecated and
