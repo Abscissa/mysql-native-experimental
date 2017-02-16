@@ -630,6 +630,10 @@ public:
 		this(openSocket, a[0], a[1], a[2], a[3], to!ushort(a[4]), capFlags);
 	}
 
+	/++
+	Check whether this Connection is still connected to the server, or if
+	the connection has been closed.
+	+/
 	@property bool closed()
 	{
 		return _open == OpenState.notConnected || !_socket.connected;
@@ -676,11 +680,23 @@ public:
 		resetPacket();
 	}
 
+	/++
+	Reconnects to the server using the same connection settings originally
+	used to create the Connection.
+
+	Optionally takes a SvrCapFlags, allowing you to reconnect using a different
+	set of server capability flags (most users will not need to do this).
+
+	If the connection is already open, this will do nothing. However, if you
+	request a different set of SvrCapFlags then was originally used to create
+	the Connection, the connection will be closed and then reconnected.
+	+/
 	void reconnect()
 	{
 		reconnect(_clientCapabilities);
 	}
 
+	///ditto
 	void reconnect(SvrCapFlags clientCapabilities)
 	{
 		bool sameCaps = clientCapabilities == _clientCapabilities;
