@@ -187,7 +187,7 @@ public:
 	
 	Params: i = The zero based column index.
 	+/
-	@property bool isNull(size_t i) const pure nothrow { return _nulls[i]; }
+	bool isNull(size_t i) const pure nothrow { return _nulls[i]; }
 
 	/++
 	Get the number of elements (columns) in this row.
