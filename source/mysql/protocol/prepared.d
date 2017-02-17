@@ -194,6 +194,7 @@ struct PreparedImpl
 {
 private:
 	Connection _conn;
+	string _sql;
 
 	void enforceNotReleased()
 	{
@@ -277,6 +278,7 @@ private:
 	public this(Connection conn, string sql)
 	{
 		this._conn = conn;
+		this._sql = sql;
 
 		_conn.enforceNothingPending();
 
@@ -972,6 +974,12 @@ public:
 		setArg(index, null);
 	}
 
+	/// Gets the SQL command for this prepared statement
+	string sql()
+	{
+		return _sql;
+	}
+
 	debug(MYSQL_INTEGRATION_TESTS)
 	unittest
 	{
@@ -987,6 +995,7 @@ public:
 		immutable insertSQL = "INSERT INTO `setNullArg` VALUES (?)";
 		immutable selectSQL = "SELECT * FROM `setNullArg`";
 		auto preparedInsert = cn.prepare(insertSQL);
+		assert(preparedInsert.sql == insertSQL);
 		ResultSet rs;
 
 		{
