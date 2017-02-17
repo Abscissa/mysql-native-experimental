@@ -247,11 +247,9 @@ public:
 	}
 }
 
-/++
-Composite representation of a column value
-
-Another case where a null flag on Variant would simplify matters.
-+/
+/// Deprecated. Replaced by
+/// $(LINK2 https://dlang.org/phobos/std_variant.html, std.variant.Variant).
+deprecated("Use std.variant.Variant instead.")
 struct DBValue
 {
 	Variant value;
@@ -385,17 +383,12 @@ public:
 	The row in question will be that which was the most recent subject of
 	front, back, or opIndex. If there have been no such references it will be front.
 	+/
-	DBValue[string] asAA()
+	Variant[string] asAA()
 	{
 		enforceEx!MYX(_curRows.length, "Attempted use of empty ResultSet as an associative array.");
-		DBValue[string] aa;
+		Variant[string] aa;
 		foreach (size_t i, string s; _colNames)
-		{
-			DBValue value;
-			value.value  = front._values[i];
-			value.isNull = front._nulls[i];
-			aa[s]        = value;
-		}
+			aa[s] = front._values[i];
 		return aa;
 	}
 
@@ -506,18 +499,13 @@ public:
 	/++
 	Get the current row as an associative array by column name
 	+/
-	 DBValue[string] asAA()
-	 {
+	Variant[string] asAA()
+	{
 		ensureValid();
 		enforceEx!MYX(!empty, "Attempted 'front' on exhausted result sequence.");
-		DBValue[string] aa;
+		Variant[string] aa;
 		foreach (size_t i, string s; _colNames)
-		{
-			DBValue value;
-			value.value  = _row._values[i];
-			value.isNull = _row._nulls[i];
-			aa[s]        = value;
-		}
+			aa[s] = _row._values[i];
 		return aa;
 	}
 

@@ -38,6 +38,10 @@ v1.0.0 - TBD
 - **Change:**
 	Package mysql.connection no longer acts as a package.d, publicly importing
 	other modules. To import all of mysql-native, use `import mysql;`.
+- **Change:**
+	The result's `asAA` functions now return Variant[string] instead of DBValue[string].
+	DBValue is no longer needed and now deprecated as it was only used by `asAA`
+	and Variant now handles null properly.
 - **Fixed:** Many documentation fixes/improvements.
 - **Fixed:** More unittests.
 - **Fixed:**
