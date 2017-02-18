@@ -39,6 +39,10 @@ pre .pln, div.prototype .pln { color: #fff }  /* plain text */
   .atv { color: #060 }
 }
 
+p code {
+  background-color: #eee;
+}
+
 /* Put a border around prettyprinted code snippets. */
 pre.prettyprint, pre.code, div.prototype {
   padding: 1em 0;
@@ -46,6 +50,7 @@ pre.prettyprint, pre.code, div.prototype {
   border: 1px solid black;
   color: white;
 }
+
 
 /* Specify class=linenums on a pre to get line numbering */
 ol.linenums { margin-top: 0; margin-bottom: 0 } /* IE indents via margin-left */
