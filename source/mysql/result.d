@@ -260,6 +260,10 @@ struct DBValue
 A $(LINK2 http://dlang.org/phobos/std_range_primitives.html#isRandomAccessRange, random access range)
 of Row.
 
+This is being considered for deprecation in a future release of mysql-native,
+because the same thing can be achieved by passing a `ResultRange` to
+$(LINK2 https://dlang.org/phobos/std_array.html#array, `std.array.array()`).
+
 This is returned by the `mysql.protocol.commands.querySet` and
 `mysql.protocol.prepared.PreparedImpl.querySet` functions.
 
@@ -420,8 +424,10 @@ for low memory usage, and quick access to the results as they are downloaded.
 This is especially ideal in case your query results in a large number of rows.
 
 However, because of that, this `ResultRange` cannot offer random access or
-a `length` member. If you really need random access, use `querySet` to
-obtain a `ResultSet` instead.
+a `length` member. If you need random access, then just like any other range,
+you can simply convert this range to an array via
+$(LINK2 https://dlang.org/phobos/std_array.html#array, `std.array.array()`).
+Or, you can use `querySet` to obtain a `ResultSet` instead.
 +/
 struct ResultRange
 {

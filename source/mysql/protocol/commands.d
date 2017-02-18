@@ -53,8 +53,8 @@ Use this method when you are not going to be using the same command repeatedly.
 It can be used with commands that don't produce a result set, or those that
 do. If there is a result set its existence will be indicated by the return value.
 
-Any result set can be accessed vis Connection.getNextRow(), but you should really be
-using execSQLResult() or execSQLSequence() for such queries.
+Any result set can be accessed via Connection.getNextRow(), but you should really be
+using the query function for such queries.
 
 Params: ra = An out parameter to receive the number of rows affected.
 Returns: true if there was a (possibly empty) result set.
@@ -111,17 +111,22 @@ package bool execQueryImpl(Connection conn, ExecQueryImplInfo info)
 }
 
 /++
-Execute a one-off SQL command.
+Execute a one-off SQL command, such as INSERT/UPDATE/CREATE/etc.
 
-Use this method when you are not going to be using the same command repeatedly.
-It can be used with commands that don't produce a result set, or those that
-do. If there is a result set its existence will be indicated by the return value.
+This method is intended for commands such as which do not produce a result set
+(otherwise, use one of the query functions instead.) If the SQL command does
+produces a result set (such as SELECT), `mysql.common.MySQLResultRecievedException`
+will be thrown.
 
-Any result set can be accessed vis Connection.getNextRow(), but you should really be
-using execSQLResult() or execSQLSequence() for such queries.
+Use this method when you are not going to be using the same command
+repeatedly and you are CERTAIN all the data you're sending is properly
+escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
 
-Params: ra = An out parameter to receive the number of rows affected.
-Returns: true if there was a (possibly empty) result set.
+Params:
+conn = An open Connection to the database.
+sql = The SQL command to be run.
+
+Returns: The number of rows affected.
 +/
 ulong exec(Connection conn, string sql)
 {
@@ -143,16 +148,30 @@ package ulong execImpl(Connection conn, ExecQueryImplInfo info)
 }
 
 /++
-Execute a one-off SQL command for the case where you expect a result set,
-and want it all at once.
+Execute a one-off SQL SELECT command where you expect the entire
+result set all at once.
 
-Use this method when you are not going to be using the same command repeatedly.
-This method will throw if the SQL command does not produce a result set.
+This is being considered for deprecation in a future release of mysql-native,
+because the same thing can be achieved via `query`().
+$(LINK2 https://dlang.org/phobos/std_array.html#array, `array()`).
 
-If there are long data items among the expected result columns you can specify
-that they are to be subject to chunked transfer via a delegate.
+If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+`exec` instead for such commands.
 
-Params: csa = An optional array of ColumnSpecialization structs.
+Use this method when you are not going to be using the same command
+repeatedly and you are CERTAIN all the data you're sending is properly
+escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
+
+If there are long data items among the expected result columns you can use
+the csa param to specify that they are to be subject to chunked transfer via a
+delegate.
+
+Params:
+conn = An open Connection to the database.
+sql = The SQL command to be run.
+csa = An optional array of ColumnSpecialization structs.
+
 Returns: A (possibly empty) ResultSet.
 +/
 ResultSet querySet(Connection conn, string sql, ColumnSpecialization[] csa = null)
@@ -196,16 +215,30 @@ package ResultSet querySetImpl(ColumnSpecialization[] csa, bool binary,
 }
 
 /++
-Execute a one-off SQL command for the case where you expect a result set,
-and want to deal with it a row at a time.
+Execute a one-off SQL SELECT command where you want to deal with the
+result set one row at a time.
 
-Use this method when you are not going to be using the same command repeatedly.
-This method will throw if the SQL command does not produce a result set.
+If you need random access to the resulting Row elements,
+simply call $(LINK2 https://dlang.org/phobos/std_array.html#array, `std.array.array()`)
+on the result.
 
-If there are long data items among the expected result columns you can specify
-that they are to be subject to chunked transfer via a delegate.
+If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+`exec` instead for such commands.
 
-Params: csa = An optional array of ColumnSpecialization structs.
+Use this method when you are not going to be using the same command
+repeatedly and you are CERTAIN all the data you're sending is properly
+escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
+
+If there are long data items among the expected result columns you can use
+the csa param to specify that they are to be subject to chunked transfer via a
+delegate.
+
+Params:
+conn = An open Connection to the database.
+sql = The SQL command to be run.
+csa = An optional array of ColumnSpecialization structs.
+
 Returns: A (possibly empty) ResultRange.
 +/
 ResultRange query(Connection conn, string sql, ColumnSpecialization[] csa = null)
@@ -233,17 +266,25 @@ package ResultRange queryImpl(ColumnSpecialization[] csa,
 }
 
 /++
-Executes a one-off SQL command and returns the first row received, or null
-if none. Useful for the case where you expect a (possibly empty) result set,
-and you're either only expecting one row, or only care about the first row.
+Execute a one-off SQL SELECT command where you only want the first Row (if any).
 
-Use this method when you are not going to be using the same command repeatedly.
-This method will throw if the SQL command does not produce a result set.
+If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+`exec` instead for such commands.
 
-If there are long data items among the expected result columns you can specify
-that they are to be subject to chunked transfer via a delegate.
+Use this method when you are not going to be using the same command
+repeatedly and you are CERTAIN all the data you're sending is properly
+escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
 
-Params: csa = An optional array of ColumnSpecialization structs.
+If there are long data items among the expected result columns you can use
+the csa param to specify that they are to be subject to chunked transfer via a
+delegate.
+
+Params:
+conn = An open Connection to the database.
+sql = The SQL command to be run.
+csa = An optional array of ColumnSpecialization structs.
+
 Returns: Nullable!Row: This will be null (check via Nullable.isNull) if the
 query resulted in an empty result set.
 +/
@@ -268,11 +309,27 @@ package Nullable!Row queryRowImpl(ColumnSpecialization[] csa, Connection conn,
 }
 
 /++
-Execute a one-off SQL command to place result values into a set of D variables.
+Execute a one-off SQL SELECT command where you only want the first Row, and
+place result values into a set of D variables.
 
-Use this method when you are not going to be using the same command repeatedly.
-It will throw if the specified command does not produce a result set, or if
-any column type is incompatible with the corresponding D variable.
+This method will throw if any column type is incompatible with the corresponding D variable.
+
+Unlike the other query functions, queryRowTuple will throw
+`mysql.common.MySQLNoResultRecievedException` if the result set is empty
+(and thus the reference variables passed in cannot be filled).
+
+If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+`exec` instead for such commands.
+
+Use this method when you are not going to be using the same command
+repeatedly and you are CERTAIN all the data you're sending is properly
+escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
+
+Params:
+conn = An open Connection to the database.
+sql = The SQL command to be run.
+args = The variables, taken by reference, to receive the values.
 
 Params: args = A tuple of D variables to receive the results.
 +/
@@ -308,10 +365,8 @@ package void queryRowTupleImpl(T...)(Connection conn, ExecQueryImplInfo info, re
 }
 
 /++
-Executes a one-off SQL command and returns a single value: The the first column
-of the first row received. Useful for the case where you expect a
-(possibly empty) result set, and you're either only expecting one value, or
-only care about the first value.
+Execute a one-off SQL SELECT command and returns a single value,
+the first column of the first row received.
 
 If the query did not produce any rows, or the rows it produced have zero columns,
 this will return `Nullable!Variant()`, ie, null. Test for this with `result.isNull`.
@@ -320,13 +375,23 @@ If the query DID produce a result, but the value actually received is NULL,
 then `result.isNull` will be FALSE, and `result.get` will produce a Variant
 which CONTAINS null. Check for this with `result.get.type == typeid(typeof(null))`.
 
-Use this method when you are not going to be using the same command repeatedly.
-This method will throw if the SQL command does not produce a result set.
+If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+`exec` instead for such commands.
 
-If there are long data items among the expected result columns you can specify
-that they are to be subject to chunked transfer via a delegate.
+Use this method when you are not going to be using the same command
+repeatedly and you are CERTAIN all the data you're sending is properly
+escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
 
-Params: csa = An optional array of ColumnSpecialization structs.
+If there are long data items among the expected result columns you can use
+the csa param to specify that they are to be subject to chunked transfer via a
+delegate.
+
+Params:
+conn = An open Connection to the database.
+sql = The SQL command to be run.
+csa = An optional array of ColumnSpecialization structs.
+
 Returns: Nullable!Variant: This will be null (check via Nullable.isNull) if the
 query resulted in an empty result set.
 +/
@@ -355,7 +420,7 @@ package Nullable!Variant queryValueImpl(ColumnSpecialization[] csa, Connection c
 }
 
 /++
-Encapsulation of an SQL command or query.
+(deprecated) Encapsulation of an SQL command or query.
 
 A Command be be either a one-off SQL query, or may use a prepared statement.
 Commands that are expected to return a result set - queries - have distinctive methods

@@ -700,14 +700,12 @@ public:
 	}
 
 	/++
-	Execute a prepared command.
+	Execute a prepared command, such as INSERT/UPDATE/CREATE/etc.
 	
-	Use this method when you will use the same SQL command repeatedly.
-	It can be used with commands that don't produce a result set, or those that
-	do. If there is a result set its existence will be indicated by the return value.
-	
-	Any result set can be accessed vis Connection.getNextRow(), but you should really be
-	using execPreparedResult() or execPreparedSequence() for such queries.
+	This method is intended for commands such as which do not produce a result set
+	(otherwise, use one of the query functions instead.) If the SQL command does
+	produces a result set (such as SELECT), `mysql.common.MySQLResultRecievedException`
+	will be thrown.
 	
 	Returns: The number of rows affected.
 	+/
@@ -721,14 +719,20 @@ public:
 	}
 
 	/++
-	Execute a prepared SQL command for the case where you expect a result set,
-	and want it all at once.
+	Execute a prepared SQL SELECT command where you expect the entire
+	result set all at once.
 
-	Use this method when you will use the same command repeatedly.
-	This method will throw if the SQL command does not produce a result set.
+	This is being considered for deprecation in a future release of mysql-native,
+	because the same thing can be achieved via `query`().
+	$(LINK2 https://dlang.org/phobos/std_array.html#array, `array()`).
 
-	If there are long data items among the expected result columns you can specify
-	that they are to be subject to chunked transfer via a delegate.
+	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	`exec` instead for such commands.
+
+	If there are long data items among the expected result columns you can use
+	the csa param to specify that they are to be subject to chunked transfer via a
+	delegate.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultSet.
@@ -747,14 +751,20 @@ public:
 	alias queryResult = querySet;
 
 	/++
-	Execute a prepared SQL command for the case where you expect a result set,
-	and want to deal with it one row at a time.
+	Execute a prepared SQL SELECT command where you want to deal with the
+	result set one row at a time.
 
-	Use this method when you will use the same command repeatedly.
-	This method will throw if the SQL command does not produce a result set.
+	If you need random access to the resulting Row elements,
+	simply call $(LINK2 https://dlang.org/phobos/std_array.html#array, `std.array.array()`)
+	on the result.
 
-	If there are long data items among the expected result columns you can
-	specify that they are to be subject to chunked transfer via a delegate.
+	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	`exec` instead for such commands.
+
+	If there are long data items among the expected result columns you can use
+	the csa param to specify that they are to be subject to chunked transfer via a
+	delegate.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: A (possibly empty) ResultRange.
@@ -773,15 +783,15 @@ public:
 	alias querySequence = query;
 
 	/++
-	Executes a one-off SQL command and returns the first row received, or null
-	if none. Useful for the case where you expect a (possibly empty) result set,
-	and you're either only expecting one row, or only care about the first row.
+	Execute a prepared SQL SELECT command where you only want the first Row (if any).
 
-	Use this method when you will use the same command repeatedly.
-	It will throw if the specified command does not produce a result set.
+	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	`exec` instead for such commands.
 
-	If there are long data items among the expected result columns you can specify
-	that they are to be subject to chunked transfer via a delegate.
+	If there are long data items among the expected result columns you can use
+	the csa param to specify that they are to be subject to chunked transfer via a
+	delegate.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: Nullable!Row: This will be null (check via Nullable.isNull) if the
@@ -795,11 +805,18 @@ public:
 	}
 
 	/++
-	Execute a prepared SQL command to place result values into a set of D variables.
+	Execute a prepared SQL SELECT command where you only want the first Row, and
+	place result values into a set of D variables.
 	
-	Use this method when you will use the same command repeatedly.
-	It will throw if the specified command does not produce a result set, or
-	if any column type is incompatible with the corresponding D variable
+	This method will throw if any column type is incompatible with the corresponding D variable.
+
+	Unlike the other query functions, queryRowTuple will throw
+	`mysql.common.MySQLNoResultRecievedException` if the result set is empty
+	(and thus the reference variables passed in cannot be filled).
+
+	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	`exec` instead for such commands.
 	
 	Params: args = A tuple of D variables to receive the results.
 	+/
@@ -818,10 +835,8 @@ public:
 	alias queryTuple = queryRowTuple;
 
 	/++
-	Executes a one-off SQL command and returns a single value: The the first column
-	of the first row received. Useful for the case where you expect a
-	(possibly empty) result set, and you're either only expecting one value, or
-	only care about the first value.
+	Execute a prepared SQL SELECT command and returns a single value,
+	the first column of the first row received.
 
 	If the query did not produce any rows, OR the rows it produced have zero columns,
 	this will return `Nullable!Variant()`, ie, null. Test for this with `result.isNull`.
@@ -830,11 +845,13 @@ public:
 	then `result.isNull` will be FALSE, and `result.get` will produce a Variant
 	which CONTAINS null. Check for this with `result.get.type == typeid(typeof(null))`.
 
-	Use this method when you will use the same command repeatedly.
-	It will throw if the specified command does not produce a result set.
+	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
+	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	`exec` instead for such commands.
 
-	If there are long data items among the expected result columns you can specify
-	that they are to be subject to chunked transfer via a delegate.
+	If there are long data items among the expected result columns you can use
+	the csa param to specify that they are to be subject to chunked transfer via a
+	delegate.
 
 	Params: csa = An optional array of ColumnSpecialization structs.
 	Returns: Nullable!Variant: This will be null (check via Nullable.isNull) if the
