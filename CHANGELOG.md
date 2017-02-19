@@ -64,6 +64,8 @@ v1.0.0 - TBD
 - **Change:**
 	Moved `ColumnInfo`, `MySQLProcedure` and `MetaData` from `mysql.protocol.extra_types`
 	to new `mysql.metadata` module.
+- **Change:**
+	No longer publicly imports internal-only symbols by default.
 - **Fixed:** Many documentation fixes/improvements.
 - **Fixed:** More unittests.
 - **Fixed:**
