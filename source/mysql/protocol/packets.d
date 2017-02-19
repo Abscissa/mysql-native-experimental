@@ -16,7 +16,7 @@ import std.variant;
 import mysql.exceptions;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
-import mysql.sockets;
+import mysql.protocol.sockets;
 public import mysql.protocol.packet_helpers;
 
 void enforcePacketOK(string file = __FILE__, size_t line = __LINE__)(OKErrorPacket okp)

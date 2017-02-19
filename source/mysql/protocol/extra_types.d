@@ -14,7 +14,7 @@ import std.variant;
 
 import mysql.commands;
 import mysql.exceptions;
-import mysql.sockets;
+import mysql.protocol.sockets;
 import mysql.result;
 
 /++

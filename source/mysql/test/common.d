@@ -21,7 +21,7 @@ import mysql.commands;
 import mysql.connection;
 import mysql.exceptions;
 import mysql.protocol.extra_types;
-import mysql.sockets;
+import mysql.protocol.sockets;
 import mysql.result;
 /+
 To enable these tests, you have to add the MYSQL_INTEGRATION_TESTS

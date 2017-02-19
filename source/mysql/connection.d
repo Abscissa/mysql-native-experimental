@@ -5,7 +5,7 @@ import mysql.commands;
 import mysql.exceptions;
 import mysql.protocol.constants;
 import mysql.protocol.packets;
-import mysql.sockets;
+import mysql.protocol.sockets;
 import mysql.result;
 debug(MYSQL_INTEGRATION_TESTS)
 {

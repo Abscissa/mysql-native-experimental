@@ -18,7 +18,7 @@ import mysql.connection;
 import mysql.exceptions;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
-import mysql.sockets;
+import mysql.protocol.sockets;
 
 /++
 A struct to represent a single row of a result set.

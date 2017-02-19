@@ -1,5 +1,5 @@
 ﻿/// Internal - Phobos and vibe.d sockets.
-module mysql.sockets;
+module mysql.protocol.sockets;
 
 import std.algorithm;
 import std.conv;
