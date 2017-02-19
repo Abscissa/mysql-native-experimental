@@ -1,4 +1,5 @@
-﻿module mysql.connection;
+﻿/// Connect to a MySQL/MariaDB server.
+module mysql.connection;
 
 import mysql.commands;
 import mysql.common;

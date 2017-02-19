@@ -1,4 +1,5 @@
-﻿module mysql.prepared;
+﻿/// Use a DB via SQL prepared statements.
+module mysql.prepared;
 
 import std.algorithm;
 import std.conv;

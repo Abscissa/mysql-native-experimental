@@ -1,4 +1,5 @@
-﻿module mysql.protocol.constants;
+﻿/// Internal - Misc protocol constants.
+module mysql.protocol.constants;
 
 /++
 Server capability flags.

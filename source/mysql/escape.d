@@ -1,6 +1,4 @@
-/++
-Functions to escape special characters in mysql strings
-+/
+/// Escape special characters in MySQL strings.
 module mysql.escape;
 
 

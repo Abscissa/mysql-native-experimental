@@ -1,5 +1,5 @@
 ﻿/++
-A lightweight interface to a MySQL/MariaDB  database using vibe.d's
+Connect to a MySQL/MariaDB database using vibe.d's
 $(LINK2 http://vibed.org/api/vibe.core.connectionpool/ConnectionPool, ConnectionPool).
 
 You have to include vibe.d in your project to be able to use this class.

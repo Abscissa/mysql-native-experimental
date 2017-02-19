@@ -1,4 +1,6 @@
 ﻿/++
+Use a DB via plain SQL statements.
+
 Commands that are expected to return a result set - queries - have distinctive
 methods that are enforced. That is it will be an error to call such a method
 with an SQL command that does not produce a result set. So for commands like

@@ -1,4 +1,5 @@
-﻿module mysql.result;
+﻿/// Structures for data received: rows and result sets (ie, a range of rows).
+module mysql.result;
 
 import std.algorithm;
 import std.conv;

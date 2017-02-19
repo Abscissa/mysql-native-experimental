@@ -1,4 +1,5 @@
-﻿module mysql.protocol.packet_helpers;
+﻿/// Internal - Helper functions for the communication protocol.
+module mysql.protocol.packet_helpers;
 
 import std.algorithm;
 import std.conv;

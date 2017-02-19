@@ -1,4 +1,5 @@
-﻿module mysql.protocol.packets;
+﻿/// Internal - Tools for working with MySQL's communications packets.
+module mysql.protocol.packets;
 
 import std.algorithm;
 import std.conv;

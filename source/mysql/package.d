@@ -1,4 +1,5 @@
-﻿module mysql;
+﻿/// Imports all of mysql-native.
+module mysql;
 
 public import mysql.commands;
 public import mysql.common;

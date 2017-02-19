@@ -1,4 +1,8 @@
-﻿module mysql.common;
+﻿/++
+Common functionality, such as exceptions and internal phobos/vibe.d socket wrappers.
++/
+
+module mysql.common;
 
 import std.algorithm;
 import std.conv;
