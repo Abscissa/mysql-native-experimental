@@ -56,6 +56,9 @@ v1.0.0 - TBD
 	Moved `ParameterSpecialization` from `mysql.protocol.extra_types` to
 	`mysql.prepared`.
 - **Change:**
+	Moved `ColumnSpecialization` from `mysql.protocol.extra_types` to
+	`mysql.commands`.
+- **Change:**
 	Moved `TimeDiff` and `Timestamp` from `mysql.protocol.extra_types` to new
 	`mysql.types` module.
 - **Change:**

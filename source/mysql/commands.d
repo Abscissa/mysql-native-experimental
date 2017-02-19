@@ -33,6 +33,31 @@ import mysql.protocol.packet_helpers;
 import mysql.protocol.sockets;
 import mysql.result;
 
+/++
+A struct to represent specializations of prepared statement parameters.
+
+If you are executing a query that will include result columns that are large objects
+it may be expedient to deal with the data as it is received rather than first buffering
+it to some sort of byte array. These two variables allow for this. If both are provided
+then the corresponding column will be fed to the stipulated delegate in chunks of
+chunkSize, with the possible exception of the last chunk, which may be smaller.
+The 'finished' argument will be set to true when the last chunk is set.
+
+Be aware when specifying types for column specializations that for some reason the
+field descriptions returned for a resultset have all of the types TINYTEXT, MEDIUMTEXT,
+TEXT, LONGTEXT, TINYBLOB, MEDIUMBLOB, BLOB, and LONGBLOB lumped as type 0xfc
+contrary to what it says in the protocol documentation.
++/
+struct ColumnSpecialization
+{
+	size_t  cIndex;    // parameter number 0 - number of params-1
+	ushort  type;
+	uint    chunkSize;
+	void delegate(const(ubyte)[] chunk, bool finished) chunkDelegate;
+}
+///ditto
+alias CSN = ColumnSpecialization;
+
 package struct ExecQueryImplInfo
 {
 	bool isPrepared;
