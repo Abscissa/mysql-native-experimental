@@ -86,7 +86,7 @@ debug(MYSQL_INTEGRATION_TESTS)
 	void assertScalar(T, U)(Connection cn, string query, U expected)
 	{
 		// Timestamp is a bit special as it's converted to a DateTime when
-		// returning from MySql to avoid having to use a mysql specific type.
+		// returning from MySQL to avoid having to use a mysql specific type.
 		static if(is(T == DateTime) && is(U == Timestamp))
 			assert(cn.queryScalar(query).get!DateTime == expected.toDateTime());
 		else

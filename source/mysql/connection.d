@@ -40,7 +40,7 @@ immutable SvrCapFlags defaultClientFlags =
 /++
 A class representing a database connection.
 
-If you are using Vibe.d, consider using `mysql.pool.MySqlPool` instead of
+If you are using Vibe.d, consider using `mysql.pool.MySQLPool` instead of
 creating a new Connection directly. That will provide certain benefits,
 such as reusing old connections and automatic cleanup (no need to close
 the connection when done).
@@ -525,7 +525,7 @@ public:
 
 	Throws `mysql.common.MySQLException` upon failure to connect.
 	
-	If you are using Vibe.d, consider using `mysql.pool.MySqlPool` instead of
+	If you are using Vibe.d, consider using `mysql.pool.MySQLPool` instead of
 	creating a new Connection directly. That will provide certain benefits,
 	such as reusing old connections and automatic cleanup (no need to close
 	the connection when done).

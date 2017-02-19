@@ -5,7 +5,7 @@ public import mysql.pool;
 
 version(Have_vibe_d_core)
 {
-	/// For clarity, this has been renamed from `mysql.db.MysqlDB` to `mysql.pool.MySqlPool`
-	deprecated("Use mysql.pool.MySqlPool instead.")
-	alias MysqlDB = MySqlPool;
+	/// For clarity, this has been renamed from `mysql.db.MysqlDB` to `mysql.pool.MySQLPool`
+	deprecated("Use mysql.pool.MySQLPool instead.")
+	alias MysqlDB = MySQLPool;
 }

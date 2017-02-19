@@ -15,10 +15,10 @@ import std.conv;
 import mysql.connection;
 import mysql.protocol.constants;
 
-version(Have_vibe_d_core) version = IncludeMySqlPool;
-version(MySQLDocs)        version = IncludeMySqlPool;
+version(Have_vibe_d_core) version = IncludeMySQLPool;
+version(MySQLDocs)        version = IncludeMySQLPool;
 
-version(IncludeMySqlPool)
+version(IncludeMySQLPool)
 {
 	version(Have_vibe_d_core)
 		import vibe.core.connectionpool;
@@ -62,7 +62,7 @@ version(IncludeMySqlPool)
 	You have to include vibe.d in your project to be able to use this class.
 	If you don't want to, refer to `mysql.connection.Connection`.
 	+/
-	class MySqlPool {
+	class MySQLPool {
 		private {
 			string m_host;
 			string m_user;
