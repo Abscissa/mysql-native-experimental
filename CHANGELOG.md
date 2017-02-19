@@ -1,4 +1,4 @@
-v1.0.0 - TBD
+v1.0.0 - 2017-02-26
 =====================
 - **Summary:**
 	API overhauled for better safety, reliability and ease-of-use. Deprecated and
@@ -65,8 +65,8 @@ v1.0.0 - TBD
 	other modules. To import all of mysql-native, use `import mysql;`.
 - **Change:**
 	`ResultSet.asAA` and `ResultRange.asAA` now return Variant[string] instead
-	of DBValue[string]. DBValue is no longer needed and now deprecated as it
-	was only used by `asAA` and Variant now handles null properly.
+	of DBValue[string]. DBValue is no longer needed and now deprecated (as it
+	was only used by `asAA` and Variant now handles null properly.)
 - **Change:**
 	Improved separation between internal (`mysql.protocol`) and external interfaces.
 	- **Change:**
@@ -77,9 +77,12 @@ v1.0.0 - TBD
 		Moved `ParameterSpecialization` into `mysql.prepared` (was in `mysql.protocol.extra_types`).
 	- **Change:**
 		Moved `ColumnSpecialization` into `mysql.commands` (was in `mysql.protocol.extra_types`).
-- **Change:**
-	Removed module `mysql.common`: Its contents have been moved into
-	`mysql.exceptions` and `mysql.protocol.sockets`.
+	- **Change:**
+		Moved the other public-API members of `mysql.protocol.extra_types` into
+		new modules `mysql.metadata` and `mysql.types`.
+	- **Change:**
+		Removed module `mysql.common`: Its contents have been moved into
+		`mysql.exceptions` and `mysql.protocol.sockets`.
 - **Fixed:**
 	[#75](https://github.com/mysql-d/mysql-native/issues/75),
 	[#89](https://github.com/mysql-d/mysql-native/issues/89):
