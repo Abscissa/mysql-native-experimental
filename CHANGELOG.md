@@ -58,6 +58,9 @@ v1.0.0 - TBD
 - **Change:**
 	Moved `TimeDiff` and `Timestamp` from `mysql.protocol.extra_types` to new
 	`mysql.types` module.
+- **Change:**
+	Moved `ColumnInfo`, `MySQLProcedure` and `MetaData` from `mysql.protocol.extra_types`
+	to new `mysql.metadata` module.
 - **Fixed:** Many documentation fixes/improvements.
 - **Fixed:** More unittests.
 - **Fixed:**
