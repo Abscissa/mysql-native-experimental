@@ -811,7 +811,7 @@ public:
 	This method will throw if any column type is incompatible with the corresponding D variable.
 
 	Unlike the other query functions, queryRowTuple will throw
-	`mysql.common.MySQLNoResultRecievedException` if the result set is empty
+	`mysql.common.MySQLException` if the result set is empty
 	(and thus the reference variables passed in cannot be filled).
 
 	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),

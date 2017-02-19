@@ -315,7 +315,7 @@ place result values into a set of D variables.
 This method will throw if any column type is incompatible with the corresponding D variable.
 
 Unlike the other query functions, queryRowTuple will throw
-`mysql.common.MySQLNoResultRecievedException` if the result set is empty
+`mysql.common.MySQLException` if the result set is empty
 (and thus the reference variables passed in cannot be filled).
 
 If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
@@ -362,6 +362,25 @@ package void queryRowTupleImpl(T...)(Connection conn, ExecQueryImplInfo info, re
 	// Question: Should I check in purgeResult and throw if there were - it's very inefficient to
 	// allow sloppy SQL that does not ensure just one row!
 	conn.purgeResult();
+}
+
+// Test what happends when queryRowTuple receives no rows
+debug(MYSQL_INTEGRATION_TESTS)
+unittest
+{
+	import mysql.protocol.prepared;
+	import mysql.protocol.commands;
+	import mysql.test.common : scopedCn, createCn;
+	mixin(scopedCn);
+
+	cn.exec("DROP TABLE IF EXISTS `queryRowTuple`");
+	cn.exec("CREATE TABLE `queryRowTuple` (
+		`val` INTEGER
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
+	immutable selectSQL = "SELECT * FROM `queryRowTuple`";
+	int queryTupleResult;
+	assertThrown!MYX(cn.queryRowTuple(selectSQL, queryTupleResult));
 }
 
 /++
