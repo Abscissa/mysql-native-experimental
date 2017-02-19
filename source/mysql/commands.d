@@ -6,7 +6,7 @@ SELECT, use the `query` functions. For other commands, like
 INSERT/UPDATE/CREATE/etc, use `exec`.
 +/
 
-module mysql.protocol.commands;
+module mysql.commands;
 
 import std.algorithm;
 import std.conv;
@@ -23,11 +23,11 @@ import std.variant;
 
 import mysql.common;
 import mysql.connection;
+import mysql.prepared;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
-import mysql.protocol.prepared;
 import mysql.result;
 
 package struct ExecQueryImplInfo
@@ -120,7 +120,7 @@ will be thrown.
 
 Use this method when you are not going to be using the same command
 repeatedly and you are CERTAIN all the data you're sending is properly
-escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
+escaped. Otherwise consider using `mysql.prepared.Prepared`.
 
 Params:
 conn = An open Connection to the database.
@@ -133,7 +133,7 @@ ulong exec(Connection conn, string sql)
 	return execImpl(conn, ExecQueryImplInfo(false, sql));
 }
 
-/// Common implementation for mysql.protocol.commands.exec and Prepared.exec
+/// Common implementation for mysql.commands.exec and Prepared.exec
 package ulong execImpl(Connection conn, ExecQueryImplInfo info)
 {
 	ulong rowsAffected;
@@ -161,7 +161,7 @@ then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
 
 Use this method when you are not going to be using the same command
 repeatedly and you are CERTAIN all the data you're sending is properly
-escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
+escaped. Otherwise consider using `mysql.prepared.Prepared`.
 
 If there are long data items among the expected result columns you can use
 the csa param to specify that they are to be subject to chunked transfer via a
@@ -183,7 +183,7 @@ ResultSet querySet(Connection conn, string sql, ColumnSpecialization[] csa = nul
 deprecated("Use querySet instead.")
 alias queryResult = querySet;
 
-/// Common implementation for mysql.protocol.commands.querySet and Prepared.querySet
+/// Common implementation for mysql.commands.querySet and Prepared.querySet
 package ResultSet querySetImpl(ColumnSpecialization[] csa, bool binary,
 	Connection conn, ExecQueryImplInfo info)
 {
@@ -228,7 +228,7 @@ then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
 
 Use this method when you are not going to be using the same command
 repeatedly and you are CERTAIN all the data you're sending is properly
-escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
+escaped. Otherwise consider using `mysql.prepared.Prepared`.
 
 If there are long data items among the expected result columns you can use
 the csa param to specify that they are to be subject to chunked transfer via a
@@ -250,7 +250,7 @@ ResultRange query(Connection conn, string sql, ColumnSpecialization[] csa = null
 deprecated("Use query instead.")
 alias querySequence = query;
 
-/// Common implementation for mysql.protocol.commands.query and Prepared.query
+/// Common implementation for mysql.commands.query and Prepared.query
 package ResultRange queryImpl(ColumnSpecialization[] csa,
 	Connection conn, ExecQueryImplInfo info)
 {
@@ -274,7 +274,7 @@ then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
 
 Use this method when you are not going to be using the same command
 repeatedly and you are CERTAIN all the data you're sending is properly
-escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
+escaped. Otherwise consider using `mysql.prepared.Prepared`.
 
 If there are long data items among the expected result columns you can use
 the csa param to specify that they are to be subject to chunked transfer via a
@@ -293,7 +293,7 @@ Nullable!Row queryRow(Connection conn, string sql, ColumnSpecialization[] csa = 
 	return queryRowImpl(csa, conn, ExecQueryImplInfo(false, sql));
 }
 
-/// Common implementation for mysql.protocol.commands.querySet and Prepared.querySet
+/// Common implementation for mysql.commands.querySet and Prepared.querySet
 package Nullable!Row queryRowImpl(ColumnSpecialization[] csa, Connection conn,
 	ExecQueryImplInfo info)
 {
@@ -324,7 +324,7 @@ then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
 
 Use this method when you are not going to be using the same command
 repeatedly and you are CERTAIN all the data you're sending is properly
-escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
+escaped. Otherwise consider using `mysql.prepared.Prepared`.
 
 Params:
 conn = An open Connection to the database.
@@ -342,7 +342,7 @@ void queryRowTuple(T...)(Connection conn, string sql, ref T args)
 deprecated("Use queryRowTuple instead.")
 alias queryTuple = queryRowTuple;
 
-/// Common implementation for mysql.protocol.commands.queryRowTuple and Prepared.queryRowTuple
+/// Common implementation for mysql.commands.queryRowTuple and Prepared.queryRowTuple
 package void queryRowTupleImpl(T...)(Connection conn, ExecQueryImplInfo info, ref T args)
 {
 	ulong ra;
@@ -368,8 +368,7 @@ package void queryRowTupleImpl(T...)(Connection conn, ExecQueryImplInfo info, re
 debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
-	import mysql.protocol.prepared;
-	import mysql.protocol.commands;
+	import mysql.prepared;
 	import mysql.test.common : scopedCn, createCn;
 	mixin(scopedCn);
 
@@ -400,7 +399,7 @@ then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
 
 Use this method when you are not going to be using the same command
 repeatedly and you are CERTAIN all the data you're sending is properly
-escaped. Otherwise consider using `mysql.protocol.prepared.Prepared`.
+escaped. Otherwise consider using `mysql.prepared.Prepared`.
 
 If there are long data items among the expected result columns you can use
 the csa param to specify that they are to be subject to chunked transfer via a
@@ -419,7 +418,7 @@ Nullable!Variant queryValue(Connection conn, string sql, ColumnSpecialization[] 
 	return queryValueImpl(csa, conn, ExecQueryImplInfo(false, sql));
 }
 
-/// Common implementation for mysql.protocol.commands.querySet and Prepared.querySet
+/// Common implementation for mysql.commands.querySet and Prepared.querySet
 package Nullable!Variant queryValueImpl(ColumnSpecialization[] csa, Connection conn,
 	ExecQueryImplInfo info)
 {

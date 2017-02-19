@@ -12,9 +12,9 @@ import std.string;
 import std.traits;
 import std.variant;
 
+import mysql.commands;
 import mysql.common;
 import mysql.connection;
-import mysql.protocol.commands;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
 
@@ -264,8 +264,8 @@ This is being considered for deprecation in a future release of mysql-native,
 because the same thing can be achieved by passing a `ResultRange` to
 $(LINK2 https://dlang.org/phobos/std_array.html#array, `std.array.array()`).
 
-This is returned by the `mysql.protocol.commands.querySet` and
-`mysql.protocol.prepared.PreparedImpl.querySet` functions.
+This is returned by the `mysql.commands.querySet` and
+`mysql.prepared.PreparedImpl.querySet` functions.
 
 Unlike `ResultRange`, this offers random access to the individual rows via
 array-like indexing and a `length` member to check the number of rows received
@@ -416,8 +416,8 @@ public:
 An $(LINK2 http://dlang.org/phobos/std_range_primitives.html#isInputRange, input range)
 of Row.
 
-This is returned by the `mysql.protocol.commands.query` and
-`mysql.protocol.prepared.PreparedImpl.query` functions.
+This is returned by the `mysql.commands.query` and
+`mysql.prepared.PreparedImpl.query` functions.
 
 The rows are downloaded one-at-a-time, as you iterate the range. This allows
 for low memory usage, and quick access to the results as they are downloaded.

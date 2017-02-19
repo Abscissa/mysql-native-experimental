@@ -12,8 +12,8 @@ import std.string;
 import std.traits;
 import std.variant;
 
+import mysql.commands;
 import mysql.common;
-import mysql.protocol.commands;
 import mysql.result;
 
 /++

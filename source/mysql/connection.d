@@ -1,8 +1,8 @@
 ﻿module mysql.connection;
 
+import mysql.commands;
 import mysql.common;
 import mysql.result;
-import mysql.protocol.commands;
 import mysql.protocol.constants;
 import mysql.protocol.packets;
 debug(MYSQL_INTEGRATION_TESTS)
@@ -148,7 +148,7 @@ package:
 	debug(MYSQL_INTEGRATION_TESTS)
 	unittest
 	{
-		import mysql.protocol.prepared;
+		import mysql.prepared;
 		import mysql.test.common : scopedCn;
 		mixin(scopedCn);
 

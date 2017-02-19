@@ -45,6 +45,8 @@ v1.0.0 - TBD
 	The result's `asAA` functions now return Variant[string] instead of DBValue[string].
 	DBValue is no longer needed and now deprecated as it was only used by `asAA`
 	and Variant now handles null properly.
+- **Change:**
+	Renamed module `mysql.protocol.commands` to `mysql.commands`.
 - **Fixed:** Many documentation fixes/improvements.
 - **Fixed:** More unittests.
 - **Fixed:**

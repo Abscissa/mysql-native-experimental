@@ -41,6 +41,9 @@ version(IncludeMySQLPool)
 
 			/// See: http://vibed.org/api/vibe.core.connectionpool/ConnectionPool.lockConnection
 			LockedConnection!T lockConnection() { return LockedConnection!T(); }
+
+			/// See: http://vibed.org/api/vibe.core.connectionpool/ConnectionPool.maxConcurrency
+			uint maxConcurrency;
 		}
 
 		/++

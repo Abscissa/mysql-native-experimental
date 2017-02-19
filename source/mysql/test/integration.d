@@ -13,9 +13,9 @@ import std.traits;
 import std.typecons;
 import std.variant;
 
+import mysql.commands;
 import mysql.common;
 import mysql.connection;
-import mysql.protocol.commands;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
@@ -955,7 +955,7 @@ unittest
 debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
-	import mysql.protocol.prepared;
+	import mysql.prepared;
 	mixin(scopedCn);
 
 	cn.exec("DROP TABLE IF EXISTS `coupleTypes`");

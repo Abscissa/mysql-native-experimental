@@ -1,4 +1,4 @@
-﻿module mysql.protocol.prepared;
+﻿module mysql.prepared;
 
 import std.algorithm;
 import std.conv;
@@ -13,9 +13,9 @@ import std.traits;
 import std.typecons;
 import std.variant;
 
+import mysql.commands;
 import mysql.common;
 import mysql.connection;
-import mysql.protocol.commands;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
@@ -220,7 +220,7 @@ private:
 	debug(MYSQL_INTEGRATION_TESTS)
 	unittest
 	{
-		import mysql.protocol.prepared;
+		import mysql.prepared;
 		import mysql.test.common;
 		mixin(scopedCn);
 
@@ -659,7 +659,7 @@ package:
 		size_t len = prefix.length;
 		bool longData;
 
-		if (psh._paramCount)
+		if (psh.paramCount)
 		{
 			ubyte[] one = [ 1 ];
 			ubyte[] vals;
@@ -1000,7 +1000,7 @@ public:
 	debug(MYSQL_INTEGRATION_TESTS)
 	unittest
 	{
-		import mysql.protocol.prepared;
+		import mysql.prepared;
 		import mysql.test.common;
 		mixin(scopedCn);
 

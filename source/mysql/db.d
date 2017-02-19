@@ -1,4 +1,8 @@
-﻿module mysql.db;
+﻿/++
+Deprecated. This module is now named `mysql.pool`.
+Module `mysql.db` will be removed in a later release.
++/
+module mysql.db;
 
 public import mysql.connection;
 public import mysql.pool;

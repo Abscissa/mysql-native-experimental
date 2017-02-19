@@ -152,8 +152,8 @@ alias MYXInvalidatedRange = MySQLInvalidatedRangeException;
 debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
-	import mysql.protocol.prepared;
-	import mysql.protocol.commands;
+	import mysql.commands;
+	import mysql.prepared;
 	import mysql.test.common : scopedCn, createCn;
 	mixin(scopedCn);
 
