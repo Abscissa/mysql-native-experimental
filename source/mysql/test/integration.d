@@ -14,11 +14,12 @@ import std.typecons;
 import std.variant;
 
 import mysql.commands;
-import mysql.common;
 import mysql.connection;
+import mysql.exceptions;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
+import mysql.sockets;
 import mysql.result;
 import mysql.test.common;
 

@@ -14,10 +14,11 @@ import std.traits;
 import std.variant;
 
 import mysql.commands;
-import mysql.common;
 import mysql.connection;
+import mysql.exceptions;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
+import mysql.sockets;
 
 /++
 A struct to represent a single row of a result set.

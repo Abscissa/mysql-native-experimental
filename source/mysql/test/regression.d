@@ -20,8 +20,9 @@ import std.traits;
 import std.variant;
 
 import mysql.commands;
-import mysql.common;
 import mysql.connection;
+import mysql.exceptions;
+import mysql.sockets;
 import mysql.result;
 import mysql.test.common;
 

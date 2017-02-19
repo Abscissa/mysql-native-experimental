@@ -1,8 +1,5 @@
-﻿/++
-Common functionality, such as exceptions and internal phobos/vibe.d socket wrappers.
-+/
-
-module mysql.common;
+﻿/// Exceptions thrown by mysql-native.
+module mysql.exceptions;
 
 import std.algorithm;
 import std.conv;
@@ -16,13 +13,7 @@ import std.string;
 import std.traits;
 import std.variant;
 
-version(Have_vibe_d_core)
-{
-	static if(__traits(compiles, (){ import vibe.core.net; } ))
-		import vibe.core.net;
-	else
-		static assert(false, "mysql-native can't find Vibe.d's 'vibe.core.net'.");
-}
+import mysql.protocol.packets;
 
 /++
 An exception type to distinguish exceptions thrown by this package.
@@ -35,6 +26,31 @@ class MySQLException: Exception
 	}
 }
 alias MYX = MySQLException;
+
+/++
+The server sent back a MySQL error code and message. If the server is 4.1+,
+there should also be an ANSI/ODBC-standard SQLSTATE error code.
+
+See_Also: https://dev.mysql.com/doc/refman/5.5/en/error-messages-server.html
++/
+class MySQLReceivedException: MySQLException
+{
+	ushort errorCode;
+	char[5] sqlState;
+
+	this(OKErrorPacket okp, string file, size_t line) pure
+	{
+		this(okp.message, okp.serverStatus, okp.sqlState, file, line);
+	}
+
+	this(string msg, ushort errorCode, char[5] sqlState, string file, size_t line) pure
+	{
+		this.errorCode = errorCode;
+		this.sqlState = sqlState;
+		super("MySQL error: " ~ msg, file, line);
+	}
+}
+alias MYXReceived = MySQLReceivedException;
 
 /++
 Thrown when attempting to communicate with the server (ex: executing SQL or
@@ -190,145 +206,4 @@ unittest
 	assertThrown!MYXNoResultRecieved(preparedInsert.querySet());
 	assertThrown!MYXNoResultRecieved(preparedInsert.query().each());
 	assertThrown!MYXNoResultRecieved(preparedInsert.queryRowTuple(queryTupleResult));
-}
-
-
-// Phobos/Vibe.d type aliases
-package alias PlainPhobosSocket = std.socket.TcpSocket;
-version(Have_vibe_d_core)
-{
-	package alias PlainVibeDSocket = vibe.core.net.TCPConnection;
-}
-else
-{
-	// Dummy types
-	package alias PlainVibeDSocket = Object;
-}
-
-alias OpenSocketCallbackPhobos = PlainPhobosSocket function(string,ushort);
-alias OpenSocketCallbackVibeD = PlainVibeDSocket function(string,ushort);
-
-enum MySQLSocketType { phobos, vibed }
-
-// A minimal socket interface similar to Vibe.d's TCPConnection.
-// Used to wrap both Phobos and Vibe.d sockets with a common interface.
-package interface MySQLSocket
-{
-	void close();
-	@property bool connected() const;
-	void read(ubyte[] dst);
-	void write(in ubyte[] bytes);
-
-	void acquire();
-	void release();
-	bool isOwner();
-	bool amOwner();
-}
-
-// Wraps a Phobos socket with the common interface
-package class MySQLSocketPhobos : MySQLSocket
-{
-	private PlainPhobosSocket socket;
-
-	// The socket should already be open
-	this(PlainPhobosSocket socket)
-	{
-		enforceEx!MYX(socket, "Tried to use a null Phobos socket - Maybe the 'openSocket' callback returned null?");
-		enforceEx!MYX(socket.isAlive, "Tried to use a closed Phobos socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
-		this.socket = socket;
-	}
-
-	invariant()
-	{
-		assert(!!socket);
-	}
-
-	void close()
-	{
-		socket.shutdown(SocketShutdown.BOTH);
-		socket.close();
-	}
-
-	@property bool connected() const
-	{
-		return socket.isAlive;
-	}
-
-	void read(ubyte[] dst)
-	{
-		// Note: I'm a little uncomfortable with this line as it doesn't
-		// (and can't) update Connection._open. Not sure what can be done,
-		// but perhaps Connection._open should be eliminated in favor of
-		// querying the socket's opened/closed state directly.
-		scope(failure) socket.close();
-
-		for (size_t off, len; off < dst.length; off += len) {
-			len = socket.receive(dst[off..$]);
-			enforceEx!MYX(len != 0, "Server closed the connection");
-			enforceEx!MYX(len != socket.ERROR, "Received std.socket.Socket.ERROR");
-		}
-	}
-
-	void write(in ubyte[] bytes)
-	{
-		socket.send(bytes);
-	}
-
-	void acquire() { /+ Do nothing +/ }
-	void release() { /+ Do nothing +/ }
-	bool isOwner() { return true; }
-	bool amOwner() { return true; }
-}
-
-// Wraps a Vibe.d socket with the common interface
-version(Have_vibe_d_core) {
-	package class MySQLSocketVibeD : MySQLSocket
-	{
-		private PlainVibeDSocket socket;
-
-		// The socket should already be open
-		this(PlainVibeDSocket socket)
-		{
-			enforceEx!MYX(socket, "Tried to use a null Vibe.d socket - Maybe the 'openSocket' callback returned null?");
-			enforceEx!MYX(socket.connected, "Tried to use a closed Vibe.d socket - Maybe the 'openSocket' callback created a socket but forgot to open it?");
-			this.socket = socket;
-		}
-
-		invariant()
-		{
-			assert(!!socket);
-		}
-
-		void close()
-		{
-			socket.close();
-		}
-
-		@property bool connected() const
-		{
-			return socket.connected;
-		}
-
-		void read(ubyte[] dst)
-		{
-			socket.read(dst);
-		}
-
-		void write(in ubyte[] bytes)
-		{
-			socket.write(bytes);
-		}
-
-		static if (is(typeof(&TCPConnection.isOwner))) {
-			void acquire() { socket.acquire(); }
-			void release() { socket.release(); }
-			bool isOwner() { return socket.isOwner(); }
-			bool amOwner() { return socket.isOwner(); }
-		} else {
-			void acquire() { /+ Do nothing +/ }
-			void release() { /+ Do nothing +/ }
-			bool isOwner() { return true; }
-			bool amOwner() { return true; }
-		}
-	}
 }

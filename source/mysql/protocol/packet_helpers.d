@@ -13,9 +13,10 @@ import std.string;
 import std.traits;
 import std.variant;
 
-import mysql.common;
+import mysql.exceptions;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
+import mysql.sockets;
 
 /++
 Function to extract a time difference from a binary encoded row.

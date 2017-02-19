@@ -15,12 +15,13 @@ import std.typecons;
 import std.variant;
 
 import mysql.commands;
-import mysql.common;
 import mysql.connection;
+import mysql.exceptions;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
+import mysql.sockets;
 import mysql.result;
 
 /++
@@ -705,7 +706,7 @@ public:
 	
 	This method is intended for commands such as which do not produce a result set
 	(otherwise, use one of the query functions instead.) If the SQL command does
-	produces a result set (such as SELECT), `mysql.common.MySQLResultRecievedException`
+	produces a result set (such as SELECT), `mysql.exceptions.MySQLResultRecievedException`
 	will be thrown.
 	
 	Returns: The number of rows affected.
@@ -728,7 +729,7 @@ public:
 	$(LINK2 https://dlang.org/phobos/std_array.html#array, `array()`).
 
 	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
-	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	then `mysql.exceptions.MySQLNoResultRecievedException` will be thrown. Use
 	`exec` instead for such commands.
 
 	If there are long data items among the expected result columns you can use
@@ -760,7 +761,7 @@ public:
 	on the result.
 
 	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
-	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	then `mysql.exceptions.MySQLNoResultRecievedException` will be thrown. Use
 	`exec` instead for such commands.
 
 	If there are long data items among the expected result columns you can use
@@ -787,7 +788,7 @@ public:
 	Execute a prepared SQL SELECT command where you only want the first Row (if any).
 
 	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
-	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	then `mysql.exceptions.MySQLNoResultRecievedException` will be thrown. Use
 	`exec` instead for such commands.
 
 	If there are long data items among the expected result columns you can use
@@ -812,11 +813,11 @@ public:
 	This method will throw if any column type is incompatible with the corresponding D variable.
 
 	Unlike the other query functions, queryRowTuple will throw
-	`mysql.common.MySQLException` if the result set is empty
+	`mysql.exceptions.MySQLException` if the result set is empty
 	(and thus the reference variables passed in cannot be filled).
 
 	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
-	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	then `mysql.exceptions.MySQLNoResultRecievedException` will be thrown. Use
 	`exec` instead for such commands.
 	
 	Params: args = A tuple of D variables to receive the results.
@@ -847,7 +848,7 @@ public:
 	which CONTAINS null. Check for this with `result.get.type == typeid(typeof(null))`.
 
 	If the SQL command does not produce a result set (such as INSERT/CREATE/etc),
-	then `mysql.common.MySQLNoResultRecievedException` will be thrown. Use
+	then `mysql.exceptions.MySQLNoResultRecievedException` will be thrown. Use
 	`exec` instead for such commands.
 
 	If there are long data items among the expected result columns you can use

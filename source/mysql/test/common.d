@@ -18,9 +18,10 @@ import std.traits;
 import std.variant;
 
 import mysql.commands;
-import mysql.common;
 import mysql.connection;
+import mysql.exceptions;
 import mysql.protocol.extra_types;
+import mysql.sockets;
 import mysql.result;
 /+
 To enable these tests, you have to add the MYSQL_INTEGRATION_TESTS

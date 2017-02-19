@@ -2,10 +2,11 @@
 module mysql.connection;
 
 import mysql.commands;
-import mysql.common;
-import mysql.result;
+import mysql.exceptions;
 import mysql.protocol.constants;
 import mysql.protocol.packets;
+import mysql.sockets;
+import mysql.result;
 debug(MYSQL_INTEGRATION_TESTS)
 {
 	import mysql.test.common;
@@ -524,7 +525,7 @@ public:
 	/++
 	Construct opened connection.
 
-	Throws `mysql.common.MySQLException` upon failure to connect.
+	Throws `mysql.exceptions.MySQLException` upon failure to connect.
 	
 	If you are using Vibe.d, consider using `mysql.pool.MySQLPool` instead of
 	creating a new Connection directly. That will provide certain benefits,

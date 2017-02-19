@@ -13,35 +13,11 @@ import std.string;
 import std.traits;
 import std.variant;
 
-import mysql.common;
+import mysql.exceptions;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
+import mysql.sockets;
 public import mysql.protocol.packet_helpers;
-
-/++
-The server sent back a MySQL error code and message. If the server is 4.1+,
-there should also be an ANSI/ODBC-standard SQLSTATE error code.
-
-See_Also: https://dev.mysql.com/doc/refman/5.5/en/error-messages-server.html
-+/
-class MySQLReceivedException: MySQLException
-{
-	ushort errorCode;
-	char[5] sqlState;
-
-	this(OKErrorPacket okp, string file, size_t line) pure
-	{
-		this(okp.message, okp.serverStatus, okp.sqlState, file, line);
-	}
-
-	this(string msg, ushort errorCode, char[5] sqlState, string file, size_t line) pure
-	{
-		this.errorCode = errorCode;
-		this.sqlState = sqlState;
-		super("MySQL error: " ~ msg, file, line);
-	}
-}
-alias MYXReceived = MySQLReceivedException;
 
 void enforcePacketOK(string file = __FILE__, size_t line = __LINE__)(OKErrorPacket okp)
 {
