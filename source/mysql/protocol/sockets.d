@@ -15,15 +15,15 @@ version(Have_vibe_d_core)
 }
 
 // Phobos/Vibe.d type aliases
-package alias PlainPhobosSocket = std.socket.TcpSocket;
+alias PlainPhobosSocket = std.socket.TcpSocket;
 version(Have_vibe_d_core)
 {
-	package alias PlainVibeDSocket = vibe.core.net.TCPConnection;
+	alias PlainVibeDSocket = vibe.core.net.TCPConnection;
 }
 else
 {
 	// Dummy types
-	package alias PlainVibeDSocket = Object;
+	alias PlainVibeDSocket = Object;
 }
 
 alias OpenSocketCallbackPhobos = PlainPhobosSocket function(string,ushort);
@@ -33,7 +33,7 @@ enum MySQLSocketType { phobos, vibed }
 
 // A minimal socket interface similar to Vibe.d's TCPConnection.
 // Used to wrap both Phobos and Vibe.d sockets with a common interface.
-package interface MySQLSocket
+interface MySQLSocket
 {
 	void close();
 	@property bool connected() const;
@@ -47,7 +47,7 @@ package interface MySQLSocket
 }
 
 // Wraps a Phobos socket with the common interface
-package class MySQLSocketPhobos : MySQLSocket
+class MySQLSocketPhobos : MySQLSocket
 {
 	private PlainPhobosSocket socket;
 
@@ -103,7 +103,7 @@ package class MySQLSocketPhobos : MySQLSocket
 
 // Wraps a Vibe.d socket with the common interface
 version(Have_vibe_d_core) {
-	package class MySQLSocketVibeD : MySQLSocket
+	class MySQLSocketVibeD : MySQLSocket
 	{
 		private PlainVibeDSocket socket;
 

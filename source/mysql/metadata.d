@@ -88,8 +88,7 @@ private:
 		string query = procs ? "SHOW PROCEDURE STATUS WHERE db='": "SHOW FUNCTION STATUS WHERE db='";
 		query ~= _con.currentDB ~ "'";
 
-		auto cmd = Command(_con, query);
-		auto rs = cmd.execSQLResult();
+		auto rs = _con.querySet(query);
 		MySQLProcedure[] pa;
 		pa.length = rs.length;
 		foreach (size_t i; 0..rs.length)
@@ -162,8 +161,7 @@ public:
 	+/
 	string[] databases()
 	{
-		auto cmd = Command(_con, "SHOW DATABASES");
-		auto rs = cmd.execSQLResult();
+		auto rs = _con.querySet("SHOW DATABASES");
 		string[] dbNames;
 		dbNames.length = rs.length;
 		foreach (size_t i; 0..rs.length)
@@ -179,8 +177,7 @@ public:
 	+/
 	string[] tables()
 	{
-		auto cmd = Command(_con, "SHOW TABLES");
-		auto rs = cmd.execSQLResult();
+		auto rs = _con.querySet("SHOW TABLES");
 		string[] tblNames;
 		tblNames.length = rs.length;
 		foreach (size_t i; 0..rs.length)
@@ -210,8 +207,7 @@ public:
 			" COLUMN_KEY, EXTRA, PRIVILEGES, COLUMN_COMMENT" ~
 			" FROM information_schema.COLUMNS WHERE" ~
 			" table_schema='" ~ _con.currentDB ~ "' AND table_name='" ~ table ~ "'";
-		auto cmd = Command(_con, query);
-		auto rs = cmd.execSQLResult();
+		auto rs = _con.querySet(query);
 		ColumnInfo[] ca;
 		ca.length = rs.length;
 		foreach (size_t i; 0..rs.length)
