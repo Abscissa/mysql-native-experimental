@@ -109,9 +109,9 @@ Developers - How to run the test suite
 --------------------------------------
 
 This package contains various unittests and integration tests. To run them,
-run `dub test`.
+run `run-tests`.
 
-The first time you run `dub test`, it will automatically create a
+The first time you run `run-tests`, it will automatically create a
 file `testConnectionStr.txt` in project's base diretory and then exit.
 This file is deliberately not contained in the source repository
 because it's specific to your system.
@@ -124,6 +124,6 @@ The tests will completely clobber anything inside the db schema provided,
 but they will ONLY modify that one db schema. No other schema will be
 modified in any way.
 
-After you've configured the connection string, run `dub test` again
+After you've configured the connection string, run `run-tests` again
 and their tests will be compiled and run, first using Phobos sockets,
 then using Vibe sockets.
