@@ -1,17 +1,9 @@
 ﻿/// Internal - Tools for working with MySQL's communications packets.
 module mysql.protocol.packets;
 
-import std.algorithm;
-import std.conv;
-import std.datetime;
-import std.digest.sha;
 import std.exception;
 import std.range;
-import std.socket;
-import std.stdio;
 import std.string;
-import std.traits;
-import std.variant;
 
 import mysql.commands : ColumnSpecialization, CSN;
 import mysql.exceptions;
@@ -204,6 +196,8 @@ public:
 
 	void show() const
 	{
+		import std.stdio;
+
 		writefln("%s %d %x %016b", _name, _length, _type, _flags);
 	}
 }
@@ -456,6 +450,8 @@ public:
 
 	void showCols() const
 	{
+		import std.stdio;
+
 		writefln("%d columns", _colCount);
 		foreach (FieldDescription fd; _colDescriptions)
 		{

@@ -2,17 +2,6 @@
 module mysql.exceptions;
 
 import std.algorithm;
-import std.conv;
-import std.datetime;
-import std.digest.sha;
-import std.exception;
-import std.range;
-import std.socket;
-import std.stdio;
-import std.string;
-import std.traits;
-import std.variant;
-
 import mysql.protocol.packets;
 
 /++
@@ -172,6 +161,7 @@ alias MYXInvalidatedRange = MySQLInvalidatedRangeException;
 debug(MYSQL_INTEGRATION_TESTS)
 unittest
 {
+	import std.exception;
 	import mysql.commands;
 	import mysql.prepared;
 	import mysql.test.common : scopedCn, createCn;

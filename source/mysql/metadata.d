@@ -1,17 +1,9 @@
 ﻿/// Retrieve metadata from a DB.
 module mysql.metadata;
 
-import std.algorithm;
 import std.conv;
 import std.datetime;
-import std.digest.sha;
 import std.exception;
-import std.range;
-import std.socket;
-import std.stdio;
-import std.string;
-import std.traits;
-import std.variant;
 
 import mysql.commands;
 import mysql.exceptions;

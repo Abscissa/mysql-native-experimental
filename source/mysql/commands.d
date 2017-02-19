@@ -10,16 +10,9 @@ INSERT/UPDATE/CREATE/etc, use `exec`.
 
 module mysql.commands;
 
-import std.algorithm;
 import std.conv;
-import std.datetime;
-import std.digest.sha;
 import std.exception;
 import std.range;
-import std.socket;
-import std.stdio;
-import std.string;
-import std.traits;
 import std.typecons;
 import std.variant;
 

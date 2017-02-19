@@ -1,17 +1,12 @@
 ﻿/// Internal - Helper functions for the communication protocol.
 module mysql.protocol.packet_helpers;
 
-import std.algorithm;
 import std.conv;
 import std.datetime;
-import std.digest.sha;
 import std.exception;
 import std.range;
-import std.socket;
-import std.stdio;
 import std.string;
 import std.traits;
-import std.variant;
 
 import mysql.exceptions;
 import mysql.protocol.constants;

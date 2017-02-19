@@ -1,16 +1,7 @@
 ﻿/// Internal - Protocol-related data types.
 module mysql.protocol.extra_types;
 
-import std.algorithm;
-import std.conv;
-import std.datetime;
-import std.digest.sha;
 import std.exception;
-import std.range;
-import std.socket;
-import std.stdio;
-import std.string;
-import std.traits;
 import std.variant;
 
 import mysql.commands;

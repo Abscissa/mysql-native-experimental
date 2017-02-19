@@ -1,17 +1,8 @@
 ﻿/// Internal - Phobos and vibe.d sockets.
 module mysql.protocol.sockets;
 
-import std.algorithm;
-import std.conv;
-import std.datetime;
-import std.digest.sha;
 import std.exception;
-import std.range;
 import std.socket;
-import std.stdio;
-import std.string;
-import std.traits;
-import std.variant;
 
 import mysql.exceptions;
 

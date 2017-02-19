@@ -1,6 +1,13 @@
 ﻿/// Connect to a MySQL/MariaDB server.
 module mysql.connection;
 
+import std.algorithm;
+import std.conv;
+import std.digest.sha;
+import std.exception;
+import std.socket;
+import std.string;
+
 import mysql.commands;
 import mysql.exceptions;
 import mysql.protocol.constants;
@@ -19,18 +26,6 @@ version(Have_vibe_d_core)
 	else
 		static assert(false, "mysql-native can't find Vibe.d's 'vibe.core.net'.");
 }
-
-import std.algorithm;
-import std.conv;
-import std.datetime;
-import std.digest.sha;
-import std.exception;
-import std.range;
-import std.socket;
-import std.stdio;
-import std.string;
-import std.traits;
-import std.variant;
 
 /// The default `mysql.protocol.constants.SvrCapFlags` used when creating a connection.
 immutable SvrCapFlags defaultClientFlags =

@@ -1,16 +1,10 @@
 ﻿/// Structures for data received: rows and result sets (ie, a range of rows).
 module mysql.result;
 
-import std.algorithm;
 import std.conv;
-import std.datetime;
-import std.digest.sha;
 import std.exception;
 import std.range;
-import std.socket;
-import std.stdio;
 import std.string;
-import std.traits;
 import std.variant;
 
 import mysql.commands;
@@ -243,6 +237,8 @@ public:
 
 	void show()
 	{
+		import std.stdio;
+
 		foreach(Variant v; _values)
 			writef("%s, ", v.toString());
 		writeln("");
