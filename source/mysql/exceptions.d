@@ -1,4 +1,4 @@
-﻿/// Exceptions thrown by mysql-native.
+﻿/// Exceptions defined by mysql-native.
 module mysql.exceptions;
 
 import std.algorithm;

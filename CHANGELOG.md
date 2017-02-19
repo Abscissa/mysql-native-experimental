@@ -3,80 +3,97 @@ v1.0.0 - TBD
 - **Summary:**
 	API overhauled for better safety, reliability and ease-of-use. Deprecated and
 	replaced entire Command struct with better design. Better handling of null.
-	Various bugs fixed and more rigorously tested.
+	Improved/expanded docs. Various bugs fixed. More rigorous test suite.
 - **New:**
-	[#75](https://github.com/mysql-d/mysql-native/issues/75),
-	[#85](https://github.com/mysql-d/mysql-native/issues/85),
-	[#86](https://github.com/mysql-d/mysql-native/issues/86),
-	[#87](https://github.com/mysql-d/mysql-native/issues/87):
-	Major API overhaul to simplify usage and fix various fundamental problems.
-	Most noticeably, the entire Command struct is deprecated. Its functionality
-	has been split and moved (as appropriate) into Connection, various
-	free-functions, and a new reference-counted `Prepared` struct exclusively
-	for prepared statements.
+	[#85](https://github.com/mysql-d/mysql-native/issues/85):
+	Redesigned SQL-based functions. Use the various `query` functions for
+	SELECT-like commands (to receive a result set), or the `exec` function for
+	non-SELECT commands to receive "rows affected".
 - **New:**
-	Various new subclasses of MySQLException added, for better fine-grained control.
+	New modules for better organization of features:
+	- **New:**
+		Module `mysql.prepared`: Home of the newly redesigned prepared statement
+		functionality.
+	- **Change:**
+		Module `mysql.exceptions`: Contains all exceptions defined by mysql-native.
+	- **Change:**
+		Module `mysql.metadata`: Metadata-related symbols formerly from
+		`mysql.protocol.extra_types`.
+	- **Change:**
+		Module `mysql.types`: Structures for MySQL types not built-in to D/Phobos,
+		formerly from `mysql.protocol.extra_types`.
 - **New:**
-	Add `length` property and `opDollar` to struct Row.
+	Prepared statement improvements, including much improved support for null.
+	- **New:**
+		`Prepared` struct to represent a prepared statement.
+	- **New:**
+		Prepared statements support setting arguments directly to `null` or `Nullable!T`.
+		Using `setNullArg` (formerly `setNullParam`) is no longer necessary (but still supported).
+	- **Change:**
+		`Row.opIndex` no longer throws if the value is null. Instead, it returns `Variant(null)`.
+	- **Change:**
+		[#89](https://github.com/mysql-d/mysql-native/issues/89):
+		Values bound to prepared statement parameters are now taken by value, not by
+		reference (but only when using the new `Prepared` struct, not the
+		now-deprecated `Command` struct).
+	- **Fixed:**
+		[#76](https://github.com/mysql-d/mysql-native/issues/76):
+		Prepared statements are auto-released when their reference count reaches zero.
 - **New:**
-	Can use `null` or `Nullable!T` when setting arguments for prepared statements.
-	The null condition is correctly handled. Using `setNullParam` (now `setNullArg`)
-	is no longer necessary.
+	Various new subclasses of `MySQLException` added, for better fine-grained control.
 - **New:**
+	Row struct now supports `length` property and `opDollar`.
+- **New:**
+	[#74](https://github.com/mysql-d/mysql-native/issues/74):
 	`mysql.pool.MySQLPool` (formerly `mysql.db.MysqlDB`) now supports vibe.d's
 	`ConnectionPool.maxConcurrency` feature.
 - **Change:**
 	Drop support for DMDFE 2.067.x and below. Compiles on
-	DMDFE 2.068.2 through 2.072.0. See [.travis.yml](https://github.com/mysql-d/mysql-native/blob/master/.travis.yml)
+	DMDFE 2.068.2 through 2.072.1. See [.travis.yml](https://github.com/mysql-d/mysql-native/blob/master/.travis.yml)
 	for full list of supported compilers.
 - **Change:**
-	`Row.opIndex` no longer throws if the value is null. Instead, it returns `Variant(null)`.
+	[#86](https://github.com/mysql-d/mysql-native/issues/86),
+	[#87](https://github.com/mysql-d/mysql-native/issues/87):
+	`Command` struct is now deprecated. Its functionality
+	has been split and moved (as appropriate) into Connection, various
+	free-functions, and a new reference-counted `Prepared` struct exclusively
+	for prepared statements.
 - **Change:**
-	[#89](https://github.com/mysql-d/mysql-native/issues/89):
-	Values bound to prepared statement parameters are now taken by value, not by
-	reference (but only when using the new `Prepared` struct, not the
-	now-deprecated `Command` struct).
+	Renamed `mysql.db.MysqlDB` (misleading. confusing name) to `mysql.pool.MySQLPool`.
 - **Change:**
-	For better clarity, renamed `mysql.db.MysqlDB` to `mysql.pool.MySQLPool`.
-- **Change:**
-	Package mysql.connection no longer acts as a package.d, publicly importing
+	Module `mysql.connection` no longer acts as a package.d, publicly importing
 	other modules. To import all of mysql-native, use `import mysql;`.
 - **Change:**
-	The result's `asAA` functions now return Variant[string] instead of DBValue[string].
-	DBValue is no longer needed and now deprecated as it was only used by `asAA`
-	and Variant now handles null properly.
+	`ResultSet.asAA` and `ResultRange.asAA` now return Variant[string] instead
+	of DBValue[string]. DBValue is no longer needed and now deprecated as it
+	was only used by `asAA` and Variant now handles null properly.
 - **Change:**
-	Renamed module `mysql.protocol.commands` to `mysql.commands`.
+	Improved separation between internal (`mysql.protocol`) and external interfaces.
+	- **Change:**
+		No longer publicly imports internal-only symbols by default.
+	- **Change:**
+		Renamed module `mysql.protocol.commands` to `mysql.commands`.
+	- **Change:**
+		Moved `ParameterSpecialization` into `mysql.prepared` (was in `mysql.protocol.extra_types`).
+	- **Change:**
+		Moved `ColumnSpecialization` into `mysql.commands` (was in `mysql.protocol.extra_types`).
 - **Change:**
-	Split module `mysql.common` into two separate modules: `mysql.exceptions`
-	and `mysql.protocol.sockets`.
-- **Change:**
-	Moved `MySQLReceivedException` from `mysql.protocol.packets` to `mysql.exceptions`.
-- **Change:**
-	Moved `ParameterSpecialization` from `mysql.protocol.extra_types` to
-	`mysql.prepared`.
-- **Change:**
-	Moved `ColumnSpecialization` from `mysql.protocol.extra_types` to
-	`mysql.commands`.
-- **Change:**
-	Moved `TimeDiff` and `Timestamp` from `mysql.protocol.extra_types` to new
-	`mysql.types` module.
-- **Change:**
-	Moved `ColumnInfo`, `MySQLProcedure` and `MetaData` from `mysql.protocol.extra_types`
-	to new `mysql.metadata` module.
-- **Change:**
-	No longer publicly imports internal-only symbols by default.
-- **Fixed:** Many documentation fixes/improvements.
-- **Fixed:** More unittests.
+	Removed module `mysql.common`: Its contents have been moved into
+	`mysql.exceptions` and `mysql.protocol.sockets`.
+- **Fixed:**
+	[#75](https://github.com/mysql-d/mysql-native/issues/75),
+	[#89](https://github.com/mysql-d/mysql-native/issues/89):
+	Fixed problems where various structs and user data was unsafe to move/copy
+	due to usage of internal pointers/references. Such usages of internal
+	pointers/references have been eliminated.
 - **Fixed:**
 	Better safety against new commands being issued before an earlier command is complete.
 - **Fixed:**
-	[#76](https://github.com/mysql-d/mysql-native/issues/76)
-	Prepared statements are auto-released when their reference count reaches zero.
-- **Fixed:**
-	Now get an MySQLInvalidatedRangeException instead of undefined behavior
-	when using a ResultSequence after it's been invalidated by either a new
-	command being issued or the results being purged.
+	Reliability: Now get an MySQLInvalidatedRangeException instead of undefined
+	behavior when using a ResultSequence after it's been invalidated by either
+	a new command being issued or the results being purged.
+- **Fixed:** Many documentation improvements and fixes.
+- **Fixed:** More unittests.
 
 v0.1.7 - 2016-10-20
 =====================
