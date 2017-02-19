@@ -53,6 +53,9 @@ v1.0.0 - TBD
 - **Change:**
 	Moved `MySQLReceivedException` from `mysql.protocol.packets` to `mysql.exceptions`.
 - **Change:**
+	Moved `ParameterSpecialization` from `mysql.protocol.extra_types` to
+	`mysql.prepared`.
+- **Change:**
 	Moved `TimeDiff` and `Timestamp` from `mysql.protocol.extra_types` to new
 	`mysql.types` module.
 - **Fixed:** Many documentation fixes/improvements.

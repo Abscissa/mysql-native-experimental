@@ -26,6 +26,34 @@ import mysql.result;
 import mysql.types;
 
 /++
+A struct to represent specializations of prepared statement parameters.
+
+Strongly considering the removal of the isNull field, now that Prepared
+can handle `null` as a value just fine.
+
+There are two specializations. First you can set an isNull flag to indicate that the
+parameter is to have the SQL NULL value.
+
+Second, if you need to send large objects to the database it might be convenient to
+send them in pieces. These two variables allow for this. If both are provided
+then the corresponding column will be populated by calling the delegate repeatedly.
+the source should fill the indicated slice with data and arrange for the delegate to
+return the length of the data supplied. Af that is less than the chunkSize
+then the chunk will be assumed to be the last one.
++/
+struct ParameterSpecialization
+{
+	import mysql.protocol.constants;
+	
+	size_t pIndex;    //parameter number 0 - number of params-1
+	SQLType type = SQLType.INFER_FROM_D_TYPE;
+	uint chunkSize;
+	uint delegate(ubyte[]) chunkDelegate;
+}
+///ditto
+alias PSN = ParameterSpecialization;
+
+/++
 Encapsulation of a prepared statement.
 
 Commands that are expected to return a result set - queries - have distinctive
