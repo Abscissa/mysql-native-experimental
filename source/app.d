@@ -11,7 +11,7 @@ If connection string isn't provided, the following default connection string wil
 	Run test using use Vibe.d conenction pool. Requires -version=Have_vibe_d_core
 +/
 
-import mysql.connection;
+import mysql;
 import std.stdio;
 
 void main(string[] args)
