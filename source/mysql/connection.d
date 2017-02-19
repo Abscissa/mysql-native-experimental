@@ -112,7 +112,7 @@ package:
 
 	// This gets incremented every time a command is issued or results are purged,
 	// so a ResultRange can tell whether it's been invalidated.
-	ulong _lastCommandId;
+	ulong _lastCommandID;
 
 	// Whether there are rows, headers or bimary data waiting to be retreived.
 	// MySQL protocol doesn't permit performing any other action until all
@@ -255,7 +255,7 @@ package:
 
 		scope(failure) kill();
 
-		_lastCommandId++;
+		_lastCommandID++;
 
 		if(!_socket.connected)
 		{
@@ -903,7 +903,7 @@ public:
 	{
 		scope(failure) kill();
 
-		_lastCommandId++;
+		_lastCommandID++;
 
 		ulong rows = 0;
 		if (_headersPending)
@@ -984,12 +984,11 @@ public:
 
 	/// After a command that inserted a row into a table with an auto-increment
 	/// ID column, this method allows you to retrieve the last insert ID.
-	//TODO: Rename this lastInsertId
 	@property ulong lastInsertID() pure const nothrow { return _insertID; }
 
 	/// This gets incremented every time a command is issued or results are purged,
 	/// so a ResultRange can tell whether it's been invalidated.
-	@property ulong lastCommandId() pure const nothrow { return _lastCommandId; }
+	@property ulong lastCommandID() pure const nothrow { return _lastCommandID; }
 
 	/// Gets whether rows are pending
 	@property bool rowsPending() pure const nothrow { return _rowsPending; }

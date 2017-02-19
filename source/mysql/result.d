@@ -438,7 +438,7 @@ private:
 	string[]         _colNames;
 	size_t[string]   _colNameIndicies;
 	ulong            _numRowsFetched;
-	ulong            _commandId; // So we can keep track of when this is invalidated
+	ulong            _commandID; // So we can keep track of when this is invalidated
 
 	void ensureValid() const pure
 	{
@@ -452,7 +452,7 @@ package:
 		_con       = con;
 		_rsh       = rsh;
 		_colNames  = colNames;
-		_commandId = con.lastCommandId;
+		_commandID = con.lastCommandID;
 		popFront();
 	}
 
@@ -465,7 +465,7 @@ public:
 	/// Check whether the range can still we used, or has been invalidated
 	@property bool isValid() const pure nothrow
 	{
-		return _commandId == _con.lastCommandId;
+		return _commandID == _con.lastCommandID;
 	}
 
 	/// Make the ResultRange behave as an input range - empty
