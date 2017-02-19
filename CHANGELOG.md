@@ -42,7 +42,7 @@ v1.0.0 - TBD
 - **New:**
 	Various new subclasses of `MySQLException` added, for better fine-grained control.
 - **New:**
-	Row struct now supports `length` property and `opDollar`.
+	`Row` struct now supports `length` property and `opDollar`.
 - **New:**
 	[#74](https://github.com/mysql-d/mysql-native/issues/74):
 	`mysql.pool.MySQLPool` (formerly `mysql.db.MysqlDB`) now supports vibe.d's
