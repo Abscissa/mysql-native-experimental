@@ -17,6 +17,7 @@ import mysql.exceptions;
 import mysql.protocol.constants;
 import mysql.protocol.extra_types;
 import mysql.protocol.sockets;
+import mysql.types;
 
 /++
 Function to extract a time difference from a binary encoded row.

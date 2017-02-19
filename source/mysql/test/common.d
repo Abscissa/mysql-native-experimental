@@ -23,6 +23,8 @@ import mysql.exceptions;
 import mysql.protocol.extra_types;
 import mysql.protocol.sockets;
 import mysql.result;
+import mysql.types;
+
 /+
 To enable these tests, you have to add the MYSQL_INTEGRATION_TESTS
 debug specifier. The reason it uses debug and not version is because dub

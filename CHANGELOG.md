@@ -47,6 +47,14 @@ v1.0.0 - TBD
 	and Variant now handles null properly.
 - **Change:**
 	Renamed module `mysql.protocol.commands` to `mysql.commands`.
+- **Change:**
+	Split module `mysql.common` into two separate modules: `mysql.exceptions`
+	and `mysql.protocol.sockets`.
+- **Change:**
+	Moved `MySQLReceivedException` from `mysql.protocol.packets` to `mysql.exceptions`.
+- **Change:**
+	Moved `TimeDiff` and `Timestamp` from `mysql.protocol.extra_types` to new
+	`mysql.types` module.
 - **Fixed:** Many documentation fixes/improvements.
 - **Fixed:** More unittests.
 - **Fixed:**

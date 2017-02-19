@@ -13,6 +13,7 @@ public import mysql.protocol.packet_helpers;
 public import mysql.protocol.packets;
 public import mysql.protocol.sockets;
 public import mysql.result;
+public import mysql.types;
 
 debug(MYSQL_INTEGRATION_TESTS)
 {

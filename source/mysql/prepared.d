@@ -23,6 +23,7 @@ import mysql.protocol.packets;
 import mysql.protocol.packet_helpers;
 import mysql.protocol.sockets;
 import mysql.result;
+import mysql.types;
 
 /++
 Encapsulation of a prepared statement.
