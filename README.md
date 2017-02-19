@@ -7,26 +7,26 @@ use. It has no dependecies on GPL header files or libraries, instead communicati
 directly with the server via the
 [published client/server protocol](LINK http://dev.mysql.com/doc/internals/en/client-server-protocol.html).
 
-[API Reference](http://semitwist.com/mysql-native-docs/v1.0.0-rc1)
+[API Reference](http://semitwist.com/mysql-native-docs/v1.0.0-rc4)
 
 The primary interfaces:
-- [Connection](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/connection/Connection.html): Connection to the server, and querying and setting of server parameters.
-- [exec()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/commands/exec.html): Plain old SQL statement that does NOT return rows (like INSERT/UPDATE/CREATE/etc), returns number of rows affected
-- [query()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/commands/query.html): Execute an SQL statement that DOES return rows (ie, SELECT) and handle the rows one at a time, as an input range.
-- [querySet()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/commands/querySet.html): Execute an SQL statement and get a complete result set.
-- [queryRow()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/commands/queryRow.html): Execute an SQL statement and get the first row.
-- [queryRowTuple()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/commands/queryRowTuple.html): Execute an SQL statement and get the first row into a matching tuple of D variables.
-- [queryValue()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/commands/queryValue.html): Execute an SQL statement and get the first value in the first row.
-- [prepare()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/prepared/prepare.html): Create a prepared statement
-- [Prepared](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/prepared/PreparedImpl.html): A prepared statement, with principal methods:
-	- [exec()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/prepared/PreparedImpl.exec.html)/[query()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/prepared/PreparedImpl.query.html)/[querySet()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/prepared/PreparedImpl.querySet.html)/etc.: Just like above, but using a prepared statement.
-	- [setArg()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/prepared/PreparedImpl.setArg.html): Set one argument to pass into the prepared statement.
-	- [setArgs()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/prepared/PreparedImpl.setArgs.html): Set all arguments to pass in.
-	- [getArg()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/prepared/PreparedImpl.getArg.html): Get an argument that's been set.
-	- [release()](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/prepared/PreparedImpl.release.html): Optional. Prepared is refcounted.
-- [Row](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/result/Row.html): One "row" of results, used much like an array of Variant.
-- [ResultRange](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/result/ResultRange.html): An input range of rows.
-- [ResultSet](http://semitwist.com/mysql-native-docs/v1.0.0-rc1/mysql/result/ResultSet.html): A random access range of rows.
+- [Connection](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/connection/Connection.html): Connection to the server, and querying and setting of server parameters.
+- [exec()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/commands/exec.html): Plain old SQL statement that does NOT return rows (like INSERT/UPDATE/CREATE/etc), returns number of rows affected
+- [query()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/commands/query.html): Execute an SQL statement that DOES return rows (ie, SELECT) and handle the rows one at a time, as an input range.
+- [querySet()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/commands/querySet.html): Execute an SQL statement and get a complete result set.
+- [queryRow()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/commands/queryRow.html): Execute an SQL statement and get the first row.
+- [queryRowTuple()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/commands/queryRowTuple.html): Execute an SQL statement and get the first row into a matching tuple of D variables.
+- [queryValue()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/commands/queryValue.html): Execute an SQL statement and get the first value in the first row.
+- [prepare()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/prepared/prepare.html): Create a prepared statement
+- [Prepared](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/prepared/PreparedImpl.html): A prepared statement, with principal methods:
+	- [exec()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/prepared/PreparedImpl.exec.html)/[query()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/prepared/PreparedImpl.query.html)/[querySet()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/prepared/PreparedImpl.querySet.html)/etc.: Just like above, but using a prepared statement.
+	- [setArg()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/prepared/PreparedImpl.setArg.html): Set one argument to pass into the prepared statement.
+	- [setArgs()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/prepared/PreparedImpl.setArgs.html): Set all arguments to pass in.
+	- [getArg()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/prepared/PreparedImpl.getArg.html): Get an argument that's been set.
+	- [release()](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/prepared/PreparedImpl.release.html): Optional. Prepared is refcounted.
+- [Row](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/result/Row.html): One "row" of results, used much like an array of Variant.
+- [ResultRange](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/result/ResultRange.html): An input range of rows.
+- [ResultSet](http://semitwist.com/mysql-native-docs/v1.0.0-rc4/mysql/result/ResultSet.html): A random access range of rows.
 
 Basic example:
 ```d
