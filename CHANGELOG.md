@@ -22,6 +22,9 @@ v1.0.0 - TBD
 	Can use `null` or `Nullable!T` when setting arguments for prepared statements.
 	The null condition is correctly handled. Using `setNullParam` (now `setNullArg`)
 	is no longer necessary.
+- **New:**
+	`mysql.pool.MySQLPool` (formerly `mysql.db.MysqlDB`) now supports vibe.d's
+	`ConnectionPool.maxConcurrency` feature.
 - **Change:**
 	Drop support for DMDFE 2.067.x and below. Compiles on
 	DMDFE 2.068.2 through 2.072.0. See [.travis.yml](https://github.com/mysql-d/mysql-native/blob/master/.travis.yml)
@@ -34,7 +37,7 @@ v1.0.0 - TBD
 	reference (but only when using the new `Prepared` struct, not the
 	now-deprecated `Command` struct).
 - **Change:**
-	For better clarity, renamed `mysql.db.MysqlDB` to `mysql.pool.MySqlPool`.
+	For better clarity, renamed `mysql.db.MysqlDB` to `mysql.pool.MySQLPool`.
 - **Change:**
 	Package mysql.connection no longer acts as a package.d, publicly importing
 	other modules. To import all of mysql-native, use `import mysql;`.

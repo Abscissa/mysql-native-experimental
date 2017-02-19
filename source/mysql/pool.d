@@ -74,7 +74,9 @@ version(IncludeMySQLPool)
 		}
 
 		/// Sets up a connection pool with the provided connection settings.
-		this(string host, string user, string password, string database, ushort port = 3306, SvrCapFlags capFlags = defaultClientFlags)
+		this(string host, string user, string password, string database,
+			ushort port = 3306, uint maxConcurrent = (uint).max,
+			SvrCapFlags capFlags = defaultClientFlags)
 		{
 			m_host = host;
 			m_user = user;
@@ -86,10 +88,23 @@ version(IncludeMySQLPool)
 		}
 
 		///ditto
-		this(string connStr, SvrCapFlags capFlags = defaultClientFlags)
+		this(string host, string user, string password, string database,
+			ushort port, SvrCapFlags capFlags)
+		{
+			this(host, user, password, database, port, (uint).max, capFlags);
+		}
+
+		///ditto
+		this(string connStr, uint maxConcurrent = (uint).max, SvrCapFlags capFlags = defaultClientFlags)
 		{
 			auto parts = Connection.parseConnectionString(connStr);
 			this(parts[0], parts[1], parts[2], parts[3], to!ushort(parts[4]), capFlags);
+		}
+
+		///ditto
+		this(string connStr, SvrCapFlags capFlags)
+		{
+			this(connStr, (uint).max, capFlags);
 		}
 
 		/++
@@ -111,6 +126,21 @@ version(IncludeMySQLPool)
 		private Connection createConnection()
 		{
 			return new Connection(m_host, m_user, m_password, m_database, m_port, m_capFlags);
+		}
+
+		/++
+		Forwards to vibe.d's
+		$(LINK2 http://vibed.org/api/vibe.core.connectionpool/ConnectionPool.maxConcurrency, ConnectionPool.maxConcurrency)
+		+/
+		@property uint maxConcurrency()
+		{
+			return m_pool.maxConcurrency;
+		}
+
+		///ditto
+		@property void maxConcurrency(uint maxConcurrent)
+		{
+			m_pool.maxConcurrency = maxConcurrent;
 		}
 	}
 }
