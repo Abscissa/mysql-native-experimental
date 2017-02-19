@@ -15,6 +15,10 @@ matrix:
           addons:
             mariadb: '10.1'
 
+        - d: dmd-2.073.1
+          addons:
+            mariadb: '10.1'
+
         - d: dmd-2.073.0
           addons:
             mariadb: '10.1'
