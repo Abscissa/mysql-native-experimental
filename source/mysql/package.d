@@ -1,4 +1,4 @@
-﻿/// Imports all of mysql-native.
+﻿/// Imports all of $(LINK2 https://github.com/mysql-d/mysql-native, mysql-native).
 module mysql;
 
 public import mysql.commands;
